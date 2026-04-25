@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMix — AI Mixing Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --purple:#7c6af5;--purple-dark:#5a48e0;
+  --drums:#9d6fff;--inst:#00d4aa;--vox:#ff6ec7;
+  --bg:#09090c;--bg2:#0f0f16;--bg3:#0d0d14;
+  --border:#1e1e28;--border2:#2a2a3a;
+}
+body{background:var(--bg);color:#e8e4ff;font-family:'Syne',sans-serif;min-height:100vh;}
+.app{max-width:900px;margin:0 auto;padding:20px;}
+
+/* TOPBAR */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#0d0d12;border-radius:14px;border:1px solid var(--border);margin-bottom:16px;}
+.logo{font-weight:800;font-size:20px;letter-spacing:.05em;}
+.logo em{font-style:normal;color:var(--purple);}
+.sdot{width:7px;height:7px;border-radius:50%;background:#2aff80;display:inline-block;margin-right:6px;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.status{font-family:'JetBrains Mono',monospace;font-size:11px;color:#444;display:flex;align-items:center;}
+
+/* DROP ZONE */
+.drop-zone{background:var(--bg3);border:1.5px dashed #2a2a38;border-radius:14px;padding:36px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:16px;}
+.drop-zone:hover,.drop-zone.over{border-color:var(--purple);background:#10101a;}
+.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.dz-icon{width:52px;height:52px;margin:0 auto 14px;background:#13122a;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.dz-title{font-size:16px;font-weight:700;color:#c0b8ff;margin-bottom:4px;}
+.dz-sub{font-size:11px;color:#444;font-family:'JetBrains Mono',monospace;}
+
+/* COOKING TRACKER */
+.cooking{background:var(--bg3);border:1px solid #2a1a4a;border-radius:14px;overflow:hidden;margin-bottom:16px;display:none;}
+.cooking.show{display:block;}
+.cook-top{padding:24px 24px 12px;text-align:center;}
+.cook-emoji{font-size:42px;display:block;margin-bottom:10px;animation:bounce .8s infinite alternate;}
+@keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-8px);}}
+.cook-title{font-size:20px;font-weight:800;color:#e8e4ff;margin-bottom:4px;}
+.cook-sub{font-size:12px;font-family:'JetBrains Mono',monospace;color:#6a5aaa;}
+.steps{display:flex;align-items:flex-start;justify-content:space-between;padding:20px 24px 24px;position:relative;}
+.steps::before{content:'';position:absolute;top:34px;left:calc(10% + 24px);right:calc(10% + 24px);height:2px;background:#1e1e2e;border-radius:2px;}
+.progress-line{position:absolute;top:34px;left:calc(10% + 24px);height:2px;background:linear-gradient(90deg,var(--purple),var(--vox));border-radius:2px;transition:width 1.2s ease;width:0%;}
+.step{display:flex;flex-direction:column;align-items:center;gap:8px;z-index:1;flex:1;}
+.step-dot{width:48px;height:48px;border-radius:50%;background:#1a1a28;border:2px solid #2a2a3a;display:flex;align-items:center;justify-content:center;font-size:20px;transition:all .4s;}
+.step-dot.active{background:#1a1030;border-color:var(--purple);box-shadow:0 0 16px #7c6af544;}
+.step-dot.done{background:#0a1a0a;border-color:#2aff80;}
+.step-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;color:#444;text-transform:uppercase;letter-spacing:.08em;text-align:center;transition:color .4s;max-width:80px;}
+.step-lbl.active{color:#9d8fff;}
+.step-lbl.done{color:#2aff80;}
+.cook-msg{text-align:center;padding:0 24px 20px;font-size:13px;font-weight:700;color:var(--purple);font-family:'JetBrains Mono',monospace;min-height:24px;}
+
+/* CHANNELS */
+.channels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:12px;}
+.ch{background:var(--bg2);border-radius:12px;overflow:hidden;border:1px solid var(--border);opacity:.35;transition:opacity .5s;}
+.ch.loaded{opacity:1;}
+.ch-head{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #141420;}
+.ch-pill{font-size:9px;font-weight:700;letter-spacing:.1em;padding:3px 10px;border-radius:20px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;}
+.pill-d{background:#1a1030;color:#9d6fff;border:1px solid #3a2a6a;}
+.pill-i{background:#0f1a1a;color:#00d4aa;border:1px solid #005544;}
+.pill-v{background:#1a0f1a;color:#ff6ec7;border:1px solid #5a1a4a;}
+.ch-mute{font-size:9px;padding:3px 8px;border-radius:4px;border:1px solid var(--border2);background:transparent;color:#444;cursor:pointer;font-family:'JetBrains Mono',monospace;transition:all .15s;}
+.ch-mute.muted{background:#2a1010;border-color:#6a2020;color:#ff5555;}
+.ch-wv{padding:10px 12px 6px;}
+canvas.wv{width:100%;height:50px;display:block;border-radius:5px;background:#0a0a10;cursor:pointer;}
+.ch-transport{display:flex;align-items:center;gap:8px;padding:4px 12px 8px;}
+.play-sm{width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s;}
+.play-sm:hover{transform:scale(1.1);}
+.play-d{background:#9d6fff;} .play-i{background:#00d4aa;} .play-v{background:#ff6ec7;}
+.ttime{font-family:'JetBrains Mono',monospace;font-size:9px;color:#444;flex:1;}
+.ch-body{padding:8px 12px 12px;}
+.frow{display:flex;flex-direction:column;gap:3px;margin-bottom:9px;}
+.frow:last-child{margin-bottom:0;}
+.flbl{display:flex;justify-content:space-between;font-size:9px;font-family:'JetBrains Mono',monospace;color:#404058;}
+.fval{color:#777;}
+input[type=range].sl{width:100%;height:3px;-webkit-appearance:none;background:#1e1e2e;border-radius:2px;outline:none;cursor:pointer;}
+input[type=range].sl::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg);cursor:pointer;transition:transform .15s;}
+input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
+.sl-d::-webkit-slider-thumb{background:#9d6fff;}
+.sl-i::-webkit-slider-thumb{background:#00d4aa;}
+.sl-v::-webkit-slider-thumb{background:#ff6ec7;}
+
+/* MASTER */
+.master{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.master-top{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+.m-lbl{font-size:9px;font-family:'JetBrains Mono',monospace;color:#555;text-transform:uppercase;letter-spacing:.1em;min-width:52px;}
+.meter-wrap{flex:1;height:8px;background:#141420;border-radius:4px;overflow:hidden;}
+.meter-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2aff80 55%,#ffdd00 80%,#ff4444 100%);width:0%;transition:width .08s;}
+.master-btns{display:flex;gap:10px;justify-content:flex-end;}
+.mbtn{padding:10px 20px;border-radius:8px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;letter-spacing:.05em;}
+.mbtn:hover{transform:translateY(-1px);}
+.mbtn:active{transform:scale(.97);}
+.btn-auto{background:#1a1030;color:#9d6fff;border:1px solid #3a2a6a;}
+.btn-export{background:var(--purple);color:#fff;}
+.m-status{font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;}
+
+.no-stems{opacity:.4;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div class="logo">AI<em>MIX</em></div>
+    <div class="status"><span class="sdot"></span><span id="appStatus">DROP A TRACK TO BEGIN</span></div>
+  </div>
+
+  <div class="drop-zone" id="dz">
+    <input type="file" accept="audio/*" id="fileIn">
+    <div class="dz-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c6af5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <div class="dz-title">Drop your full track here</div>
+    <div class="dz-sub">We'll separate it into vocals · drums · instruments automatically<br>MP3 · WAV · AIFF · FLAC — max 50MB</div>
+  </div>
+
+  <div class="cooking" id="cookingTracker">
+    <div class="cook-top">
+      <span class="cook-emoji" id="cookEmoji">🎵</span>
+      <div class="cook-title" id="cookTitle">Uploading your track...</div>
+      <div class="cook-sub" id="cookSub">Hang tight, we're working our magic</div>
+    </div>
+    <div class="steps" style="position:relative;">
+      <div class="progress-line" id="progressLine"></div>
+      <div class="step"><div class="step-dot" id="dot0">📤</div><div class="step-lbl" id="lbl0">Upload</div></div>
+      <div class="step"><div class="step-dot" id="dot1">🔪</div><div class="step-lbl" id="lbl1">Separating</div></div>
+      <div class="step"><div class="step-dot" id="dot2">🔥</div><div class="step-lbl" id="lbl2">Cooking</div></div>
+      <div class="step"><div class="step-dot" id="dot3">✨</div><div class="step-lbl" id="lbl3">Finishing</div></div>
+      <div class="step"><div class="step-dot" id="dot4">✅</div><div class="step-lbl" id="lbl4">Ready!</div></div>
+    </div>
+    <div class="cook-msg" id="cookMsg">Sending your track to our AI engine...</div>
+  </div>
+
+  <div class="channels">
+    <div class="ch" id="ch-drums">
+      <div class="ch-head"><div class="ch-pill pill-d">Drums</div><button class="ch-mute" onclick="toggleMute('drums',this)">M</button></div>
+      <div class="ch-wv"><canvas class="wv" id="wv-drums" width="400" height="50"></canvas></div>
+      <div class="ch-transport">
+        <button class="play-sm play-d" onclick="toggleCh('drums')"><svg id="pi-drums" width="10" height="10" viewBox="0 0 24 24" fill="#0a0a0c"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+        <div class="ttime"><span id="tc-drums" style="color:#9d6fff">0:00</span> / <span id="tt-drums">0:00</span></div>
+      </div>
+      <div class="ch-body">
+        <div class="frow"><div class="flbl"><span>Volume</span><span class="fval" id="v-drums">80%</span></div><input type="range" class="sl sl-d" min="0" max="100" value="80" oninput="setStemGain('drums',this.value);document.getElementById('v-drums').textContent=this.value+'%'"></div>
+        <div class="frow"><div class="flbl"><span>Punch</span><span class="fval" id="p-drums">0 dB</span></div><input type="range" class="sl sl-d" min="-12" max="12" value="0" oninput="setEQ('drums','punch',this.value);document.getElementById('p-drums').textContent=(this.value>0?'+':'')+this.value+' dB'"></div>
+        <div class="frow"><div class="flbl"><span>Room</span><span class="fval" id="r-drums">10%</span></div><input type="range" class="sl sl-d" min="0" max="100" value="10" oninput="setReverb('drums',this.value);document.getElementById('r-drums').textContent=this.value+'%'"></div>
+      </div>
+    </div>
+    <div class="ch" id="ch-inst">
+      <div class="ch-head"><div class="ch-pill pill-i">Instruments</div><button class="ch-mute" onclick="toggleMute('inst',this)">M</button></div>
+      <div class="ch-wv"><canvas class="wv" id="wv-inst" width="400" height="50"></canvas></div>
+      <div class="ch-transport">
+        <button class="play-sm play-i" onclick="toggleCh('inst')"><svg id="pi-inst" width="10" height="10" viewBox="0 0 24 24" fill="#0a0a0c"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+        <div class="ttime"><span id="tc-inst" style="color:#00d4aa">0:00</span> / <span id="tt-inst">0:00</span></div>
+      </div>
+      <div class="ch-body">
+        <div class="frow"><div class="flbl"><span>Volume</span><span class="fval" id="v-inst">75%</span></div><input type="range" class="sl sl-i" min="0" max="100" value="75" oninput="setStemGain('inst',this.value);document.getElementById('v-inst').textContent=this.value+'%'"></div>
+        <div class="frow"><div class="flbl"><span>Brightness</span><span class="fval" id="br-inst">0 dB</span></div><input type="range" class="sl sl-i" min="-12" max="12" value="0" oninput="setEQ('inst','hi',this.value);document.getElementById('br-inst').textContent=(this.value>0?'+':'')+this.value+' dB'"></div>
+        <div class="frow"><div class="flbl"><span>Space</span><span class="fval" id="sp-inst">15%</span></div><input type="range" class="sl sl-i" min="0" max="100" value="15" oninput="setReverb('inst',this.value);document.getElementById('sp-inst').textContent=this.value+'%'"></div>
+      </div>
+    </div>
+    <div class="ch" id="ch-vox">
+      <div class="ch-head"><div class="ch-pill pill-v">Vocals</div><button class="ch-mute" onclick="toggleMute('vox',this)">M</button></div>
+      <div class="ch-wv"><canvas class="wv" id="wv-vox" width="400" height="50"></canvas></div>
+      <div class="ch-transport">
+        <button class="play-sm play-v" onclick="toggleCh('vox')"><svg id="pi-vox" width="10" height="10" viewBox="0 0 24 24" fill="#0a0a0c"><polygon points="5 3 19 12 5 21 5 3"/></svg></button>
+        <div class="ttime"><span id="tc-vox" style="color:#ff6ec7">0:00</span> / <span id="tt-vox">0:00</span></div>
+      </div>
+      <div class="ch-body">
+        <div class="frow"><div class="flbl"><span>Volume</span><span class="fval" id="v-vox">85%</span></div><input type="range" class="sl sl-v" min="0" max="100" value="85" oninput="setStemGain('vox',this.value);document.getElementById('v-vox').textContent=this.value+'%'"></div>
+        <div class="frow"><div class="flbl"><span>Crisp</span><span class="fval" id="cr-vox">0 dB</span></div><input type="range" class="sl sl-v" min="-12" max="12" value="0" oninput="setEQ('vox','hi',this.value);document.getElementById('cr-vox').textContent=(this.value>0?'+':'')+this.value+' dB'"></div>
+        <div class="frow"><div class="flbl"><span>Reverb</span><span class="fval" id="rv-vox">20%</span></div><input type="range" class="sl sl-v" min="0" max="100" value="20" oninput="setReverb('vox',this.value);document.getElementById('rv-vox').textContent=this.value+'%'"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="master no-stems" id="masterBar">
+    <div class="master-top">
+      <div class="m-lbl">Master</div>
+      <div class="meter-wrap"><div class="meter-fill" id="meterFill"></div></div>
+      <div class="m-status" id="masterStatus">IDLE</div>
+    </div>
+    <div class="master-btns">
+      <button class="mbtn btn-auto" onclick="autoMix()">✦ AUTO-MIX</button>
+      <button class="mbtn btn-export" onclick="exportMix()">↓ EXPORT WAV</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API='https://aimix-backend-production.up.railway.app';
+const CH_COLORS={drums:'#9d6fff',inst:'#00d4aa',vox:'#ff6ec7'};
+let actx;
+const stems={
+  drums:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,playing:false,offset:0,startTime:0,muted:false},
+  inst:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,playing:false,offset:0,startTime:0,muted:false},
+  vox:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,playing:false,offset:0,startTime:0,muted:false}
+};
+let animId;
+
+const STEPS=[
+  {emoji:'📤',title:'Uploading your track...',sub:'Sending it to our AI engine',msg:'Your track is on its way...',pct:0},
+  {emoji:'🔪',title:'Separating your stems...',sub:'Splitting vocals, drums and instruments',msg:'Slicing through the frequencies...',pct:25},
+  {emoji:'🔥',title:'Your mix is COOKING...',sub:'AI is doing its thing, stay with us',msg:'The sauce is being applied rn 🔥',pct:50},
+  {emoji:'✨',title:'Almost there, adding the sauce...',sub:'Polishing up your stems',msg:'Just the finishing touches...',pct:75},
+  {emoji:'✅',title:'Your mix is READY!',sub:'Load up and start tweaking',msg:'Stems loaded — go crazy 🎛️',pct:100},
+];
+
+function getCtx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+function makeImpulse(c,dur,decay){const sr=c.sampleRate,len=Math.floor(sr*dur),b=c.createBuffer(2,len,sr);for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}return b;}
+
+function setCookStep(i){
+  const s=STEPS[i];
+  document.getElementById('cookEmoji').textContent=s.emoji;
+  document.getElementById('cookTitle').textContent=s.title;
+  document.getElementById('cookSub').textContent=s.sub;
+  document.getElementById('cookMsg').textContent=s.msg;
+  document.getElementById('progressLine').style.width=s.pct+'%';
+  for(let j=0;j<5;j++){
+    document.getElementById('dot'+j).className='step-dot'+(j<i?' done':j===i?' active':'');
+    document.getElementById('lbl'+j).className='step-lbl'+(j<i?' done':j===i?' active':'');
+  }
+}
+
+function buildGraph(id){
+  const c=getCtx(),s=stems[id];
+  s.gain=c.createGain();s.gain.gain.value=id==='drums'?.8:id==='inst'?.75:.85;
+  s.hiShelf=c.createBiquadFilter();s.hiShelf.type='highshelf';s.hiShelf.frequency.value=8000;s.hiShelf.gain.value=0;
+  s.punch=c.createBiquadFilter();s.punch.type='peaking';s.punch.frequency.value=id==='drums'?200:2500;s.punch.Q.value=1;s.punch.gain.value=0;
+  s.reverb=c.createConvolver();s.reverb.buffer=makeImpulse(c,2,2.5);
+  s.reverbGain=c.createGain();s.reverbGain.gain.value=id==='drums'?.1:.15;
+  s.dryGain=c.createGain();s.dryGain.gain.value=1;
+}
+
+function connectSrc(id,src){
+  const c=getCtx(),s=stems[id];
+  src.connect(s.gain);s.gain.connect(s.hiShelf);s.hiShelf.connect(s.punch);
+  s.punch.connect(s.dryGain);s.punch.connect(s.reverb);
+  s.reverb.connect(s.reverbGain);
+  s.dryGain.connect(c.destination);s.reverbGain.connect(c.destination);
+}
+
+async function processTrack(file){
+  document.getElementById('dz').style.display='none';
+  document.getElementById('cookingTracker').classList.add('show');
+  document.getElementById('appStatus').textContent='PROCESSING...';
+  setCookStep(0);
+  await new Promise(r=>setTimeout(r,800));
+  setCookStep(1);
+  const fd=new FormData();fd.append('file',file);
+  let data;
+  try{
+    const res=await fetch(API+'/separate',{method:'POST',body:fd});
+    if(!res.ok)throw new Error('Server error '+res.status);
+    setCookStep(2);await new Promise(r=>setTimeout(r,1000));
+    setCookStep(3);await new Promise(r=>setTimeout(r,800));
+    data=await res.json();
+  }catch(err){
+    document.getElementById('cookEmoji').textContent='❌';
+    document.getElementById('cookTitle').textContent='Something went wrong 😢';
+    document.getElementById('cookMsg').textContent=err.message;
+    setTimeout(()=>{document.getElementById('cookingTracker').classList.remove('show');document.getElementById('dz').style.display='';},3000);
+    return;
+  }
+  setCookStep(4);await new Promise(r=>setTimeout(r,600));
+  document.getElementById('cookingTracker').classList.remove('show');
+  document.getElementById('masterBar').classList.remove('no-stems');
+  document.getElementById('appStatus').textContent='READY — MIX IT UP';
+  const c=getCtx();
+  const map={drums:data.stems.drums,inst:data.stems.instruments,vox:data.stems.vocals};
+  for(const[id,b64]of Object.entries(map)){
+    if(!b64)continue;
+    const bin=atob(b64),bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
+    const buf=await c.decodeAudioData(bytes.buffer);
+    stems[id].buf=buf;buildGraph(id);drawWaveform(id,buf);
+    document.getElementById('tt-'+id).textContent=fmtT(buf.duration);
+    document.getElementById('ch-'+id).classList.add('loaded');
+  }
+  animLoop();
+}
+
+function drawWaveform(id,buf,pct){
+  const cv=document.getElementById('wv-'+id),ctx2=cv.getContext('2d');
+  const W=cv.width,H=cv.height,data=buf.getChannelData(0),step=Math.ceil(data.length/W);
+  ctx2.clearRect(0,0,W,H);
+  for(let x=0;x<W;x++){
+    let mn=1,mx=-1;
+    for(let j=0;j<step;j++){const v=data[x*step+j]||0;if(v<mn)mn=v;if(v>mx)mx=v;}
+    const played=pct!=null&&x/W<pct;
+    ctx2.strokeStyle=played?CH_COLORS[id]:(id==='drums'?'#2a1a4a':id==='inst'?'#0a2a2a':'#2a1a28');
+    ctx2.lineWidth=1.1;ctx2.globalAlpha=played?.9:.55;
+    ctx2.beginPath();ctx2.moveTo(x,(1+mn)*H/2);ctx2.lineTo(x,(1+mx)*H/2);ctx2.stroke();
+  }
+}
+
+function startCh(id){
+  const s=stems[id],c=getCtx();if(!s.buf)return;
+  if(c.state==='suspended')c.resume();
+  s.src=c.createBufferSource();s.src.buffer=s.buf;
+  connectSrc(id,s.src);if(s.muted)s.gain.gain.value=0;
+  s.startTime=c.currentTime-s.offset;s.src.start(0,s.offset);s.playing=true;
+  s.src.onended=()=>{if(s.playing){s.playing=false;s.offset=0;updatePI(id);}};updatePI(id);
+}
+function stopCh(id){const s=stems[id],c=getCtx();if(s.src){try{s.src.stop();}catch(e){}}s.offset=s.playing?Math.max(0,c.currentTime-s.startTime):s.offset;s.playing=false;updatePI(id);}
+function toggleCh(id){if(!stems[id].buf)return;stems[id].playing?stopCh(id):startCh(id);}
+function updatePI(id){const s=stems[id],ico=document.getElementById('pi-'+id);ico.innerHTML=s.playing?'<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>':'<polygon points="5 3 19 12 5 21 5 3"/>';}
+function toggleMute(id,btn){const s=stems[id];s.muted=!s.muted;btn.classList.toggle('muted',s.muted);if(s.gain)s.gain.gain.value=s.muted?0:(id==='drums'?.8:id==='inst'?.75:.85);}
+function setStemGain(id,val){if(stems[id].gain&&!stems[id].muted)stems[id].gain.gain.value=val/100;}
+function setEQ(id,type,val){const s=stems[id];if(type==='hi'&&s.hiShelf)s.hiShelf.gain.value=+val;if(type==='punch'&&s.punch)s.punch.gain.value=+val;}
+function setReverb(id,val){const s=stems[id];if(s.reverbGain)s.reverbGain.gain.value=val/100*.8;if(s.dryGain)s.dryGain.gain.value=1-val/200;}
+function rms(buf){const d=buf.getChannelData(0);let s=0;for(let i=0;i<d.length;i++)s+=d[i]*d[i];return Math.sqrt(s/d.length);}
+
+function autoMix(){
+  const loaded=Object.keys(stems).filter(id=>stems[id].buf);if(!loaded.length)return;
+  document.getElementById('masterStatus').textContent='ANALYZING...';
+  const targets={drums:-14,inst:-18,vox:-12};
+  setTimeout(()=>{
+    loaded.forEach(id=>{const r=rms(stems[id].buf),db=r>0?20*Math.log10(r):-60,g=Math.min(Math.max(Math.pow(10,(targets[id]-db)/20),0.1),2.5);if(stems[id].gain)stems[id].gain.gain.value=g;document.getElementById('v-'+id).textContent=Math.round(g*100)+'%';});
+    if(stems.drums.hiShelf){stems.drums.hiShelf.gain.value=2;document.getElementById('p-drums').textContent='+2 dB';}
+    if(stems.vox.hiShelf){stems.vox.hiShelf.gain.value=3;document.getElementById('cr-vox').textContent='+3 dB';}
+    document.getElementById('masterStatus').textContent='✓ AUTO-MIXED';
+    setTimeout(()=>document.getElementById('masterStatus').textContent='READY',2000);
+  },600);
+}
+
+function encodeWAV(buffer){
+  const numCh=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length,out=new ArrayBuffer(44+len*numCh*2),view=new DataView(out);
+  function ws(o,s){for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));}
+  ws(0,'RIFF');view.setUint32(4,36+len*numCh*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,numCh,true);view.setUint32(24,sr,true);view.setUint32(28,sr*numCh*2,true);view.setUint16(32,numCh*2,true);view.setUint16(34,16,true);
+  ws(36,'data');view.setUint32(40,len*numCh*2,true);
+  let offset=44;const channels=[];for(let c=0;c<numCh;c++)channels.push(buffer.getChannelData(c));
+  for(let i=0;i<len;i++)for(let c=0;c<numCh;c++){const s=Math.max(-1,Math.min(1,channels[c][i]));view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true);offset+=2;}
+  return new Blob([out],{type:'audio/wav'});
+}
+
+function exportMix(){
+  const loaded=Object.keys(stems).filter(id=>stems[id].buf);if(!loaded.length)return;
+  document.getElementById('masterStatus').textContent='RENDERING...';
+  const c=getCtx(),maxDur=Math.max(...loaded.map(id=>stems[id].buf.duration));
+  const offCtx=new OfflineAudioContext(2,Math.ceil(maxDur*c.sampleRate),c.sampleRate);
+  const impulse=makeImpulse(offCtx,2,2.5);
+  loaded.forEach(id=>{
+    const s=stems[id],src=offCtx.createBufferSource();src.buffer=s.buf;
+    const gain=offCtx.createGain();gain.gain.value=s.muted?0:(s.gain?s.gain.gain.value:.8);
+    const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;hi.gain.value=s.hiShelf?s.hiShelf.gain.value:0;
+    const conv=offCtx.createConvolver();conv.buffer=impulse;
+    const rg=offCtx.createGain();rg.gain.value=s.reverbGain?s.reverbGain.gain.value:.1;
+    const dg=offCtx.createGain();dg.gain.value=s.dryGain?s.dryGain.gain.value:1;
+    src.connect(gain);gain.connect(hi);hi.connect(dg);hi.connect(conv);conv.connect(rg);dg.connect(offCtx.destination);rg.connect(offCtx.destination);src.start(0);
+  });
+  offCtx.startRendering().then(rendered=>{
+    const blob=encodeWAV(rendered),url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='aimix_export.wav';a.click();URL.revokeObjectURL(url);
+    document.getElementById('masterStatus').textContent='✓ EXPORTED';
+    setTimeout(()=>document.getElementById('masterStatus').textContent='READY',2000);
+  });
+}
+
+function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
+function animLoop(){
+  animId=requestAnimationFrame(animLoop);if(!actx)return;
+  let any=false;
+  Object.keys(stems).forEach(id=>{const s=stems[id];if(s.playing&&s.buf){any=true;const el=Math.max(0,actx.currentTime-s.startTime),pct=Math.min(el/s.buf.duration,1);document.getElementById('tc-'+id).textContent=fmtT(el);drawWaveform(id,s.buf,pct);}});
+  document.getElementById('meterFill').style.width=any?(35+Math.random()*50)+'%':'0%';
+}
+
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)processTrack(f);});
+document.getElementById('fileIn').onchange=function(){if(this.files[0])processTrack(this.files[0]);};
+</script>
+</body>
+</html>
