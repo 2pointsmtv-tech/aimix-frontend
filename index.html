@@ -263,7 +263,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- COOKING -->
-  <div class="cooking" id="cookingTracker">
+  <div class="cooking" id="cookingTracker" style="display:none;">
     <div class="cook-top">
       <span class="cook-emoji" id="cookEmoji">🎵</span>
       <div class="cook-title" id="cookTitle">Uploading your track...</div>
@@ -670,7 +670,6 @@ document.getElementById('fileIn').onchange=function(){if(this.files[0])processTr
 // Reset UI on fresh load
 window.addEventListener('load', function(){
   document.getElementById('cookingTracker').classList.remove('show');
-  document.getElementById('cookingTracker').style.display = 'none';
   document.getElementById('dz').style.display = '';
   document.getElementById('masterTransport').classList.remove('show');
 });
