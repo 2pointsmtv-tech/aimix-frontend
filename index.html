@@ -255,7 +255,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- DROP ZONE -->
-  <div class="drop-zone" id="dz">
+  <div class="drop-zone" id="dz" style="display:block !important;">
     <input type="file" accept="audio/*" id="fileIn">
     <div class="dz-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#b026ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
     <div class="dz-title">Drop your track here</div>
@@ -615,8 +615,12 @@ function setCookStep(i){
 }
 
 async function processTrack(file){
-  document.getElementById('dz').style.display='none';
-  document.getElementById('cookingTracker').classList.add('show');
+  if(!file) return;
+  var dz = document.getElementById('dz');
+  var ct = document.getElementById('cookingTracker');
+  dz.style.display='none';
+  ct.style.display='block';
+  ct.classList.add('show');
   setCookStep(0);await new Promise(r=>setTimeout(r,800));setCookStep(1);
   const fd=new FormData();fd.append('file',file);
   let data;
@@ -631,9 +635,11 @@ async function processTrack(file){
     document.getElementById('cookTitle').textContent='Something went wrong';
     document.getElementById('cookMsg').textContent=err.message;
     setTimeout(()=>{
-      document.getElementById('cookingTracker').classList.remove('show');
-      document.getElementById('cookingTracker').style.display='none';
-      document.getElementById('dz').style.display='';
+      var ct2=document.getElementById('cookingTracker');
+      ct2.classList.remove('show');
+      ct2.style.display='none';
+      var dz2=document.getElementById('dz');
+      dz2.style.display='';
     },3000);
     return;
   }
@@ -668,10 +674,9 @@ dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');co
 document.getElementById('fileIn').onchange=function(){if(this.files[0])processTrack(this.files[0]);};
 
 // Reset UI on fresh load
-window.addEventListener('DOMContentLoaded', function(){
-  var ct = document.getElementById('cookingTracker');
-  ct.classList.remove('show');
-  ct.style.display = 'none';
+window.addEventListener('load', function(){
+  document.getElementById('cookingTracker').classList.remove('show');
+  document.getElementById('cookingTracker').style.display = 'none';
   document.getElementById('dz').style.display = '';
   document.getElementById('masterTransport').classList.remove('show');
 });
