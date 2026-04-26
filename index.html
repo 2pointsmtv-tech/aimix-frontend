@@ -94,7 +94,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--pink),var(--purp
 
 /* COOKING */
 .cooking{background:var(--surface);border:1px solid #2a1a4a;border-radius:16px;overflow:hidden;margin-bottom:16px;display:none;}
-.cooking.show{display:block !important;}
+.cooking.show{display:block;}
 .cook-top{padding:28px 24px 12px;text-align:center;}
 .cook-emoji{font-size:40px;display:block;margin-bottom:12px;animation:bounce .8s infinite alternate;}
 @keyframes bounce{from{transform:translateY(0);}to{transform:translateY(-8px);}}
@@ -263,7 +263,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- COOKING -->
-  <div class="cooking" id="cookingTracker">
+  <div class="cooking" id="cookingTracker" style="display:none;">
     <div class="cook-top">
       <span class="cook-emoji" id="cookEmoji">🎵</span>
       <div class="cook-title" id="cookTitle">Uploading your track...</div>
@@ -616,11 +616,11 @@ function setCookStep(i){
 
 async function processTrack(file){
   if(!file) return;
-  var dz=document.getElementById('dz');
   var ct=document.getElementById('cookingTracker');
-  dz.style.display='none';
+  document.getElementById('dz').style.display='none';
   ct.removeAttribute('style');
   ct.classList.add('show');
+  setTimeout(function(){ct.scrollIntoView({behavior:'smooth',block:'center'});},100);
   setCookStep(0);await new Promise(r=>setTimeout(r,800));setCookStep(1);
   const fd=new FormData();fd.append('file',file);
   let data;
@@ -674,6 +674,7 @@ document.getElementById('fileIn').onchange=function(){if(this.files[0])processTr
 // Reset UI on fresh load
 window.addEventListener('load', function(){
   document.getElementById('cookingTracker').classList.remove('show');
+  document.getElementById('cookingTracker').style.display = 'none';
   document.getElementById('dz').style.display = '';
   document.getElementById('masterTransport').classList.remove('show');
 });
