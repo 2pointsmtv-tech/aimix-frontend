@@ -83,16 +83,6 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--pink),var(--purp
 .spotify-params{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
 .spotify-param{font-size:10px;padding:2px 8px;border-radius:100px;background:#1a2a1a;color:#00e5cc;border:1px solid #1a3a1a;}
 .spotify-apply{font-size:11px;font-weight:600;padding:6px 14px;border-radius:100px;border:none;background:#1db954;color:#fff;cursor:pointer;white-space:nowrap;}
-.spotify-track-row{display:flex;align-items:center;gap:10px;padding:10px;background:#0d1a0f;border-radius:10px;border:1px solid #1a3a1a;margin-top:6px;cursor:pointer;transition:all .2s;}
-.spotify-track-row:hover{background:#121f13;border-color:#1db954;}
-.spotify-track-row.selected{border-color:#1db954;background:#0f2010;}
-.str-art{width:40px;height:40px;border-radius:6px;object-fit:cover;background:#1a1a1a;flex-shrink:0;}
-.str-info{flex:1;}
-.str-name{font-size:12px;font-weight:600;color:#fff;}
-.str-artist{font-size:10px;color:#1db954;margin-top:1px;}
-.str-params{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap;}
-.str-param{font-size:9px;padding:2px 6px;border-radius:100px;background:#1a2a1a;color:#00e5cc;border:1px solid #1a3a1a;}
-.str-apply{font-size:10px;font-weight:600;padding:5px 12px;border-radius:100px;border:none;background:#1db954;color:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
 /* DROP ZONE */
 .drop-zone{background:var(--surface);border:1.5px dashed var(--border2);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:16px;}
@@ -253,7 +243,15 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
         Match Sound
       </button>
     </div>
-    <div id="spotifyResults"></div>
+    <div class="spotify-result" id="spotifyResult">
+      <img class="spotify-art" id="spotifyArt" src="" alt="">
+      <div class="spotify-info">
+        <div class="spotify-track" id="spotifyTrack"></div>
+        <div class="spotify-artist" id="spotifyArtist"></div>
+        <div class="spotify-params" id="spotifyParams"></div>
+      </div>
+      <button class="spotify-apply" onclick="applySpotifyRef()">Apply to Mix →</button>
+    </div>
   </div>
 
   <!-- DROP ZONE -->
@@ -265,7 +263,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- COOKING -->
-  <div class="cooking" id="cookingTracker" style="display:none;">
+  <div class="cooking" id="cookingTracker">
     <div class="cook-top">
       <span class="cook-emoji" id="cookEmoji">🎵</span>
       <div class="cook-title" id="cookTitle">Uploading your track...</div>
@@ -438,17 +436,17 @@ async function searchSpotify(){
 }
 
 function applySpotifyRef(){
-  var d=window._spotifyMainData||spotifyRef;if(!d)return;
-  const energy=d.energy||0.7;
-  const brightness=d.valence||0.5;
-  const bass=1-(d.acousticness||0.1);
+  if(!spotifyRef)return;
+  const energy=spotifyRef.energy||0.7;
+  const brightness=spotifyRef.valence||0.5;
+  const bass=1-(spotifyRef.acousticness||0.1);
   const wet=1-energy*.5;
   setStemGainDirect('drums',Math.round(60+energy*40));
   setStemGainDirect('inst',Math.round(60+bass*35));
   setStemGainDirect('vox',Math.round(70+brightness*20));
   if(stems.vox.hiShelf){const crisp=Math.round((brightness-.5)*16);stems.vox.hiShelf.gain.value=crisp;document.getElementById('sl-crisp-vox').value=crisp;document.getElementById('cr-vox').textContent=(crisp>0?'+':'')+crisp+' dB';}
   if(stems.vox.reverbGain){const rv=Math.round(wet*60);stems.vox.reverbGain.gain.value=rv/100*.8;document.getElementById('sl-rv-vox').value=rv;document.getElementById('rv-vox').textContent=rv+'%';}
-  document.getElementById('activeChainLabel').textContent='Matched to: '+(d.name||'');document.getElementById('activeChainLabel').style.color='#1db954';
+  document.getElementById('activeChainLabel').textContent='Matched to: '+spotifyRef.name;
   document.getElementById('activeChainLabel').style.color='#1db954';
   if(!document.getElementById('chainPanel').classList.contains('open'))toggleChainPanel();
 }
@@ -617,8 +615,12 @@ function setCookStep(i){
 }
 
 async function processTrack(file){
+  if(!file) return;
+  var ct=document.getElementById('cookingTracker');
   document.getElementById('dz').style.display='none';
-  document.getElementById('cookingTracker').classList.add('show');
+  ct.removeAttribute('style');
+  ct.classList.add('show');
+  setTimeout(function(){ct.scrollIntoView({behavior:'smooth',block:'center'});},50);
   setCookStep(0);await new Promise(r=>setTimeout(r,800));setCookStep(1);
   const fd=new FormData();fd.append('file',file);
   let data;
@@ -672,7 +674,6 @@ document.getElementById('fileIn').onchange=function(){if(this.files[0])processTr
 // Reset UI on fresh load
 window.addEventListener('load', function(){
   document.getElementById('cookingTracker').classList.remove('show');
-  document.getElementById('cookingTracker').style.display = 'none';
   document.getElementById('dz').style.display = '';
   document.getElementById('masterTransport').classList.remove('show');
 });
