@@ -87,7 +87,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--pink),var(--purp
 /* DROP ZONE */
 .drop-zone{background:var(--surface);border:1.5px dashed var(--border2);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:16px;}
 .drop-zone:hover,.drop-zone.over{border-color:#b026ff;background:#0e0814;}
-.drop-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.drop-zone input.dz-hidden{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
 .dz-icon{width:48px;height:48px;margin:0 auto 12px;background:#1a0a2a;border-radius:12px;display:flex;align-items:center;justify-content:center;}
 .dz-title{font-size:15px;font-weight:600;color:#e8e4ff;margin-bottom:4px;}
 .dz-sub{font-size:11px;color:var(--text3);}
@@ -680,7 +680,7 @@ const dz=document.getElementById('dz');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)processTrack(f);});
-document.getElementById('fileIn').onchange=function(){if(this.files[0])processTrack(this.files[0]);};
+document.getElementById('fileIn').onchange=function(){if(this.files&&this.files[0])processTrack(this.files[0]);};
 
 // Reset UI on fresh load
 window.addEventListener('load', function(){
