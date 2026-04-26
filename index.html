@@ -670,7 +670,11 @@ async function processTrack(file){
   document.getElementById('masterTotal').textContent='/ '+fmtT(masterDuration);
   document.getElementById('masterTransport').classList.add('show');
   document.getElementById('masterStatus').textContent='READY';
-  autoMix();startAllStems(0);
+  autoMix();
+  // Don't autoplay on iOS - requires user gesture
+  var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(!isIOS) startAllStems(0);
+  else document.getElementById('masterStatus').textContent='TAP ▶ TO PLAY';
   if(spotifyRef)applySpotifyRef();
 }
 
