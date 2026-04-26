@@ -243,7 +243,6 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
         Match Sound
       </button>
     </div>
-    <div id="spotifyAlts" style="margin-top:4px;"></div>
     <div class="spotify-result" id="spotifyResult">
       <img class="spotify-art" id="spotifyArt" src="" alt="">
       <div class="spotify-info">
@@ -264,7 +263,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- COOKING -->
-  <div class="cooking" id="cookingTracker" style="display:none;">
+  <div class="cooking" id="cookingTracker">
     <div class="cook-top">
       <span class="cook-emoji" id="cookEmoji">🎵</span>
       <div class="cook-title" id="cookTitle">Uploading your track...</div>
@@ -421,7 +420,6 @@ async function searchSpotify(){
     if(!res.ok)throw new Error('Track not found');
     const d=await res.json();
     spotifyRef=d;
-    spotifyRef=d;
     document.getElementById('spotifyArt').src=d.image||'';
     document.getElementById('spotifyTrack').textContent=d.name;
     document.getElementById('spotifyArtist').textContent=d.artist;
@@ -431,40 +429,10 @@ async function searchSpotify(){
       'Loudness: '+d.loudness.toFixed(1)+' dB',
       'Acousticness: '+Math.round(d.acousticness*100)+'%',
     ].map(p=>'<span class="spotify-param">'+p+'</span>').join('');
-    // Show alternatives if available
-    var alts = d.alternatives || [];
-    var altHtml = alts.map(a=>`
-      <div onclick="selectAlternative(${JSON.stringify(a).replace(/"/g,'&quot;')})" style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;cursor:pointer;background:#0d1a0f;border:1px solid #1a3a1a;margin-top:4px;">
-        <img src="${a.image}" style="width:28px;height:28px;border-radius:4px;background:#1a1a1a;">
-        <div>
-          <div style="font-size:11px;font-weight:600;color:#fff;">${a.name}</div>
-          <div style="font-size:10px;color:#1db954;">${a.artist}</div>
-        </div>
-      </div>
-    `).join('');
-    var altWrap = document.getElementById('spotifyAlts');
-    if(altWrap) altWrap.innerHTML = alts.length ? '<div style="font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.1em;margin-top:8px;margin-bottom:4px;">Other results</div>' + altHtml : '';
     document.getElementById('spotifyResult').classList.add('show');
   }catch(e){document.getElementById('spotifyTrack').textContent='Track not found — try another search';document.getElementById('spotifyResult').classList.add('show');}
   btn.classList.remove('loading');
   btn.innerHTML='<svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35" stroke="#fff" stroke-width="2"/></svg> Match Sound';
-}
-
-function selectAlternative(track){
-  // fetch features for selected alternative
-  fetch(API+'/spotify/search?q='+encodeURIComponent(track.name+' '+track.artist))
-    .then(r=>r.json())
-    .then(d=>{
-      spotifyRef=d;
-      document.getElementById('spotifyArt').src=d.image||'';
-      document.getElementById('spotifyTrack').textContent=d.name;
-      document.getElementById('spotifyArtist').textContent=d.artist;
-      document.getElementById('spotifyParams').innerHTML=[
-        'Energy: '+Math.round(d.energy*100)+'%',
-        'Danceability: '+Math.round(d.danceability*100)+'%',
-        'Loudness: '+d.loudness.toFixed(1)+' dB',
-      ].map(p=>'<span class="spotify-param">'+p+'</span>').join('');
-    });
 }
 
 function applySpotifyRef(){
@@ -697,10 +665,7 @@ const dz=document.getElementById('dz');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');const f=e.dataTransfer.files[0];if(f)processTrack(f);});
-document.getElementById('fileIn').addEventListener('change', function(e){
-  console.log('File input changed', e.target.files);
-  if(e.target.files && e.target.files[0]) processTrack(e.target.files[0]);
-});
+document.getElementById('fileIn').onchange=function(){if(this.files[0])processTrack(this.files[0]);};
 
 // Reset UI on fresh load
 window.addEventListener('load', function(){
