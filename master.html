@@ -311,7 +311,11 @@ function buildGraph(){
   N.limComp.connect(N.outGain);
   N.outGain.connect(N.ceiling);
   N.ceiling.connect(N.analyser);
-  N.analyser.connect(c.destination);
+  // Connect to destination only if no stream dest (desktop)
+  // On iOS, we connect to _streamDest in startPlay instead
+  if(!window._streamDest){
+    N.analyser.connect(c.destination);
+  }
   // Apply current values
   updateSparkleNodes(_sparkle);
   updateClarityNodes(_clarity);
@@ -513,9 +517,12 @@ function startPlay(offset){
   _src=_actx.createBufferSource();_src.buffer=_rawBuf;
   _src.connect(N.loShelf);
   _src.start(0,offset||0);
-  // Also route final output to MediaStream dest for iOS silent mode
+  // iOS: route to stream dest ONLY (not c.destination) to avoid double audio
   if(window._streamDest){
-    try{N.ceiling.connect(window._streamDest);}catch(e){}
+    try{
+      N.analyser.disconnect(); // disconnect from destination if connected
+      N.analyser.connect(window._streamDest); // route through stream instead
+    }catch(e){}
   }
   _src.onended=()=>{if(_playing){_playing=false;_offset=0;updateIcon();cancelAnimationFrame(_animId);}};
   _startTime=_actx.currentTime-(offset||0);
