@@ -527,7 +527,14 @@ function stopAllStems(){
 
 function toggleMasterPlay(){
   const loaded=Object.keys(stems).filter(id=>stems[id].buf);if(!loaded.length)return;
-  if(masterPlaying)stopAllStems();else startAllStems(masterOffset);
+  if(!actx) actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(actx.state==='suspended'){
+    actx.resume().then(function(){
+      if(masterPlaying)stopAllStems();else startAllStems(masterOffset||0);
+    });
+  } else {
+    if(masterPlaying)stopAllStems();else startAllStems(masterOffset||0);
+  }
 }
 
 function seekTo(e){
