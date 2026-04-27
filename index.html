@@ -202,33 +202,31 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 
 /* AUTH WALL */
 .auth-wall{display:none;position:fixed;inset:0;background:rgba(8,8,8,.96);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(16px);}
-.auth-wall.show{display:flex !important;}
+.auth-wall.show{display:flex!important;}
 .auth-box{background:#111;border:1px solid #222;border-radius:24px;padding:36px 32px;max-width:400px;width:100%;text-align:center;}
-.auth-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px;}
-.auth-logo span{background:linear-gradient(90deg,#ff2d78,#b026ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.auth-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;margin-top:20px;}
+.auth-logo{font-family:"Syne",sans-serif;font-weight:800;font-size:22px;margin-bottom:6px;}
+.auth-logo em{font-style:normal;background:linear-gradient(90deg,#ff2d78,#b026ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.auth-title{font-family:"Syne",sans-serif;font-size:22px;font-weight:800;margin-bottom:8px;margin-top:20px;}
 .auth-sub{font-size:13px;color:#555;margin-bottom:28px;line-height:1.5;}
-.auth-google{width:100%;padding:13px;border-radius:12px;border:1px solid #2a2a2a;background:#1a1a1a;color:#fff;font-family:'Inter',sans-serif;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:14px;}
-.auth-google:hover{background:#222;border-color:#444;}
+.auth-google-btn{width:100%;padding:13px;border-radius:12px;border:1px solid #2a2a2a;background:#1a1a1a;color:#fff;font-family:"Inter",sans-serif;font-weight:600;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:14px;}
+.auth-google-btn:hover{background:#222;border-color:#444;}
 .auth-divider{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:#222;}
-.auth-divider span{font-size:11px;color:#444;font-family:'Inter',monospace;}
-.auth-input{width:100%;padding:13px 16px;border-radius:12px;border:1px solid #222;background:#1a1a1a;color:#fff;font-family:'Inter',sans-serif;font-size:14px;outline:none;margin-bottom:10px;transition:border-color .2s;}
-.auth-input:focus{border-color:#b026ff;}
-.auth-input::placeholder{color:#444;}
-.auth-email-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;margin-bottom:16px;}
-.auth-email-btn:hover{transform:translateY(-1px);}
-.auth-email-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:#222;}
+.auth-divider span{font-size:11px;color:#444;}
+.auth-email-input{width:100%;padding:13px 16px;border-radius:12px;border:1px solid #222;background:#1a1a1a;color:#fff;font-family:"Inter",sans-serif;font-size:14px;outline:none;margin-bottom:10px;transition:border-color .2s;}
+.auth-email-input:focus{border-color:#b026ff;}
+.auth-email-input::placeholder{color:#444;}
+.auth-submit-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;font-family:"Syne",sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:16px;transition:all .2s;}
+.auth-submit-btn:hover{transform:translateY(-1px);}
+.auth-submit-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
 .auth-terms{font-size:10px;color:#333;line-height:1.5;}
-.auth-terms a{color:#555;text-decoration:none;}
-.auth-success{padding:20px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:12px;text-align:center;}
+.auth-success-box{padding:20px;background:#0a1a0a;border:1px solid #1a3a1a;border-radius:12px;}
 .auth-success-icon{font-size:36px;margin-bottom:10px;}
-.auth-success-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#2aff80;margin-bottom:6px;}
+.auth-success-title{font-family:"Syne",sans-serif;font-weight:800;font-size:18px;color:#2aff80;margin-bottom:6px;}
 .auth-success-sub{font-size:12px;color:#555;}
-/* User badge in nav */
-.user-badge{display:none;align-items:center;gap:8px;font-size:11px;color:#555;font-family:'Inter',monospace;}
-.user-badge.show{display:flex;}
-.user-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#b026ff,#ff2d78);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
+.user-pill{display:none;align-items:center;gap:8px;font-size:11px;color:#555;cursor:pointer;}
+.user-pill.show{display:flex;}
+.user-pill-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#b026ff,#ff2d78);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
 
 </style>
 </head>
@@ -725,95 +723,6 @@ function setCookStep(i){
   }
 }
 
-
-// ── SUPABASE AUTH ──────────────────────────────────────────────────
-const SUPABASE_URL='https://bhuduafakmaywnxklfyk.supabase.co';
-const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
-const SYSTEME_API_KEY='rnzkipes8urrxnsxo3ca70qr49f6gu7pt1f6bt54cwxbc2114bkfrwomu1onfuhn'; // Add your Systeme.io key here
-let supabase=null;
-let _currentUser=null;
-let _pendingPlay=false;
-
-function initSupabase(){
-  if(window.supabase&&!supabase){
-    supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-    // Check if user is already signed in
-    supabase.auth.getSession().then(function(result){var data=result.data;
-  if(data.session&&data.session.user){
-    onUserSignedIn(data.session.user);
-  }
-});
-
-// Listen for auth state changes (magic link click etc)
-supabase.auth.onAuthStateChange(function(event,session){
-  if(session&&session.user){
-    onUserSignedIn(session.user);
-    if(_pendingPlay){
-      _pendingPlay=false;
-      document.getElementById('authWall').classList.remove('show');
-    }
-  }
-});
-
-function onUserSignedIn(user){
-  _currentUser=user;
-  // Show user badge in nav
-  const badge=document.getElementById('userBadge');
-  badge.classList.add('show');
-  const email=user.email||'';
-  document.getElementById('userEmail').textContent=email.split('@')[0];
-  document.getElementById('userAvatar').textContent=(email[0]||'?').toUpperCase();
-  // Add to Systeme.io email list
-  addToSysteme(email, user.user_metadata?.full_name||'');
-}
-
-async function addToSysteme(email, name){
-  if(!email||SYSTEME_API_KEY==='YOUR_SYSTEME_KEY')return;
-  try{
-    // Route through Railway backend to avoid CORS
-    await fetch('https://aimix-backend-production.up.railway.app/systeme/contact',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email,name,tag:'aimix-user'})
-    });
-  }catch(e){console.log('Systeme.io:',e);}
-}
-
-async function signInGoogle(){if(!supabase){alert("Loading... try again!");return;}
-  await supabase.auth.signInWithOAuth({
-    provider:'google',
-    options:{redirectTo:window.location.href}
-  });
-}
-
-async function signInEmail(){if(!supabase){alert("Loading... try again!");return;}
-  const email=document.getElementById('authEmail').value.trim();
-  if(!email||!email.includes('@')){
-    document.getElementById('authEmail').style.borderColor='#ff2d78';
-    return;
-  }
-  const btn=document.getElementById('authEmailBtn');
-  btn.textContent='Sending...';btn.disabled=true;
-  const{error}=await supabase.auth.signInWithOtp({
-    email,
-    options:{emailRedirectTo:window.location.href}
-  });
-  if(error){
-    btn.textContent='Error — try again';btn.disabled=false;
-    return;
-  }
-  // Add to Systeme immediately on email capture (before they click link)
-  addToSysteme(email,'');
-  document.getElementById('emailForm').style.display='none';
-  document.getElementById('authSuccess').style.display='block';
-}
-
-function showAuthWall(){
-  if(_currentUser)return; // already signed in
-  _pendingPlay=true;
-  document.getElementById('authWall').classList.add('show');
-}
-
 async function processTrack(file){
   if(!file) return;
   var ct=document.getElementById('cookingTracker');
@@ -1077,36 +986,136 @@ window.addEventListener('DOMContentLoaded', function(){
 </script>
 
 
-<!-- AUTH WALL -->
 <div class="auth-wall" id="authWall">
   <div class="auth-box">
-    <div class="auth-logo">AI<span>MIX</span></div>
+    <div class="auth-logo">AI<em>MIX</em></div>
     <div class="auth-title">Hear Your Mix 🎛️</div>
-    <div class="auth-sub">Create a free account to play your AI-mixed track and unlock the full studio.</div>
-    
-    <button class="auth-google" onclick="signInGoogle()">
+    <div class="auth-sub">Free account to play your AI-mixed track and unlock the full studio.</div>
+    <button class="auth-google-btn" onclick="signInGoogle()">
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Continue with Google
     </button>
-
-    <div class="auth-divider"><span>or</span></div>
-
-    <div id="emailForm">
-      <input type="email" class="auth-input" id="authEmail" placeholder="Enter your email address">
-      <button class="auth-email-btn" id="authEmailBtn" onclick="signInEmail()">Get Free Access →</button>
+    <div class="auth-divider"><span>or use email</span></div>
+    <div id="authEmailSection">
+      <input type="email" class="auth-email-input" id="authEmailInput" placeholder="your@email.com">
+      <button class="auth-submit-btn" id="authSubmitBtn" onclick="signInEmail()">Get Free Access →</button>
     </div>
-
-    <div id="authSuccess" style="display:none;">
-      <div class="auth-success">
+    <div id="authSuccessSection" style="display:none;">
+      <div class="auth-success-box">
         <div class="auth-success-icon">📧</div>
         <div class="auth-success-title">Check your email!</div>
-        <div class="auth-success-sub">We sent you a magic link — click it to hear your mix. Check spam if you don't see it!</div>
+        <div class="auth-success-sub">Click the magic link we sent you to hear your mix!</div>
       </div>
     </div>
-
-    <div class="auth-terms">By continuing you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.<br>Free forever. No credit card required.</div>
+    <div class="auth-terms">Free forever · No credit card · Cancel anytime</div>
   </div>
 </div>
+
+
+<script>
+// ── SUPABASE AUTH (loads after main script) ─────────────────────
+(function() {
+  var SURL = 'https://bhuduafakmaywnxklfyk.supabase.co';
+  var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
+  var SYSTEME = 'rnzkipes8urrxnsxo3ca70qr49f6gu7pt1f6bt54cwxbc2114bkfrwomu1onfuhn';
+  var sb = null;
+  var currentUser = null;
+
+  function initSB() {
+    if (!window.supabase) { setTimeout(initSB, 200); return; }
+    sb = window.supabase.createClient(SURL, SKEY);
+    
+    // Check existing session
+    sb.auth.getSession().then(function(res) {
+      if (res.data && res.data.session && res.data.session.user) {
+        handleUser(res.data.session.user);
+      }
+    });
+
+    // Listen for auth changes (magic link clicks)
+    sb.auth.onAuthStateChange(function(event, session) {
+      if (session && session.user) {
+        handleUser(session.user);
+        document.getElementById('authWall').classList.remove('show');
+        // Try to play if stems are loaded
+        var loaded = Object.keys(window.stems || {}).filter(function(id) { return window.stems[id] && window.stems[id].buf; });
+        if (loaded.length > 0) {
+          var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+          if (!isIOS && typeof startAllStems === 'function') startAllStems(0);
+          else if (typeof masterOffset !== 'undefined') document.getElementById('masterStatus').textContent = 'TAP ▶ TO PLAY';
+        }
+      }
+    });
+  }
+
+  function handleUser(user) {
+    currentUser = user;
+    window._authUser = user;
+    var email = user.email || '';
+    var initial = email[0] ? email[0].toUpperCase() : '?';
+    var pill = document.getElementById('userPill');
+    var avatar = document.getElementById('userAvatar');
+    var display = document.getElementById('userEmailDisplay');
+    if (pill) pill.classList.add('show');
+    if (avatar) avatar.textContent = initial;
+    if (display) display.textContent = email.split('@')[0];
+    addToSysteme(email, user.user_metadata && user.user_metadata.full_name || '');
+  }
+
+  function addToSysteme(email, name) {
+    if (!email) return;
+    fetch('https://aimix-backend-production.up.railway.app/systeme/contact', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email, name: name, tag: 'aimix-user'})
+    }).catch(function() {});
+  }
+
+  window.signInGoogle = function() {
+    if (!sb) { alert('Still loading, try again!'); return; }
+    sb.auth.signInWithOAuth({
+      provider: 'google',
+      options: {redirectTo: window.location.href}
+    });
+  };
+
+  window.signInEmail = function() {
+    if (!sb) { alert('Still loading, try again!'); return; }
+    var email = document.getElementById('authEmailInput').value.trim();
+    if (!email || !email.includes('@')) {
+      document.getElementById('authEmailInput').style.borderColor = '#ff2d78';
+      return;
+    }
+    var btn = document.getElementById('authSubmitBtn');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
+    addToSysteme(email, '');
+    sb.auth.signInWithOtp({
+      email: email,
+      options: {emailRedirectTo: window.location.href}
+    }).then(function(res) {
+      if (res.error) {
+        btn.textContent = 'Error - try again';
+        btn.disabled = false;
+        return;
+      }
+      document.getElementById('authEmailSection').style.display = 'none';
+      document.getElementById('authSuccessSection').style.display = 'block';
+    });
+  };
+
+  window.showAuthWall = function() {
+    if (window._authUser) return;
+    document.getElementById('authWall').classList.add('show');
+  };
+
+  window.isAuthed = function() {
+    return !!window._authUser;
+  };
+
+  setTimeout(initSB, 100);
+})();
+</script>
 
 </body>
 </html>
