@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AIMix — Master Your Mix</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#080808;--surface:#111;--border:#222;--purple:#b026ff;--pink:#ff2d78;--teal:#00e5cc;}
+body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);}
+.nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;}
+.nav-logo span{background:linear-gradient(90deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.nav-back{font-size:12px;color:#555;text-decoration:none;display:flex;align-items:center;gap:6px;transition:color .2s;}
+.nav-back:hover{color:#fff;}
+
+/* LOADING */
+.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.loading-spinner{width:48px;height:48px;border:3px solid #222;border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-txt{font-size:14px;color:#555;font-family:'Inter',monospace;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:0;}
+
+.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;border:1px solid #2a1a3a;background:#120a18;color:var(--purple);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
+h1{font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,52px);font-weight:800;text-align:center;margin-bottom:8px;transition:color .3s;letter-spacing:-.02em;}
+.sub{font-size:15px;color:#555;text-align:center;margin-bottom:48px;}
+
+/* KNOB */
+.knob-section{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:40px;}
+.knob-wrap{position:relative;width:220px;height:220px;margin-bottom:12px;}
+.knob-bg{position:absolute;inset:0;border-radius:50%;background:#111;border:2px solid #1a1a1a;}
+.knob-ring{position:absolute;inset:0;border-radius:50%;}
+.knob-inner{position:absolute;inset:16px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:1px solid #1a1a1a;}
+.knob-number{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;line-height:1;transition:color .2s;}
+.knob-unit{font-size:10px;color:#444;letter-spacing:.15em;font-family:'Inter',monospace;}
+.knob-range-labels{display:flex;justify-content:space-between;width:220px;font-size:10px;color:#333;font-family:'Inter',monospace;}
+
+/* SLIDER */
+.slider-wrap{width:min(420px,90vw);margin-bottom:20px;}
+input[type=range].big-slider{width:100%;height:8px;-webkit-appearance:none;border-radius:4px;outline:none;cursor:pointer;transition:background .1s;}
+input[type=range].big-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;cursor:pointer;transition:transform .15s;border:3px solid var(--bg);}
+input[type=range].big-slider:hover::-webkit-slider-thumb{transform:scale(1.15);}
+
+/* VIBE */
+.vibe-label{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;transition:color .2s;margin-bottom:8px;text-align:center;}
+.vibe-desc{font-size:12px;color:#444;text-align:center;font-family:'Inter',monospace;margin-bottom:40px;min-height:18px;}
+
+/* CHAIN DISPLAY */
+.chain-display{display:flex;gap:8px;margin-bottom:48px;flex-wrap:wrap;justify-content:center;}
+.chain-node{padding:5px 12px;border-radius:100px;font-size:10px;font-weight:600;font-family:'Inter',monospace;transition:all .3s;border:1px solid transparent;opacity:.3;}
+.chain-node.active{opacity:1;}
+
+/* BUTTONS */
+.action-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+.action-btn{padding:14px 32px;border-radius:100px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
+.action-btn:hover{transform:translateY(-2px);}
+.action-btn:active{transform:scale(.97);}
+.btn-preview{background:#151525;color:var(--purple);border:1px solid #3a1a5a;}
+.btn-download{color:#fff;background:linear-gradient(135deg,var(--purple),var(--pink));}
+.btn-back{background:transparent;color:#444;border:1px solid #222;font-size:12px;padding:10px 24px;}
+
+/* METER */
+.meter-bar{width:min(420px,90vw);height:4px;background:#111;border-radius:2px;margin-bottom:40px;overflow:hidden;}
+.meter-fill{height:100%;border-radius:2px;transition:all .3s;width:0%;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">AI<span>MIX</span></div>
+  <a href="index.html" class="nav-back">← Back to Mixer</a>
+</nav>
+
+<div class="loading" id="loadingState">
+  <div class="loading-spinner"></div>
+  <div class="loading-txt">Loading your mix...</div>
+</div>
+
+<div class="main" id="mainState" style="display:none;">
+  <div class="hero-tag">✦ AI Mastering</div>
+  <h1 id="pageTitle">Master Your Mix</h1>
+  <p class="sub">One knob. Full chain. Dial it in.</p>
+
+  <div class="knob-section">
+    <div class="knob-wrap">
+      <div class="knob-bg"></div>
+      <svg class="knob-ring" viewBox="0 0 220 220" style="position:absolute;inset:0;transform:rotate(-90deg);">
+        <circle cx="110" cy="110" r="100" fill="none" stroke="#1a1a1a" stroke-width="10"/>
+        <circle id="knobProgress" cx="110" cy="110" r="100" fill="none" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="628" stroke-dashoffset="628"
+          style="transition:stroke-dashoffset .1s,stroke .1s;"/>
+      </svg>
+      <div class="knob-inner">
+        <div class="knob-number" id="knobNum">0</div>
+        <div class="knob-unit">INTENSITY</div>
+      </div>
+    </div>
+    <div class="knob-range-labels"><span>Raw</span><span>Maximum</span></div>
+  </div>
+
+  <div class="slider-wrap">
+    <input type="range" class="big-slider" id="intensitySlider" min="0" max="100" value="0" oninput="onKnob(this.value)">
+  </div>
+
+  <div class="vibe-label" id="vibeLabel">Raw Mix</div>
+  <div class="vibe-desc" id="vibeDesc">No mastering applied</div>
+
+  <div class="chain-display" id="chainDisplay"></div>
+
+  <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
+
+  <div class="action-btns">
+    <button class="action-btn btn-preview" id="previewBtn" onclick="previewMix()">▶ Preview</button>
+    <button class="action-btn btn-download" id="downloadBtn" onclick="downloadMastered()">↓ Download Mastered WAV</button>
+  </div>
+  <br><br>
+  <button class="action-btn btn-back" onclick="window.location.href='index.html'">← Back to Mixer</button>
+</div>
+
+<script>
+const VIBES=[
+  {min:0,  max:10,  label:'Raw Mix',       desc:'No mastering applied',                 color:'#888', glow:'#88888833'},
+  {min:10, max:25,  label:'Polished',      desc:'Subtle EQ + light limiting',           color:'#00bfff',glow:'#00bfff33'},
+  {min:25, max:40,  label:'Radio Ready',   desc:'Full EQ · presence · limiter',         color:'#00e5cc',glow:'#00e5cc33'},
+  {min:40, max:55,  label:'Warm & Full',   desc:'Saturation · low end · wide stereo',   color:'#b026ff',glow:'#b026ff33'},
+  {min:55, max:70,  label:'Club Loud',     desc:'Heavy compression · loud · punchy',    color:'#ff6ec7',glow:'#ff6ec733'},
+  {min:70, max:82,  label:'SLAMMING 🔥',  desc:'Maximum saturation · pushed hard',     color:'#ff6b35',glow:'#ff6b3533'},
+  {min:82, max:92,  label:'CRUSHING 💥',  desc:'Brickwall limiter · aggressive',        color:'#ff2d78',glow:'#ff2d7833'},
+  {min:92, max:101, label:'MAXIMUM 🚀',   desc:'Fully cranked · wall of sound',         color:'#ffdd00',glow:'#ffdd0033'},
+];
+
+const CHAIN_NODES=['Low Shelf','High Shelf','Mid Presence','Stereo Width','Saturation','Limiter','Output Gain'];
+
+let _pct=0;
+let _rawBuffer=null;
+let _actx=null;
+let _previewSrc=null;
+
+function getVibe(p){return VIBES.find(v=>p>=v.min&&p<v.max)||VIBES[0];}
+
+function buildChain(){
+  const el=document.getElementById('chainDisplay');
+  el.innerHTML=CHAIN_NODES.map((n,i)=>`<div class="chain-node" id="cn${i}">${n}</div>`).join('');
+}
+
+function onKnob(val){
+  _pct=parseInt(val);
+  const v=getVibe(_pct);
+  
+  // Update number
+  document.getElementById('knobNum').textContent=_pct;
+  document.getElementById('knobNum').style.color=v.color;
+  
+  // Update ring
+  const circ=2*Math.PI*100;
+  const offset=circ-(circ*_pct/100);
+  document.getElementById('knobProgress').style.strokeDashoffset=offset;
+  document.getElementById('knobProgress').style.stroke=v.color;
+  
+  // Update slider
+  const sl=document.getElementById('intensitySlider');
+  sl.style.background=`linear-gradient(90deg,${v.color} ${_pct}%,#1a1a1a ${_pct}%)`;
+  sl.style.setProperty('--thumb-color',v.color);
+  
+  // Slider thumb color via dynamic style
+  document.getElementById('sliderStyle').textContent=
+    `input[type=range].big-slider::-webkit-slider-thumb{background:${v.color};}`;
+  
+  // Vibe labels
+  document.getElementById('vibeLabel').textContent=v.label;
+  document.getElementById('vibeLabel').style.color=v.color;
+  document.getElementById('vibeDesc').textContent=v.desc;
+  
+  // Title
+  document.getElementById('pageTitle').style.color=_pct>0?v.color:'#fff';
+  
+  // Chain nodes - activate based on intensity
+  const activeCount=Math.ceil((_pct/100)*CHAIN_NODES.length);
+  CHAIN_NODES.forEach((_,i)=>{
+    const el=document.getElementById('cn'+i);
+    if(el){
+      el.classList.toggle('active',i<activeCount);
+      if(i<activeCount){el.style.borderColor=v.color;el.style.color=v.color;el.style.background=v.glow;}
+      else{el.style.borderColor='transparent';el.style.color='#555';el.style.background='transparent';}
+    }
+  });
+  
+  // Meter
+  document.getElementById('meterFill').style.width=_pct+'%';
+  document.getElementById('meterFill').style.background=`linear-gradient(90deg,#00bfff,${v.color})`;
+  document.getElementById('meterFill').style.boxShadow=_pct>50?`0 0 6px ${v.color}`:'none';
+  
+  // Download button
+  document.getElementById('downloadBtn').style.background=
+    `linear-gradient(135deg,${v.color},${v.color}bb)`;
+}
+
+function makeImpulse(c,dur,decay){
+  const sr=c.sampleRate,len=Math.floor(sr*dur),b=c.createBuffer(2,len,sr);
+  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}
+  return b;
+}
+
+function applyMasterChain(offCtx,inputNode,pct){
+  const t=pct/100;
+  const lo=offCtx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=120;lo.gain.value=t*5;
+  const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=10000;hi.gain.value=t*4;
+  const mid=offCtx.createBiquadFilter();mid.type='peaking';mid.frequency.value=3500;mid.Q.value=0.8;mid.gain.value=t*2-0.5;
+  const width=offCtx.createGain();width.gain.value=1+t*0.2;
+  const ws=offCtx.createWaveShaper();
+  const curve=new Float32Array(512);
+  for(let i=0;i<512;i++){const x=(i*2)/512-1,k=t*80;curve[i]=((Math.PI+k)*x)/(Math.PI+k*Math.abs(x));}
+  ws.curve=curve;ws.oversample='4x';
+  const comp=offCtx.createDynamicsCompressor();
+  comp.threshold.value=-6+(1-t)*6;comp.knee.value=2;comp.ratio.value=4+t*16;comp.attack.value=0.001;comp.release.value=0.08;
+  const out=offCtx.createGain();out.gain.value=1+t*0.9;
+  inputNode.connect(lo);lo.connect(hi);hi.connect(mid);mid.connect(width);width.connect(ws);ws.connect(comp);comp.connect(out);out.connect(offCtx.destination);
+}
+
+async function renderMastered(){
+  if(!_rawBuffer) return null;
+  const sampleRate=_rawBuffer.sampleRate;
+  const offCtx=new OfflineAudioContext(2,_rawBuffer.length,sampleRate);
+  const src=offCtx.createBufferSource();src.buffer=_rawBuffer;src.start(0);
+  applyMasterChain(offCtx,src,_pct);
+  return await offCtx.startRendering();
+}
+
+async function previewMix(){
+  if(!_rawBuffer){alert('No mix loaded!');return;}
+  const btn=document.getElementById('previewBtn');
+  if(_previewSrc){try{_previewSrc.stop();}catch(e){}; _previewSrc=null;btn.textContent='▶ Preview';return;}
+  btn.textContent='⏳ Rendering...';btn.disabled=true;
+  const rendered=await renderMastered();
+  if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();
+  await _actx.resume();
+  _previewSrc=_actx.createBufferSource();_previewSrc.buffer=rendered;
+  _previewSrc.connect(_actx.destination);_previewSrc.start(0);
+  _previewSrc.onended=()=>{_previewSrc=null;btn.textContent='▶ Preview';btn.disabled=false;};
+  btn.textContent='■ Stop';btn.disabled=false;
+}
+
+function encodeWAV(buffer){
+  const numCh=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length;
+  const out=new ArrayBuffer(44+len*numCh*2),view=new DataView(out);
+  function ws(o,s){for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));}
+  ws(0,'RIFF');view.setUint32(4,36+len*numCh*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,numCh,true);
+  view.setUint32(24,sr,true);view.setUint32(28,sr*numCh*2,true);view.setUint16(32,numCh*2,true);view.setUint16(34,16,true);
+  ws(36,'data');view.setUint32(40,len*numCh*2,true);
+  let offset=44;const chs=[];for(let c=0;c<numCh;c++)chs.push(buffer.getChannelData(c));
+  for(let i=0;i<len;i++)for(let c=0;c<numCh;c++){const s=Math.max(-1,Math.min(1,chs[c][i]));view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true);offset+=2;}
+  return new Blob([out],{type:'audio/wav'});
+}
+
+async function downloadMastered(){
+  if(!_rawBuffer){alert('No mix loaded!');return;}
+  const btn=document.getElementById('downloadBtn');
+  btn.textContent='⏳ Mastering...';btn.disabled=true;
+  const rendered=await renderMastered();
+  const blob=encodeWAV(rendered);
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='aimix_mastered.wav';a.click();
+  URL.revokeObjectURL(url);
+  btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
+}
+
+// Load mix from IndexedDB
+function loadMix(){
+  const req=indexedDB.open('aimix',1);
+  req.onupgradeneeded=function(e){e.target.result.createObjectStore('mix');};
+  req.onsuccess=function(e){
+    const db=e.target.result;
+    const tx=db.transaction('mix','readonly');
+    const getReq=tx.objectStore('mix').get('rendered');
+    getReq.onsuccess=function(ev){
+      const data=ev.target.result;
+      if(!data){
+        document.getElementById('loadingState').innerHTML='<div style="color:#555;font-size:14px;">No mix found. <a href="index.html" style="color:#b026ff;">Go back to mixer →</a></div>';
+        return;
+      }
+      // Decode the audio data
+      const tmpCtx=new(window.AudioContext||window.webkitAudioContext)();
+      tmpCtx.decodeAudioData(data).then(function(buf){
+        _rawBuffer=buf;
+        document.getElementById('loadingState').style.display='none';
+        document.getElementById('mainState').style.display='flex';
+        buildChain();
+        onKnob(0);
+      });
+    };
+    getReq.onerror=function(){
+      document.getElementById('loadingState').innerHTML='<div style="color:#555;">Error loading mix. <a href="index.html" style="color:#b026ff;">Go back →</a></div>';
+    };
+  };
+}
+
+// Init
+buildChain();
+loadMix();
+</script>
+
+<!-- Dynamic slider thumb style -->
+<style id="sliderStyle"></style>
+
+</body>
+</html>
