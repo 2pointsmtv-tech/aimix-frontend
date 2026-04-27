@@ -343,6 +343,15 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
         <div class="frow"><div class="flbl"><span>Space</span><span class="fval" id="sp-inst">15%</span></div><input type="range" class="sl sl-i" min="0" max="100" value="15" step="1" oninput="setReverb('inst',this.value);document.getElementById('sp-inst').textContent=this.value+'%'"></div>
       </div>
     </div>
+    <div class="ch" id="ch-bass">
+      <div class="ch-head"><div class="ch-pill pill-b">Bass</div><button class="ch-mute" onclick="toggleMute('bass',this)">M</button></div>
+      <div class="ch-wv"><canvas class="wv" id="wv-bass" width="400" height="54"></canvas></div>
+      <div class="ch-body">
+        <div class="frow"><div class="flbl"><span>Volume</span><span class="fval" id="v-bass">80%</span></div><input type="range" class="sl sl-b" min="0" max="100" value="80" step="1" oninput="setStemGain('bass',this.value);document.getElementById('v-bass').textContent=this.value+'%'"></div>
+        <div class="frow"><div class="flbl"><span>Sub</span><span class="fval" id="sub-bass">0 dB</span></div><input type="range" class="sl sl-b" min="-12" max="12" value="0" step="1" oninput="setEQ('bass','lo',this.value);document.getElementById('sub-bass').textContent=(this.value>0?'+':'')+this.value+' dB'"></div>
+        <div class="frow"><div class="flbl"><span>Presence</span><span class="fval" id="pres-bass">0 dB</span></div><input type="range" class="sl sl-b" min="-12" max="12" value="0" step="1" oninput="setEQ('bass','mid',this.value);document.getElementById('pres-bass').textContent=(this.value>0?'+':'')+this.value+' dB'"></div>
+      </div>
+    </div>
     <div class="ch" id="ch-vox">
       <div class="ch-head"><div class="ch-pill pill-v">Vocals</div><button class="ch-mute" onclick="toggleMute('vox',this)">M</button></div>
       <div class="ch-wv"><canvas class="wv" id="wv-vox" width="400" height="54"></canvas></div>
@@ -687,7 +696,7 @@ async function processTrack(file){
     const buf=await c.decodeAudioData(bytes.buffer);
     stems[id].buf=buf;buildGraph(id);drawWaveform(id,buf,0);
     durations.push(buf.duration);
-    document.getElementById('ch-'+id).classList.add('loaded');
+    var chEl=document.getElementById('ch-'+id);if(chEl)chEl.classList.add('loaded');
   }
   masterDuration=Math.max(...durations);
   document.getElementById('masterTotal').textContent='/ '+fmtT(masterDuration);
