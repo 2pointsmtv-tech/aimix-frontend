@@ -1154,12 +1154,14 @@ window.addEventListener('DOMContentLoaded', function(){
     btn.textContent = 'Sending...';
     btn.disabled = true;
     addToSysteme(email, '');
+    var redirectUrl = 'https://aimix-frontend.vercel.app';
     sb.auth.signInWithOtp({
       email: email,
-      options: {emailRedirectTo: window.location.href}
+      options: {emailRedirectTo: redirectUrl, shouldCreateUser: true}
     }).then(function(res) {
       if (res.error) {
-        btn.textContent = 'Error - try again';
+        console.log('OTP error:', res.error);
+        btn.textContent = res.error.message || 'Error - try again';
         btn.disabled = false;
         return;
       }
