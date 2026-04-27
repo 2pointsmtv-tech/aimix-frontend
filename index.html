@@ -187,8 +187,6 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   .mbtn{flex:1;}
 }
 
-.ios-banner{display:none;background:#1a1010;border:1px solid #5a2020;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:#ff9999;font-family:'JetBrains Mono',monospace;text-align:center;}
-.ios-banner.show{display:block;}
 
 .listen-now-overlay{display:none;position:absolute;inset:0;background:rgba(9,9,12,.85);border-radius:14px;z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(4px);}
 .listen-now-overlay.show{display:flex;}
@@ -303,7 +301,6 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- MASTER TRANSPORT -->
-  <div class="ios-banner" id="iosBanner">🔇 Silent mode is on — turn off the ringer switch to hear your mix</div>
   <div style="position:relative;">
   <div class="listen-now-overlay" id="listenNowOverlay">
     <button class="listen-now-btn" onclick="listenNow()">▶ Listen Now</button>
@@ -693,10 +690,11 @@ async function processTrack(file){
   if(!isIOS){
     startAllStems(0);
   } else {
-    // Show Listen Now overlay - audio must start from direct user tap on iOS
     document.getElementById('listenNowOverlay').classList.add('show');
     document.getElementById('masterTransport').classList.add('show');
     document.getElementById('masterStatus').textContent='TAP LISTEN NOW';
+    // Draw waveforms so they show while waiting
+    Object.keys(stems).forEach(function(id){if(stems[id].buf)drawWaveform(id,stems[id].buf,0);});
     // Check if silent mode - show banner on iOS
     var silentCheck = document.createElement('audio');
     silentCheck.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZA==';
@@ -714,12 +712,13 @@ async function processTrack(file){
 
 
 function listenNow() {
-  // Synchronous user tap handler - iOS allows audio in silent mode!
   document.getElementById('listenNowOverlay').classList.remove('show');
-  if(actx && actx.state === 'suspended') actx.resume();
+  // Create AudioContext synchronously in user gesture - iOS silent mode bypass!
   if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  actx.resume().then(function(){ startAllStems(masterOffset || 0); });
-  startAllStems(masterOffset || 0);
+  // Resume then start - ensures context is running before stems play
+  actx.resume().then(function(){
+    startAllStems(masterOffset || 0);
+  });
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
