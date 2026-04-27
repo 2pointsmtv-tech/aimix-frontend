@@ -510,11 +510,14 @@ function connectSrc(id,src){
   src.connect(s.gain);s.gain.connect(s.hiShelf);s.hiShelf.connect(s.punch);
   s.punch.connect(s.dryGain);s.punch.connect(s.reverb);
   s.reverb.connect(s.reverbGain);
-  // Always connect to main destination
-  s.dryGain.connect(c.destination);s.reverbGain.connect(c.destination);
-  // Also connect to MediaStream destination if available (iOS silent mode bypass)
+  // If iOS stream dest exists, route ONLY there (avoids double playback)
+  // Otherwise connect to main audio destination
   if(window._streamDest){
-    try{s.dryGain.connect(window._streamDest);s.reverbGain.connect(window._streamDest);}catch(e){}
+    try{s.dryGain.connect(window._streamDest);s.reverbGain.connect(window._streamDest);}catch(e){
+      s.dryGain.connect(c.destination);s.reverbGain.connect(c.destination);
+    }
+  } else {
+    s.dryGain.connect(c.destination);s.reverbGain.connect(c.destination);
   }
 }
 
