@@ -159,13 +159,15 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .chain-panel{margin-top:12px;display:none;border-top:1px solid #1e1228;padding-top:12px;}
 .chain-panel.open{display:block;}
 .chain-lbl{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;}
-.artists-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
-.artist-btn{padding:8px 6px;border-radius:10px;border:1px solid #2a1a2a;background:#0f0a14;cursor:pointer;transition:all .2s;text-align:center;}
-.artist-btn:hover{border-color:#ff6ec7;background:#18101e;}
-.artist-btn.active{border-color:#ff6ec7;background:#1e0f1e;}
-.artist-init{width:30px;height:30px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:1.5px solid currentColor;}
-.artist-name{font-size:10px;font-weight:600;color:#ccc;}
-.artist-tag{font-size:8px;color:var(--text3);margin-top:1px;}
+.artists-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.artist-btn{padding:0;border-radius:12px;border:1.5px solid #2a1a2a;background:#0f0a14;cursor:pointer;transition:all .25s;text-align:center;overflow:hidden;}
+.artist-btn:hover{border-color:#ff6ec7;transform:scale(1.03);}
+.artist-btn.active{border-color:#ff6ec7;box-shadow:0 0 12px #ff6ec744;}
+.artist-avatar{width:100%;height:72px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+.artist-avatar-ring{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;border:2px solid currentColor;font-family:'Syne',sans-serif;backdrop-filter:blur(4px);background:rgba(0,0,0,.4);}
+.artist-info{padding:6px 8px 8px;}
+.artist-name{font-size:11px;font-weight:700;color:#e8e4ff;font-family:'Syne',sans-serif;}
+.artist-tag{font-size:9px;color:var(--text3);margin-top:1px;font-family:'JetBrains Mono',monospace;}
 .active-chain-label{font-size:9px;color:#ff6ec7;text-align:center;padding:5px;background:#120a14;border-radius:6px;font-weight:500;}
 
 /* BOTTOM BAR */
@@ -173,6 +175,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .mbtn{padding:10px 22px;border-radius:100px;border:none;font-family:'Inter',sans-serif;font-weight:600;font-size:12px;cursor:pointer;transition:all .15s;letter-spacing:.02em;}
 .mbtn:hover{transform:scale(1.03);}
 .btn-auto{background:#1a0a2a;color:#b026ff;border:1px solid #3a1a5a;}
+.btn-random{background:#0a1a1a;color:#00e5cc;border:1px solid #1a4a3a;}
 .btn-export{background:linear-gradient(135deg,#b026ff,#7c6af5);color:#fff;}
 .m-status{font-size:10px;color:var(--text3);margin-left:auto;}
 
@@ -371,6 +374,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 
   <div class="bottom-bar">
     <button class="mbtn btn-auto" onclick="autoMix()">✦ Auto-Mix</button>
+    <button class="mbtn btn-random" onclick="randomTone()">🎲 Random Tone</button>
     <button class="mbtn btn-export" onclick="exportMix()">↓ Export WAV</button>
     <div class="m-status" id="masterStatus">IDLE</div>
   </div>
@@ -382,11 +386,26 @@ const CH_COLORS={drums:'#9d6fff',inst:'#00d4aa',bass:'#f5a623',vox:'#ff6ec7'};
 const SPOTIFY_CLIENT_ID='95cdc95ef2904df595d35f50b55a8680';
 
 const CHAINS=[
-  {id:'drake',name:'Drake',init:'DR',color:'#C4991A',bg:'#1a1407',tag:'OVO Dark',crisp:-2,reverb:55,vol:82,vibe:'Late night · warm · cinematic'},
-  {id:'rihanna',name:'Rihanna',init:'RH',color:'#D4537E',bg:'#1a0812',tag:'Pop Crisp',crisp:8,reverb:18,vol:88,vibe:'Crisp · punchy · radio-ready'},
-  {id:'kendrick',name:'Kendrick',init:'KL',color:'#D85A30',bg:'#1a0e08',tag:'Raw Power',crisp:10,reverb:5,vol:90,vibe:'Aggressive · dry · in-your-face'},
-  {id:'travis',name:'Travis',init:'TS',color:'#1D9E75',bg:'#081a12',tag:'Astro Wash',crisp:2,reverb:82,vol:78,vibe:'Atmospheric · drenched · dark'},
-  {id:'weeknd',name:'Weeknd',init:'XO',color:'#7F77DD',bg:'#0e0a1a',tag:'After Hours',crisp:5,reverb:40,vol:84,vibe:'Silky · smooth · midnight'},
+  {id:'drake',name:'Drake',init:'DR',color:'#C4991A',bg:'#1a1407',tag:'OVO Dark',
+   gradient:'linear-gradient(135deg,#1a1000,#3d2a00,#C4991A22)',
+   img:'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2780%27%20height%3D%2780%27%20viewBox%3D%270%200%2080%2080%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27dg%27%20cx%3D%2750%25%27%20cy%3D%2740%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%2523C4991A%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%25231a1000%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width%3D%2780%27%20height%3D%2780%27%20fill%3D%27url%28%2523dg%29%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2716%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.9%27/%3E%3Cellipse%20cx%3D%2740%27%20cy%3D%2762%27%20rx%3D%2722%27%20ry%3D%2714%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.7%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2713%27%20fill%3D%27%25231a1000%27/%3E%3Ccircle%20cx%3D%2736%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Cpath%20d%3D%27M35%2033%20Q40%2037%2045%2033%27%20stroke%3D%27%2523C4991A%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27/%3E%3C/svg%3E'',
+   crisp:-2,reverb:55,vol:82,vibe:'Late night · warm · cinematic'},
+  {id:'rihanna',name:'Rihanna',init:'RH',color:'#ff6b9d',bg:'#1a0812',tag:'Pop Crisp',
+   gradient:'linear-gradient(135deg,#1a0010,#3d0025,#ff6b9d22)',
+   img:'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2780%27%20height%3D%2780%27%20viewBox%3D%270%200%2080%2080%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27dg%27%20cx%3D%2750%25%27%20cy%3D%2740%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%2523C4991A%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%25231a1000%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width%3D%2780%27%20height%3D%2780%27%20fill%3D%27url%28%2523dg%29%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2716%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.9%27/%3E%3Cellipse%20cx%3D%2740%27%20cy%3D%2762%27%20rx%3D%2722%27%20ry%3D%2714%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.7%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2713%27%20fill%3D%27%25231a1000%27/%3E%3Ccircle%20cx%3D%2736%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Cpath%20d%3D%27M35%2033%20Q40%2037%2045%2033%27%20stroke%3D%27%2523C4991A%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27/%3E%3C/svg%3E'',
+   crisp:8,reverb:18,vol:88,vibe:'Crisp · punchy · radio-ready'},
+  {id:'kendrick',name:'Kendrick',init:'KL',color:'#ff6b35',bg:'#1a0e08',tag:'Raw Power',
+   gradient:'linear-gradient(135deg,#1a0800,#3d1a00,#ff6b3522)',
+   img:'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2780%27%20height%3D%2780%27%20viewBox%3D%270%200%2080%2080%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27dg%27%20cx%3D%2750%25%27%20cy%3D%2740%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%2523C4991A%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%25231a1000%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width%3D%2780%27%20height%3D%2780%27%20fill%3D%27url%28%2523dg%29%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2716%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.9%27/%3E%3Cellipse%20cx%3D%2740%27%20cy%3D%2762%27%20rx%3D%2722%27%20ry%3D%2714%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.7%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2713%27%20fill%3D%27%25231a1000%27/%3E%3Ccircle%20cx%3D%2736%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Cpath%20d%3D%27M35%2033%20Q40%2037%2045%2033%27%20stroke%3D%27%2523C4991A%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27/%3E%3C/svg%3E'',
+   crisp:10,reverb:5,vol:90,vibe:'Aggressive · dry · in-your-face'},
+  {id:'travis',name:'Travis',init:'TS',color:'#00e5a0',bg:'#081a12',tag:'Astro Wash',
+   gradient:'linear-gradient(135deg,#001a10,#003320,#00e5a022)',
+   img:'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2780%27%20height%3D%2780%27%20viewBox%3D%270%200%2080%2080%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27dg%27%20cx%3D%2750%25%27%20cy%3D%2740%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%2523C4991A%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%25231a1000%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width%3D%2780%27%20height%3D%2780%27%20fill%3D%27url%28%2523dg%29%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2716%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.9%27/%3E%3Cellipse%20cx%3D%2740%27%20cy%3D%2762%27%20rx%3D%2722%27%20ry%3D%2714%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.7%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2713%27%20fill%3D%27%25231a1000%27/%3E%3Ccircle%20cx%3D%2736%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Cpath%20d%3D%27M35%2033%20Q40%2037%2045%2033%27%20stroke%3D%27%2523C4991A%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27/%3E%3C/svg%3E'',
+   crisp:2,reverb:82,vol:78,vibe:'Atmospheric · drenched · dark'},
+  {id:'weeknd',name:'Weeknd',init:'XO',color:'#a78bfa',bg:'#0e0a1a',tag:'After Hours',
+   gradient:'linear-gradient(135deg,#080014,#1a0035,#a78bfa22)',
+   img:'data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2780%27%20height%3D%2780%27%20viewBox%3D%270%200%2080%2080%27%3E%3Cdefs%3E%3CradialGradient%20id%3D%27dg%27%20cx%3D%2750%25%27%20cy%3D%2740%25%27%3E%3Cstop%20offset%3D%270%25%27%20stop-color%3D%27%2523C4991A%27/%3E%3Cstop%20offset%3D%27100%25%27%20stop-color%3D%27%25231a1000%27/%3E%3C/radialGradient%3E%3C/defs%3E%3Crect%20width%3D%2780%27%20height%3D%2780%27%20fill%3D%27url%28%2523dg%29%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2716%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.9%27/%3E%3Cellipse%20cx%3D%2740%27%20cy%3D%2762%27%20rx%3D%2722%27%20ry%3D%2714%27%20fill%3D%27%2523C4991A%27%20opacity%3D%270.7%27/%3E%3Ccircle%20cx%3D%2740%27%20cy%3D%2728%27%20r%3D%2713%27%20fill%3D%27%25231a1000%27/%3E%3Ccircle%20cx%3D%2736%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Ccircle%20cx%3D%2744%27%20cy%3D%2726%27%20r%3D%273%27%20fill%3D%27%2523C4991A%27/%3E%3Cpath%20d%3D%27M35%2033%20Q40%2037%2045%2033%27%20stroke%3D%27%2523C4991A%27%20stroke-width%3D%271.5%27%20fill%3D%27none%27/%3E%3C/svg%3E'',
+   crisp:5,reverb:40,vol:84,vibe:'Silky · smooth · midnight'},
 ];
 
 let spotifyToken=null;
@@ -405,9 +424,17 @@ function showSection(s){}
 function buildArtistGrid(){
   document.getElementById('artistsGrid').innerHTML=CHAINS.map(c=>`
     <div class="artist-btn" id="ab-${c.id}" onclick="applyChain('${c.id}')">
-      <div class="artist-init" style="color:${c.color};background:${c.bg};">${c.init}</div>
-      <div class="artist-name">${c.name}</div>
-      <div class="artist-tag">${c.tag}</div>
+      <div class="artist-avatar" style="background:${c.gradient};position:relative;overflow:hidden;">
+        <img src="${c.img}" 
+          style="width:100%;height:100%;object-fit:cover;position:absolute;inset:0;opacity:0;transition:opacity .5s;"
+          onload="this.style.opacity=1;this.nextElementSibling.style.opacity=0;"
+          onerror="this.style.display='none'">
+        <div class="artist-avatar-ring" style="color:${c.color};position:relative;z-index:1;">${c.init}</div>
+      </div>
+      <div class="artist-info">
+        <div class="artist-name">${c.name}</div>
+        <div class="artist-tag">${c.tag}</div>
+      </div>
     </div>
   `).join('');
 }
@@ -775,6 +802,83 @@ function listenNow() {
   });
 }
 
+
+// Named tone presets - each one has a vibe
+var TONE_PRESETS = [
+  {name:'Lo-Fi Chill',drums:{v:65,p:-2,r:40},inst:{v:60,b:-3,s:35},bass:{v:70,sub:4,pre:-2},vox:{v:75,c:-4,rv:50}},
+  {name:'Club Banger',drums:{v:95,p:6,r:5},inst:{v:80,b:5,s:8},bass:{v:90,sub:8,pre:4},vox:{v:85,c:6,rv:15}},
+  {name:'Bedroom Pop',drums:{v:55,p:-1,r:25},inst:{v:70,b:2,s:20},bass:{v:65,sub:2,pre:0},vox:{v:88,c:3,rv:30}},
+  {name:'Trap Dark',drums:{v:88,p:8,r:10},inst:{v:55,b:-2,s:5},bass:{v:95,sub:10,pre:2},vox:{v:70,c:-1,rv:20}},
+  {name:'R&B Smooth',drums:{v:72,p:2,r:20},inst:{v:78,b:3,s:25},bass:{v:80,sub:5,pre:1},vox:{v:90,c:2,rv:35}},
+  {name:'Cinematic',drums:{v:60,p:3,r:45},inst:{v:85,b:4,s:50},bass:{v:65,sub:3,pre:-1},vox:{v:80,c:1,rv:55}},
+  {name:'Punk Energy',drums:{v:100,p:10,r:5},inst:{v:90,b:8,s:3},bass:{v:85,sub:6,pre:8},vox:{v:95,c:10,rv:5}},
+  {name:'Dream Wave',drums:{v:50,p:-3,r:60},inst:{v:65,b:2,s:65},bass:{v:55,sub:1,pre:-3},vox:{v:72,c:-2,rv:70}},
+  {name:'Midnight Vibe',drums:{v:70,p:1,r:30},inst:{v:68,b:1,s:30},bass:{v:75,sub:4,pre:0},vox:{v:82,c:0,rv:40}},
+  {name:'Raw & Dry',drums:{v:90,p:5,r:3},inst:{v:75,b:3,s:2},bass:{v:85,sub:7,pre:5},vox:{v:92,c:8,rv:3}},
+];
+
+var _lastToneIdx = -1;
+
+function randomTone() {
+  const loaded = Object.keys(stems).filter(id => stems[id].buf);
+  if(!loaded.length) return;
+
+  // Pick a random preset (different from last)
+  let idx;
+  do { idx = Math.floor(Math.random() * TONE_PRESETS.length); } while(idx === _lastToneIdx);
+  _lastToneIdx = idx;
+  const p = TONE_PRESETS[idx];
+
+  // Animate sliders and apply values
+  function applyChannel(id, vals) {
+    const s = stems[id];
+    if(!s || !s.buf) return;
+
+    // Volume
+    if(s.gain && !s.muted) s.gain.gain.value = vals.v / 100;
+    const vEl = document.getElementById('v-'+id);
+    if(vEl) vEl.textContent = vals.v + '%';
+
+    // EQ (hi shelf or lo shelf)
+    const eqVal = vals.c !== undefined ? vals.c : (vals.b !== undefined ? vals.b : vals.sub);
+    if(s.hiShelf) s.hiShelf.gain.value = eqVal || 0;
+
+    // Punch/presence
+    const punchVal = vals.p !== undefined ? vals.p : (vals.pre !== undefined ? vals.pre : 0);
+    if(s.punch) s.punch.gain.value = punchVal;
+
+    // Reverb
+    const rvVal = vals.r !== undefined ? vals.r : (vals.rv !== undefined ? vals.rv : (vals.s !== undefined ? vals.s : 15));
+    if(s.reverbGain) s.reverbGain.gain.value = rvVal / 100 * 0.8;
+    if(s.dryGain) s.dryGain.gain.value = 1 - rvVal / 200;
+
+    // Update display labels
+    const labels = {
+      drums: {v:'v-drums', eq:'p-drums', rv:'r-drums'},
+      inst:  {v:'v-inst',  eq:'br-inst', rv:'sp-inst'},
+      bass:  {v:'v-bass',  eq:'sub-bass',rv:'pres-bass'},
+      vox:   {v:'v-vox',   eq:'cr-vox',  rv:'rv-vox'},
+    };
+    const L = labels[id];
+    if(L) {
+      if(document.getElementById(L.v)) document.getElementById(L.v).textContent = vals.v + '%';
+      if(document.getElementById(L.eq)) document.getElementById(L.eq).textContent = (eqVal > 0 ? '+' : '') + eqVal + ' dB';
+      if(document.getElementById(L.rv)) document.getElementById(L.rv).textContent = rvVal + '%';
+    }
+  }
+
+  if(p.drums) applyChannel('drums', p.drums);
+  if(p.inst)  applyChannel('inst',  p.inst);
+  if(p.bass)  applyChannel('bass',  p.bass);
+  if(p.vox)   applyChannel('vox',   p.vox);
+
+  // Show the preset name briefly
+  const statusEl = document.getElementById('masterStatus');
+  statusEl.textContent = '🎲 ' + p.name.toUpperCase();
+  statusEl.style.color = '#00e5cc';
+  setTimeout(function(){ statusEl.textContent = 'READY'; statusEl.style.color = ''; }, 2500);
+}
+
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 const dz=document.getElementById('dz');
@@ -791,6 +895,14 @@ window.addEventListener('load', function(){
 });
 
 // iOS audio handled via user gesture in listenNow()
+
+// Preload artist chain images
+window.addEventListener('DOMContentLoaded', function(){
+  CHAINS.forEach(function(c){
+    if(c.img){var img=new Image();img.src=c.img;}
+  });
+});
+
 </script>
 </body>
 </html>
