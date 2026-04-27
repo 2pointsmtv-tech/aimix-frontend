@@ -510,7 +510,12 @@ function connectSrc(id,src){
   src.connect(s.gain);s.gain.connect(s.hiShelf);s.hiShelf.connect(s.punch);
   s.punch.connect(s.dryGain);s.punch.connect(s.reverb);
   s.reverb.connect(s.reverbGain);
+  // Always connect to main destination
   s.dryGain.connect(c.destination);s.reverbGain.connect(c.destination);
+  // Also connect to MediaStream destination if available (iOS silent mode bypass)
+  if(window._streamDest){
+    try{s.dryGain.connect(window._streamDest);s.reverbGain.connect(window._streamDest);}catch(e){}
+  }
 }
 
 function startAllStems(offset){
@@ -731,9 +736,29 @@ async function processTrack(file){
 
 function listenNow() {
   document.getElementById('listenNowOverlay').classList.remove('show');
-  // Create fresh AudioContext in user gesture - THIS is what bypasses iOS silent mode
+
+  // Create EVERYTHING inside this user gesture so iOS allows playback in silent mode
   actx = new (window.AudioContext || window.webkitAudioContext)();
-  // Re-decode all stems in the new context (buffers are tied to their original context)
+
+  // Route Web Audio through an <audio> element with playsinline
+  // This sets iOS audio session to Playback mode = bypasses silent switch
+  try {
+    var dest = actx.createMediaStreamDestination();
+    var audioEl = document.createElement('audio');
+    audioEl.setAttribute('playsinline', '');
+    audioEl.setAttribute('webkit-playsinline', '');
+    audioEl.srcObject = dest.stream;
+    audioEl.volume = 1.0;
+    document.body.appendChild(audioEl);
+    audioEl.play().catch(function(e){ console.log('audio el play err:', e); });
+    // Store dest so connectSrc can use it
+    window._streamDest = dest;
+  } catch(e) {
+    console.log('MediaStream routing not supported:', e);
+    window._streamDest = null;
+  }
+
+  // Re-decode all stems fresh in the new context
   var ids = Object.keys(stems).filter(function(id){ return stems[id].raw; });
   var decodePromises = ids.map(function(id){
     return actx.decodeAudioData(stems[id].raw.buffer.slice(0)).then(function(buf){
