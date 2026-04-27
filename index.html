@@ -720,17 +720,11 @@ async function processTrack(file){
 
 function listenNow() {
   document.getElementById('listenNowOverlay').classList.remove('show');
-  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  // Try resume first, but always start stems regardless
-  try {
-    actx.resume().then(function(){
-      startAllStems(masterOffset || 0);
-    }).catch(function(){
-      startAllStems(masterOffset || 0);
-    });
-  } catch(e) {
-    startAllStems(masterOffset || 0);
-  }
+  // Create AudioContext fresh in user gesture - iOS silent mode bypass!
+  actx = new (window.AudioContext || window.webkitAudioContext)();
+  // Rebuild graphs with fresh context then start
+  Object.keys(stems).forEach(function(id){ if(stems[id].buf) buildGraph(id); });
+  actx.resume().then(function(){ startAllStems(0); });
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
@@ -748,50 +742,7 @@ window.addEventListener('load', function(){
   document.getElementById('masterTransport').classList.remove('show');
 });
 
-// iOS Silent Mode Fix v2
-// Route Web Audio through HTML audio element (bypasses silent switch like Spotify)
-var _iosAudioEl = null;
-var _iosDestination = null;
-
-function setupIOSAudioRouting() {
-  if(_iosAudioEl) return;
-  try {
-    var c = getCtx();
-    // Create MediaStreamDestination - this creates a real audio stream
-    _iosDestination = c.createMediaStreamDestination();
-    // Create HTML audio element and connect the stream
-    _iosAudioEl = document.createElement('audio');
-    _iosAudioEl.srcObject = _iosDestination.stream;
-    _iosAudioEl.autoplay = true;
-    _iosAudioEl.loop = true;
-    _iosAudioEl.volume = 1.0;
-    document.body.appendChild(_iosAudioEl);
-    var p = _iosAudioEl.play();
-    if(p) p.catch(function(){});
-  } catch(e) {
-    console.log('iOS routing not supported:', e);
-    _iosDestination = null;
-  }
-}
-
-// Override connectSrc to also connect to iOS destination if available
-var _origConnectSrc = null;
-function connectSrcWithIOS(id, src) {
-  connectSrc(id, src);
-  if(_iosDestination) {
-    try {
-      var s = stems[id];
-      if(s.dryGain) s.dryGain.connect(_iosDestination);
-      if(s.reverbGain) s.reverbGain.connect(_iosDestination);
-    } catch(e) {}
-  }
-}
-
-// Setup on first user touch
-document.addEventListener('touchstart', function() {
-  setupIOSAudioRouting();
-  if(actx && actx.state === 'suspended') actx.resume();
-}, {once: false, passive: true});
+// iOS audio handled via user gesture in listenNow()
 </script>
 </body>
 </html>
