@@ -677,7 +677,7 @@ async function processTrack(file){
   setCookStep(4);await new Promise(r=>setTimeout(r,600));
   document.getElementById('cookingTracker').classList.remove('show');
   const c=getCtx();
-  const map={drums:data.stems.drums,inst:data.stems.instruments,bass:data.stems.bass,vox:data.stems.vocals};
+  const map={drums:data.stems.drums,inst:data.stems.instruments,bass:data.stems.bass||null,vox:data.stems.vocals};
   const durations=[];
   for(const[id,b64]of Object.entries(map)){
     if(!b64)continue;
