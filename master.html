@@ -122,7 +122,7 @@ input[type=range].big-sl:hover::-webkit-slider-thumb{transform:scale(1.15);}
     <div class="analysis-title">AI Analysis</div>
     <div class="analysis-grid">
       <div class="stat-box"><div class="stat-val" id="sLUFS">–</div><div class="stat-lbl">Input LUFS</div></div>
-      <div class="stat-box"><div class="stat-val" id="sDR">–</div><div class="stat-lbl">Dynamic Range</div></div>
+      <div class="stat-box"><div class="stat-val" id="sDR">–</div><div class="stat-lbl">Crest Factor</div></div>
       <div class="stat-box"><div class="stat-val" id="sPeak">–</div><div class="stat-lbl">True Peak</div></div>
     </div>
     <div class="ai-verdict" id="aiVerdict"></div>
@@ -268,33 +268,51 @@ function updateNodes(pct){
   if(!_nodes.lo)return;
   const t=pct/100;
   const h=_analysis.headroom;
-  const eT=t*(0.25+h*0.75); // adaptive scaling
+  const already=_analysis.alreadyLimited;
+  
+  // If already limited, scale down dramatically — focus on tone not loudness
+  const loudnessScale = already ? Math.min(t*0.3, 0.2) : t*(0.25+h*0.75);
+  const toneScale = already ? t*0.5 : t;
+  
+  // EQ — tone shaping works on any file
+  _nodes.lo.gain.value=toneScale*4;
+  _nodes.hi.gain.value=toneScale*3;
+  _nodes.mid.gain.value=toneScale*2-0.3;
 
-  // EQ
-  _nodes.lo.gain.value=eT*5;
-  _nodes.hi.gain.value=eT*4;
-  _nodes.mid.gain.value=eT*2.5-0.5;
-
-  // Saturation curve
+  // Saturation — MUCH gentler on already-limited files to avoid distortion
+  const satDrive = already ? toneScale*8 : toneScale*60;
   const curve=new Float32Array(512);
-  const k=eT*60;
-  for(let i=0;i<512;i++){const x=(i*2)/512-1;curve[i]=k>0?((Math.PI+k)*x)/(Math.PI+k*Math.abs(x)):x;}
+  for(let i=0;i<512;i++){
+    const x=(i*2)/512-1;
+    curve[i]=satDrive>0?((Math.PI+satDrive)*x)/(Math.PI+satDrive*Math.abs(x)):x;
+  }
   _nodes.sat.curve=curve;
 
   // Width
-  _nodes.width.gain.value=1+eT*0.15;
+  _nodes.width.gain.value=1+toneScale*0.12;
 
-  // L4 limiter
-  const thresh=-3+(1-h)*-3+(1-eT)*3;
-  _nodes.comp.threshold.value=Math.max(-20,thresh);
-  _nodes.comp.ratio.value=4+eT*96; // 4:1 to 100:1
-  _nodes.comp.release.value=0.05+eT*0.15;
+  // L4 limiter — much lower threshold on limited files so it catches peaks early
+  const thresh = already ? -2+(1-toneScale)*-4 : -3+(1-h)*-3+(1-toneScale)*3;
+  _nodes.comp.threshold.value=Math.max(-20, Math.min(-0.5, thresh));
+  // Lower ratio on limited files — don't brickwall an already-brickwalled file
+  _nodes.comp.ratio.value = already ? 4+toneScale*8 : 4+toneScale*96;
+  _nodes.comp.release.value=0.05+toneScale*0.15;
 
-  // Output gain (loudness makeup toward target)
-  const gainNeeded=_target-_analysis.lufs;
-  const appliedGain=gainNeeded*t*Math.max(0.2,h)*0.8;
-  const outDB=Math.max(-3,Math.min(12,appliedGain));
+  // Output gain — KEY FIX: if already limited, don't push more loudness!
+  let outDB=0;
+  if(!already){
+    const gainNeeded=_target-_analysis.lufs;
+    const appliedGain=gainNeeded*t*Math.max(0.2,h)*0.8;
+    outDB=Math.max(-3,Math.min(10,appliedGain));
+  } else {
+    // Already limited: apply slight input reduction to give limiter headroom
+    outDB = -1 + toneScale * -1.5; // -1dB to -2.5dB — actually reduce level
+  }
   _nodes.outGain.gain.value=Math.pow(10,outDB/20);
+  
+  // Tighter ceiling for already-limited files
+  const ceilDB = already ? -0.8 : -0.3;
+  _nodes.ceiling.gain.value=Math.pow(10,ceilDB/20);
 }
 
 // ── KNOB UPDATE ───────────────────────────────────────────────────
@@ -442,23 +460,39 @@ function analyzeMix(buf){
     dr=Math.max(3,Math.min(25,dr));
   }
   const headroom=Math.max(0.1,Math.min(1,(lufs-(-30))/((-10)-(-30))));
-  return{lufs:Math.round(lufs*10)/10,dr,peak:Math.round(peakDB*10)/10,headroom};
+  
+  // Crest factor = peak - RMS in dB. Low crest (<6dB) = already heavily limited
+  const crestFactor = peakDB - (20*Math.log10(rms));
+  const alreadyLimited = crestFactor < 6 || peakDB > -1.5;
+  
+  return{lufs:Math.round(lufs*10)/10, dr, peak:Math.round(peakDB*10)/10, 
+         headroom, crestFactor:Math.round(crestFactor*10)/10, alreadyLimited};
 }
 
 function showAnalysis(a){
   _analysis=a;
   document.getElementById('sLUFS').textContent=a.lufs+' dB';
-  document.getElementById('sDR').textContent=a.dr+' dB';
+  document.getElementById('sDR').textContent=a.crestFactor+' dB';
   document.getElementById('sPeak').textContent=a.peak+' dB';
   const lufsEl=document.getElementById('sLUFS');
   if(a.lufs>-10)lufsEl.style.color='#ff6b35';
   else if(a.lufs>-16)lufsEl.style.color='#2aff80';
   else lufsEl.style.color='#00bfff';
+  // Color code crest factor
+  const drEl=document.getElementById('sDR');
+  if(a.crestFactor<6){drEl.style.color='#ff6b35';}
+  else if(a.crestFactor<10){drEl.style.color='#ffdd00';}
+  else{drEl.style.color='#2aff80';}
   let verdict='';
-  if(a.lufs>-10)verdict=`⚡ Already very loud (${a.lufs} LUFS). The chain scales gently — even at maximum, processing preserves transients.`;
-  else if(a.lufs>-16)verdict=`✓ Well-balanced mix (${a.lufs} LUFS, ${a.dr} dB DR). The AI chain will add polish without over-processing.`;
-  else if(a.lufs>-22)verdict=`📈 Good dynamics (${a.lufs} LUFS). Cranking the knob will add serious loudness and density.`;
-  else verdict=`🎚️ Very dynamic mix (${a.lufs} LUFS). Lots of headroom — expect a dramatic transformation at higher intensity.`;
+  if(a.alreadyLimited){
+    verdict=`⚡ Already heavily limited (${a.crestFactor} dB crest, ${a.lufs} LUFS). AI chain will focus on tone shaping only — no extra loudness pushed to avoid distortion.`;
+  } else if(a.lufs>-16){
+    verdict=`✓ Well-balanced mix (${a.lufs} LUFS, ${a.crestFactor} dB crest). The AI chain will add polish and bring it to target loudness cleanly.`;
+  } else if(a.lufs>-22){
+    verdict=`📈 Good dynamics (${a.lufs} LUFS). Cranking the knob will add loudness and density with plenty of headroom to work with.`;
+  } else {
+    verdict=`🎚️ Very dynamic mix (${a.lufs} LUFS). Lots of headroom — expect a dramatic transformation as you increase intensity.`;
+  }
   document.getElementById('aiVerdict').textContent=verdict;
   document.getElementById('analysisCard').classList.add('show');
 }
