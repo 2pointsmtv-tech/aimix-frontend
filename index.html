@@ -197,6 +197,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .listen-now-btn{padding:16px 40px;background:linear-gradient(135deg,#b026ff,#7c6af5);color:#fff;border:none;border-radius:100px;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;cursor:pointer;letter-spacing:.02em;box-shadow:0 0 30px #b026ff66;transition:transform .15s;}
 .listen-now-btn:active{transform:scale(.97);}
 .listen-now-txt{font-size:12px;color:#888;font-family:'JetBrains Mono',monospace;}
+
 </style>
 </head>
 <body>
@@ -375,7 +376,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   <div class="bottom-bar">
     <button class="mbtn btn-auto" onclick="autoMix()">✦ Auto-Mix</button>
     <button class="mbtn btn-random" onclick="randomTone()">🎲 Random Tone</button>
-    <button class="mbtn btn-export" onclick="exportMix()">↓ Export WAV</button>
+    <button class="mbtn btn-export" onclick="goToMaster()">✦ Master + Export</button>
     <div class="m-status" id="masterStatus">IDLE</div>
   </div>
 </div>
@@ -894,6 +895,55 @@ window.addEventListener('load', function(){
   document.getElementById('masterTransport').classList.remove('show');
 });
 
+
+async function goToMaster(){
+  const loaded=Object.keys(stems).filter(id=>stems[id].buf);
+  if(!loaded.length){alert('Upload and mix a track first!');return;}
+  
+  const btn=document.querySelector('.btn-export');
+  btn.textContent='⏳ Preparing...';
+  btn.disabled=true;
+
+  // Render the current mix to a buffer
+  const c=getCtx();
+  const maxDur=Math.max(...loaded.map(id=>stems[id].buf.duration));
+  const offCtx=new OfflineAudioContext(2,Math.ceil(maxDur*c.sampleRate),c.sampleRate);
+  const impulse=makeImpulse(offCtx,2,2.5);
+  
+  loaded.forEach(id=>{
+    const s=stems[id];
+    const src=offCtx.createBufferSource();src.buffer=s.buf;
+    const gain=offCtx.createGain();gain.gain.value=s.muted?0:(s.gain?s.gain.gain.value:.8);
+    const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;hi.gain.value=s.hiShelf?s.hiShelf.gain.value:0;
+    const conv=offCtx.createConvolver();conv.buffer=impulse;
+    const rg=offCtx.createGain();rg.gain.value=s.reverbGain?s.reverbGain.gain.value:.1;
+    const dg=offCtx.createGain();dg.gain.value=s.dryGain?s.dryGain.gain.value:1;
+    src.connect(gain);gain.connect(hi);hi.connect(dg);hi.connect(conv);conv.connect(rg);
+    dg.connect(offCtx.destination);rg.connect(offCtx.destination);src.start(0);
+  });
+
+  const rendered=await offCtx.startRendering();
+  
+  // Convert to WAV and store in IndexedDB
+  const wavBlob=encodeWAV(rendered);
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const req=indexedDB.open('aimix',1);
+    req.onupgradeneeded=function(ev){ev.target.result.createObjectStore('mix');};
+    req.onsuccess=function(ev){
+      const db=ev.target.result;
+      const tx=db.transaction('mix','readwrite');
+      tx.objectStore('mix').put(e.target.result,'rendered');
+      tx.oncomplete=function(){
+        btn.textContent='✦ Master + Export';
+        btn.disabled=false;
+        window.location.href='master.html';
+      };
+    };
+  };
+  reader.readAsArrayBuffer(wavBlob);
+}
+
 // iOS audio handled via user gesture in listenNow()
 
 // Preload artist chain images
@@ -904,5 +954,6 @@ window.addEventListener('DOMContentLoaded', function(){
 });
 
 </script>
+
 </body>
 </html>
