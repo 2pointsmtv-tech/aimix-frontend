@@ -696,31 +696,50 @@ window.addEventListener('load', function(){
   document.getElementById('masterTransport').classList.remove('show');
 });
 
-// iOS Silent Mode Fix - play silent audio to set session to playback mode
-// This makes Web Audio bypass the ringer/silent switch (like Spotify/YouTube)
-var _iosUnlocked = false;
-function unlockIOSAudio() {
-  if(_iosUnlocked) return;
-  _iosUnlocked = true;
-  var sil = document.createElement('audio');
-  // Tiny silent WAV file as base64
-  sil.src = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
-  sil.loop = false;
-  sil.volume = 0.001;
-  var p = sil.play();
-  if(p) p.catch(function(){});
-  // Also create and immediately suspend/resume AudioContext
-  var tmpCtx = new (window.AudioContext || window.webkitAudioContext)();
-  var buf = tmpCtx.createBuffer(1, 1, 22050);
-  var src = tmpCtx.createBufferSource();
-  src.buffer = buf;
-  src.connect(tmpCtx.destination);
-  src.start(0);
-  tmpCtx.resume().then(function(){ tmpCtx.close(); });
+// iOS Silent Mode Fix v2
+// Route Web Audio through HTML audio element (bypasses silent switch like Spotify)
+var _iosAudioEl = null;
+var _iosDestination = null;
+
+function setupIOSAudioRouting() {
+  if(_iosAudioEl) return;
+  try {
+    var c = getCtx();
+    // Create MediaStreamDestination - this creates a real audio stream
+    _iosDestination = c.createMediaStreamDestination();
+    // Create HTML audio element and connect the stream
+    _iosAudioEl = document.createElement('audio');
+    _iosAudioEl.srcObject = _iosDestination.stream;
+    _iosAudioEl.autoplay = true;
+    _iosAudioEl.loop = true;
+    _iosAudioEl.volume = 1.0;
+    document.body.appendChild(_iosAudioEl);
+    var p = _iosAudioEl.play();
+    if(p) p.catch(function(){});
+  } catch(e) {
+    console.log('iOS routing not supported:', e);
+    _iosDestination = null;
+  }
 }
-// Trigger on any first touch
-document.addEventListener('touchstart', unlockIOSAudio, {once: true, passive: true});
-document.addEventListener('touchend', unlockIOSAudio, {once: true, passive: true});
+
+// Override connectSrc to also connect to iOS destination if available
+var _origConnectSrc = null;
+function connectSrcWithIOS(id, src) {
+  connectSrc(id, src);
+  if(_iosDestination) {
+    try {
+      var s = stems[id];
+      if(s.dryGain) s.dryGain.connect(_iosDestination);
+      if(s.reverbGain) s.reverbGain.connect(_iosDestination);
+    } catch(e) {}
+  }
+}
+
+// Setup on first user touch
+document.addEventListener('touchstart', function() {
+  setupIOSAudioRouting();
+  if(actx && actx.state === 'suspended') actx.resume();
+}, {once: false, passive: true});
 </script>
 </body>
 </html>
