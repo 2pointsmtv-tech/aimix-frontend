@@ -712,6 +712,16 @@ async function processTrack(file){
   if(spotifyRef)applySpotifyRef();
 }
 
+
+function listenNow() {
+  // Synchronous user tap handler - iOS allows audio in silent mode!
+  document.getElementById('listenNowOverlay').classList.remove('show');
+  if(actx && actx.state === 'suspended') actx.resume();
+  if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+  actx.resume().then(function(){ startAllStems(masterOffset || 0); });
+  startAllStems(masterOffset || 0);
+}
+
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 const dz=document.getElementById('dz');
