@@ -302,9 +302,9 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 
   <!-- MASTER TRANSPORT -->
   <div style="position:relative;">
-  <div class="listen-now-overlay" id="listenNowOverlay">
-    <button class="listen-now-btn" onclick="listenNow()">▶ Listen Now</button>
-    <div class="listen-now-txt">Tap to hear your mix</div>
+  <div class="listen-now-overlay" id="listenNowOverlay" onclick="listenNow()" style="cursor:pointer;">
+    <button class="listen-now-btn" style="pointer-events:none;">▶ Listen Now</button>
+    <div class="listen-now-txt" style="pointer-events:none;">Tap anywhere to hear your mix</div>
   </div>
   <div class="master-transport" id="masterTransport">
     <div class="transport-row">
@@ -720,12 +720,17 @@ async function processTrack(file){
 
 function listenNow() {
   document.getElementById('listenNowOverlay').classList.remove('show');
-  // Create AudioContext synchronously in user gesture - iOS silent mode bypass!
   if(!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
-  // Resume then start - ensures context is running before stems play
-  actx.resume().then(function(){
+  // Try resume first, but always start stems regardless
+  try {
+    actx.resume().then(function(){
+      startAllStems(masterOffset || 0);
+    }).catch(function(){
+      startAllStems(masterOffset || 0);
+    });
+  } catch(e) {
     startAllStems(masterOffset || 0);
-  });
+  }
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
