@@ -513,6 +513,10 @@ function startPlay(offset){
   _src=_actx.createBufferSource();_src.buffer=_rawBuf;
   _src.connect(N.loShelf);
   _src.start(0,offset||0);
+  // Also route final output to MediaStream dest for iOS silent mode
+  if(window._streamDest){
+    try{N.ceiling.connect(window._streamDest);}catch(e){}
+  }
   _src.onended=()=>{if(_playing){_playing=false;_offset=0;updateIcon();cancelAnimationFrame(_animId);}};
   _startTime=_actx.currentTime-(offset||0);
   _playing=true;updateIcon();animLoop();
@@ -523,17 +527,47 @@ function stopPlay(){
   _playing=false;cancelAnimationFrame(_animId);updateIcon();
 }
 function listenNow(){
-  // Create AudioContext synchronously in user gesture = iOS silent mode bypass!
   document.getElementById('listenOverlay').classList.remove('show');
+  
+  // Create fresh AudioContext IN the user gesture
   _actx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  // STEP 1: Unlock iOS audio session by playing a silent buffer RIGHT NOW (synchronous)
+  var silentBuf = _actx.createBuffer(1, 1, 22050);
+  var silentSrc = _actx.createBufferSource();
+  silentSrc.buffer = silentBuf;
+  
+  // STEP 2: Route through MediaStream -> <audio> element to bypass silent switch
+  try {
+    var dest = _actx.createMediaStreamDestination();
+    var audioEl = document.createElement('audio');
+    audioEl.setAttribute('playsinline','');
+    audioEl.setAttribute('webkit-playsinline','');
+    audioEl.srcObject = dest.stream;
+    audioEl.volume = 1.0;
+    document.body.appendChild(audioEl);
+    audioEl.play().catch(function(){});
+    window._streamDest = dest;
+    silentSrc.connect(dest);
+  } catch(e) {
+    window._streamDest = null;
+  }
+  silentSrc.connect(_actx.destination);
+  silentSrc.start(0); // Play silent sound synchronously - unlocks iOS!
+  
+  // STEP 3: Build the graph with the new context
   buildGraph();
-  // Re-decode raw buffer in fresh context
+  
+  // STEP 4: Re-decode buffer in the new context (can be async now - session is unlocked)
   if(window._rawData){
     _actx.decodeAudioData(window._rawData.slice(0)).then(function(buf){
       _rawBuf = buf;
       _duration = buf.duration;
       startPlay(0);
-    }).catch(function(){ startPlay(0); });
+    }).catch(function(e){ 
+      console.log('decode error:', e);
+      startPlay(0); 
+    });
   } else {
     startPlay(0);
   }
