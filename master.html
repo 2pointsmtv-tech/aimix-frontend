@@ -92,6 +92,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 .abtn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 .btn-dl{color:#fff;background:linear-gradient(135deg,var(--purple),var(--pink));}
 .btn-back2{background:transparent;color:#444;border:1px solid var(--border);font-size:11px;padding:10px 20px;}
+
+/* LISTEN NOW OVERLAY */
+.listen-overlay{display:none;position:fixed;inset:0;background:rgba(8,8,8,.92);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(8px);}
+.listen-overlay.show{display:flex;}
+.listen-overlay.show{display:flex !important;}
+.listen-now-btn{padding:18px 48px;background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;border:none;border-radius:100px;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;cursor:pointer;letter-spacing:.02em;box-shadow:0 0 40px #b026ff55;transition:transform .15s;}
+.listen-now-btn:active{transform:scale(.97);}
+.listen-now-sub{font-size:12px;color:#555;font-family:'Inter',monospace;}
 </style>
 <style id="dynStyle"></style>
 </head>
@@ -514,10 +522,36 @@ function stopPlay(){
   if(_src){try{_src.stop();}catch(e){}}_src=null;
   _playing=false;cancelAnimationFrame(_animId);updateIcon();
 }
+function listenNow(){
+  // Create AudioContext synchronously in user gesture = iOS silent mode bypass!
+  document.getElementById('listenOverlay').classList.remove('show');
+  _actx = new (window.AudioContext || window.webkitAudioContext)();
+  buildGraph();
+  // Re-decode raw buffer in fresh context
+  if(window._rawData){
+    _actx.decodeAudioData(window._rawData.slice(0)).then(function(buf){
+      _rawBuf = buf;
+      _duration = buf.duration;
+      startPlay(0);
+    }).catch(function(){ startPlay(0); });
+  } else {
+    startPlay(0);
+  }
+}
+
 function togglePlay(){
   if(!_rawBuf){alert('No mix loaded!');return;}
-  if(!_actx){_actx=new(window.AudioContext||window.webkitAudioContext)();buildGraph();}
-  _actx.resume().then(()=>{if(_playing)stopPlay();else startPlay(_offset);});
+  if(!_actx){
+    // On iOS, show listen overlay to get user gesture
+    var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+    if(isIOS){document.getElementById('listenOverlay').classList.add('show');return;}
+    _actx=new(window.AudioContext||window.webkitAudioContext)();buildGraph();
+  }
+  if(_actx.state==='suspended'){
+    _actx.resume().then(()=>{if(_playing)stopPlay();else startPlay(_offset);});
+  } else {
+    if(_playing)stopPlay();else startPlay(_offset);
+  }
 }
 function seekTo(e){
   const r=e.currentTarget.getBoundingClientRect();
@@ -662,6 +696,9 @@ function loadMix(){
             document.getElementById('mainEl').style.display='flex';
             buildChain();showAnalysis(analysis);setTarget(-14);
             document.getElementById('totalTime').textContent=fmtT(_duration);
+            // Show Listen Now on iOS
+            var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+            if(isIOS) document.getElementById('listenOverlay').classList.add('show');
           },300);
         },700);
       }).catch(err=>{
@@ -672,5 +709,12 @@ function loadMix(){
 }
 loadMix();
 </script>
+
+<!-- LISTEN NOW OVERLAY (iOS silent mode bypass) -->
+<div class="listen-overlay" id="listenOverlay" onclick="listenNow()">
+  <button class="listen-now-btn" style="pointer-events:none;">▶ Listen Now</button>
+  <div class="listen-now-sub" style="pointer-events:none;">Tap anywhere to start mastering</div>
+</div>
+
 </body>
 </html>
