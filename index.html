@@ -731,7 +731,6 @@ async function processTrack(file){
   ct.classList.add('show');
   setTimeout(function(){ct.scrollIntoView({behavior:'smooth',block:'center'});},50);
   // Show auth wall DURING cooking if not signed in
-  // User can sign in while stems separate (30-60 sec = plenty of time!)
   if(!window.isAuthed || !window.isAuthed()){
     document.getElementById('authWall').classList.add('show');
   }
@@ -775,6 +774,8 @@ async function processTrack(file){
   document.getElementById('masterTransport').classList.add('show');
   document.getElementById('masterStatus').textContent='READY';
   autoMix();
+  // Save mix state to IndexedDB so magic link redirect can restore it
+  saveMixState();
   // Hide auth wall now that mix is ready, play if signed in
   document.getElementById('authWall').classList.remove('show');
   if(window.isAuthed && window.isAuthed()){
@@ -905,6 +906,67 @@ function randomTone() {
   setTimeout(function(){ statusEl.textContent = 'READY'; statusEl.style.color = ''; }, 2500);
 }
 
+
+function saveMixState(){
+  try {
+    // Save mix metadata to localStorage (fast, no async)
+    var state = {
+      duration: masterDuration,
+      timestamp: Date.now(),
+      hasStems: Object.keys(stems).filter(function(id){return stems[id].buf;})
+    };
+    localStorage.setItem('aimix_mix_state', JSON.stringify(state));
+    
+    // Render and save actual audio to IndexedDB (for master page + restore)
+    var loaded = Object.keys(stems).filter(function(id){return stems[id].buf;});
+    if(!loaded.length) return;
+    var c = getCtx();
+    var maxDur = Math.max.apply(null, loaded.map(function(id){return stems[id].buf.duration;}));
+    var offCtx = new OfflineAudioContext(2, Math.ceil(maxDur*c.sampleRate), c.sampleRate);
+    var impulse = makeImpulse(offCtx,2,2.5);
+    loaded.forEach(function(id){
+      var s=stems[id],src=offCtx.createBufferSource();src.buffer=s.buf;
+      var gain=offCtx.createGain();gain.gain.value=s.muted?0:(s.gain?s.gain.gain.value:.8);
+      var hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;hi.gain.value=s.hiShelf?s.hiShelf.gain.value:0;
+      var conv=offCtx.createConvolver();conv.buffer=impulse;
+      var rg=offCtx.createGain();rg.gain.value=s.reverbGain?s.reverbGain.gain.value:.1;
+      var dg=offCtx.createGain();dg.gain.value=s.dryGain?s.dryGain.gain.value:1;
+      src.connect(gain);gain.connect(hi);hi.connect(dg);hi.connect(conv);conv.connect(rg);
+      dg.connect(offCtx.destination);rg.connect(offCtx.destination);src.start(0);
+    });
+    offCtx.startRendering().then(function(rendered){
+      var blob = encodeWAV(rendered);
+      var reader = new FileReader();
+      reader.onload = function(e){
+        var req = indexedDB.open('aimix',1);
+        req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
+        req.onsuccess = function(ev){
+          var tx = ev.target.result.transaction('mix','readwrite');
+          tx.objectStore('mix').put(e.target.result, 'rendered');
+        };
+      };
+      reader.readAsArrayBuffer(blob);
+    });
+  } catch(e){ console.log('saveMixState error:', e); }
+}
+
+function checkRestoreMix(){
+  // Check if we have a saved mix state (user returned from magic link)
+  try {
+    var stateStr = localStorage.getItem('aimix_mix_state');
+    if(!stateStr) return;
+    var state = JSON.parse(stateStr);
+    // Only restore if saved within last 30 minutes
+    if(Date.now() - state.timestamp > 30*60*1000) return;
+    // Show a "restore mix" banner
+    var banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a0a2a;border:1px solid #b026ff;border-radius:12px;padding:12px 20px;font-size:13px;color:#e8e4ff;z-index:500;display:flex;align-items:center;gap:12px;font-family:Inter,sans-serif;';
+    banner.innerHTML = '<span>🎛️ You have a recent mix ready!</span><button onclick="window.location.href='index.html'" style="background:#b026ff;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;">Go to Mixer →</button><button onclick="this.parentElement.remove();localStorage.removeItem('aimix_mix_state')" style="background:transparent;border:none;color:#555;cursor:pointer;font-size:16px;">✕</button>';
+    document.body.appendChild(banner);
+    setTimeout(function(){if(banner.parentElement)banner.remove();}, 8000);
+  } catch(e){}
+}
+
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 const dz=document.getElementById('dz');
@@ -986,15 +1048,15 @@ window.addEventListener('DOMContentLoaded', function(){
     <div class="auth-logo">AI<em>MIX</em></div>
     <div class="auth-title">Almost there! 🎛️</div>
     <div class="auth-sub">Sign in free while we separate your stems — by the time you're done, your mix will be ready!</div>
+    <div id="authEmailSection">
+      <input type="email" class="auth-email-input" id="authEmailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter')signInEmail()">
+      <button class="auth-submit-btn" id="authSubmitBtn" onclick="signInEmail()">✉️ Send Magic Link →</button>
+    </div>
+    <div class="auth-divider"><span>or</span></div>
     <button class="auth-google-btn" onclick="signInGoogle()">
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-      Continue with Google →
+      Continue with Google
     </button>
-    <div class="auth-divider"><span>or use email</span></div>
-    <div id="authEmailSection">
-      <input type="email" class="auth-email-input" id="authEmailInput" placeholder="your@email.com">
-      <button class="auth-submit-btn" id="authSubmitBtn" onclick="signInEmail()">Get Free Access →</button>
-    </div>
     <div id="authSuccessSection" style="display:none;">
       <div class="auth-success-box">
         <div class="auth-success-icon">📧</div>
