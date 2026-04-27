@@ -867,6 +867,34 @@ loadMix();
 </div>
 
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+// ── SUPABASE AUTH ON MASTER PAGE ─────────────────────────────────
+(function(){
+  var SURL= + SUPABASE_URL + ;
+  var SKEY= + SUPABASE_KEY + ;
+  function initAuth(){
+    if(!window.supabase){setTimeout(initAuth,200);return;}
+    var sb=window.supabase.createClient(SURL,SKEY);
+    sb.auth.getSession().then(function(res){
+      if(res.data&&res.data.session&&res.data.session.user){
+        window._authUser=res.data.session.user;
+        // Trigger subscription load
+        document.dispatchEvent(new Event('aimix-authed'));
+        if(typeof loadSubscription==='function') loadSubscription();
+      }
+    });
+    sb.auth.onAuthStateChange(function(event,session){
+      if(session&&session.user){
+        window._authUser=session.user;
+        document.dispatchEvent(new Event('aimix-authed'));
+        if(typeof loadSubscription==='function') loadSubscription();
+      }
+    });
+  }
+  setTimeout(initAuth,100);
+})();
+</script>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 // ── STRIPE PAYWALL ────────────────────────────────────────────────
@@ -916,6 +944,19 @@ function updateUsageBar(){
 }
 
 async function checkCanDownload(){
+  // Wait up to 3 seconds for auth to initialize
+  if(!window._authUser){
+    await new Promise(function(resolve){
+      var attempts = 0;
+      var interval = setInterval(function(){
+        attempts++;
+        if(window._authUser || attempts > 30){
+          clearInterval(interval);
+          resolve();
+        }
+      }, 100);
+    });
+  }
   if(!window._authUser){
     document.getElementById('paywallEl').classList.add('show');
     return false;
