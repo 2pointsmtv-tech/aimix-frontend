@@ -393,10 +393,10 @@ let spotifyToken=null;
 let spotifyRef=null;
 let activeChain=null;
 const stems={
-  drums:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
-  inst:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
-  bass:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
-  vox:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false}
+  drums:{buf:null,raw:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
+  inst:{buf:null,raw:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
+  bass:{buf:null,raw:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
+  vox:{buf:null,raw:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false}
 };
 let actx,masterPlaying=false,masterStartTime=0,masterOffset=0,masterDuration=0,animId;
 
@@ -693,7 +693,8 @@ async function processTrack(file){
     if(!b64)continue;
     const bin=atob(b64),bytes=new Uint8Array(bin.length);
     for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-    const buf=await c.decodeAudioData(bytes.buffer);
+    stems[id].raw=bytes;
+    const buf=await c.decodeAudioData(bytes.buffer.slice(0));
     stems[id].buf=buf;buildGraph(id);drawWaveform(id,buf,0);
     durations.push(buf.duration);
     var chEl=document.getElementById('ch-'+id);if(chEl)chEl.classList.add('loaded');
@@ -730,11 +731,20 @@ async function processTrack(file){
 
 function listenNow() {
   document.getElementById('listenNowOverlay').classList.remove('show');
-  // Create AudioContext fresh in user gesture - iOS silent mode bypass!
+  // Create fresh AudioContext in user gesture - THIS is what bypasses iOS silent mode
   actx = new (window.AudioContext || window.webkitAudioContext)();
-  // Rebuild graphs with fresh context then start
-  Object.keys(stems).forEach(function(id){ if(stems[id].buf) buildGraph(id); });
-  actx.resume().then(function(){ startAllStems(0); });
+  // Re-decode all stems in the new context (buffers are tied to their original context)
+  var ids = Object.keys(stems).filter(function(id){ return stems[id].raw; });
+  var decodePromises = ids.map(function(id){
+    return actx.decodeAudioData(stems[id].raw.buffer.slice(0)).then(function(buf){
+      stems[id].buf = buf;
+      buildGraph(id);
+      drawWaveform(id, buf, 0);
+    });
+  });
+  Promise.all(decodePromises).then(function(){
+    startAllStems(0);
+  });
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
