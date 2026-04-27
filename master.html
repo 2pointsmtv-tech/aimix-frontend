@@ -100,6 +100,38 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 .listen-now-btn{padding:18px 48px;background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;border:none;border-radius:100px;font-family:'Syne',sans-serif;font-weight:800;font-size:20px;cursor:pointer;letter-spacing:.02em;box-shadow:0 0 40px #b026ff55;transition:transform .15s;}
 .listen-now-btn:active{transform:scale(.97);}
 .listen-now-sub{font-size:12px;color:#555;font-family:'Inter',monospace;}
+
+/* PAYWALL */
+.paywall{display:none;position:fixed;inset:0;background:rgba(8,8,8,.96);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(16px);}
+.paywall.show{display:flex!important;}
+.paywall-box{background:#111;border:1px solid #222;border-radius:24px;padding:36px 32px;max-width:440px;width:100%;text-align:center;}
+.paywall-icon{font-size:40px;margin-bottom:12px;}
+.paywall-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;}
+.paywall-sub{font-size:13px;color:#555;margin-bottom:28px;line-height:1.5;}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.plan-card{background:#0f0f16;border:1px solid #2a2a3a;border-radius:16px;padding:20px 16px;cursor:pointer;transition:all .2s;position:relative;}
+.plan-card:hover{border-color:#b026ff;transform:translateY(-2px);}
+.plan-card.featured{border-color:#b026ff;background:#140a20;}
+.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#b026ff;color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:100px;letter-spacing:.1em;white-space:nowrap;}
+.plan-name{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:4px;}
+.plan-price{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#b026ff;margin-bottom:2px;}
+.plan-period{font-size:10px;color:#444;margin-bottom:12px;}
+.plan-features{font-size:11px;color:#666;line-height:1.8;text-align:left;}
+.plan-features li{list-style:none;padding-left:0;}
+.plan-features li::before{content:'✓ ';color:#2aff80;}
+.plan-btn{width:100%;padding:12px;border-radius:10px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;margin-top:14px;transition:all .2s;}
+.plan-btn-starter{background:#1a0a2a;color:#b026ff;border:1px solid #3a1a5a;}
+.plan-btn-pro{background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;}
+.plan-btn:hover{transform:scale(1.02);}
+.paywall-close{background:transparent;border:none;color:#333;font-size:12px;cursor:pointer;margin-top:8px;font-family:'Inter',sans-serif;}
+.paywall-close:hover{color:#555;}
+/* Usage counter */
+.usage-bar{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:none;}
+.usage-bar.show{display:flex;align-items:center;gap:12px;}
+.usage-track{flex:1;height:4px;background:#1a1a1a;border-radius:2px;overflow:hidden;}
+.usage-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#2aff80,#ffdd00,#ff2d78);transition:width .3s;}
+.usage-text{font-size:10px;color:#555;font-family:'Inter',monospace;white-space:nowrap;}
+
 </style>
 <style id="dynStyle"></style>
 </head>
@@ -237,6 +269,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
   </div>
 
   <!-- Buttons -->
+  <div class="usage-bar" id="usageBar">
+    <div class="usage-track"><div class="usage-fill" id="usageFill" style="width:0%"></div></div>
+    <div class="usage-text" id="usageText">Loading...</div>
+  </div>
   <div class="btn-row">
     <button class="abtn btn-dl" id="dlBtn" onclick="downloadMastered()">↓ Download Mastered WAV</button>
   </div>
@@ -700,6 +736,11 @@ function encodeWAV(buf){
 }
 
 async function downloadMastered(){
+  // Check subscription before downloading
+  var canDl = await checkCanDownload();
+  if(!canDl) return;
+  // Log usage
+  await logUsage();
   if(!_rawBuf){alert('No mix!');return;}
   const btn=document.getElementById('dlBtn');
   btn.textContent='⏳ Rendering...';btn.disabled=true;
@@ -786,6 +827,163 @@ loadMix();
   <button class="listen-now-btn" style="pointer-events:none;">▶ Listen Now</button>
   <div class="listen-now-sub" style="pointer-events:none;">Tap anywhere to start mastering</div>
 </div>
+
+
+<!-- PAYWALL -->
+<div class="paywall" id="paywallEl">
+  <div class="paywall-box">
+    <div class="paywall-icon">🎚️</div>
+    <div class="paywall-title">Unlock Your Master</div>
+    <div class="paywall-sub" id="paywallSub">Download your mastered track with a simple monthly plan. Cancel anytime.</div>
+    <div class="plan-cards">
+      <div class="plan-card" onclick="startCheckout('starter')">
+        <div class="plan-name">Starter</div>
+        <div class="plan-price">$9.99</div>
+        <div class="plan-period">per month</div>
+        <ul class="plan-features">
+          <li>10 mix & masters</li>
+          <li>All 3 mastering knobs</li>
+          <li>WAV downloads</li>
+          <li>Email support</li>
+        </ul>
+        <button class="plan-btn plan-btn-starter">Get Starter →</button>
+      </div>
+      <div class="plan-card featured" onclick="startCheckout('pro')">
+        <div class="plan-badge">MOST POPULAR</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">$24.99</div>
+        <div class="plan-period">per month</div>
+        <ul class="plan-features">
+          <li>Unlimited masters</li>
+          <li>All 3 mastering knobs</li>
+          <li>WAV downloads</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="plan-btn plan-btn-pro">Get Pro →</button>
+      </div>
+    </div>
+    <button class="paywall-close" onclick="document.getElementById('paywallEl').classList.remove('show')">✕ Maybe later</button>
+  </div>
+</div>
+
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+// ── STRIPE PAYWALL ────────────────────────────────────────────────
+var STRIPE_PK = 'pk_live_yMrWVifOoYrn5G9azIfT1h4g00ULnTVRLZ'; // Will be replaced
+var _subData = null;
+var API = 'https://aimix-backend-production.up.railway.app';
+var PRICE_IDS = {
+  starter: 'price_1TQwyVCRAaos6o5uwKKkOHnx',
+  pro: 'price_1TQwzACRAaos6o5umqGIoyEM'
+};
+
+async function loadSubscription(){
+  var user = window._authUser;
+  if(!user) return;
+  try {
+    var resp = await fetch(API + '/stripe/subscription/' + user.id);
+    _subData = await resp.json();
+    updateUsageBar();
+  } catch(e){ console.log('Sub check error:', e); }
+}
+
+function updateUsageBar(){
+  if(!_subData) return;
+  var bar = document.getElementById('usageBar');
+  var fill = document.getElementById('usageFill');
+  var text = document.getElementById('usageText');
+  if(!bar) return;
+  
+  if(_subData.plan === 'free'){
+    bar.classList.add('show');
+    fill.style.width = '0%';
+    text.textContent = 'Free plan — subscribe to download';
+    text.style.color = '#ff6b35';
+  } else if(_subData.plan === 'starter'){
+    bar.classList.add('show');
+    var pct = Math.min(100, (_subData.usage / _subData.limit) * 100);
+    fill.style.width = pct + '%';
+    var left = Math.max(0, _subData.limit - _subData.usage);
+    text.textContent = left + ' masters left this month';
+    text.style.color = left <= 2 ? '#ff6b35' : '#2aff80';
+  } else if(_subData.plan === 'pro'){
+    bar.classList.add('show');
+    fill.style.width = '100%';
+    text.textContent = '∞ Unlimited — Pro plan';
+    text.style.color = '#2aff80';
+  }
+}
+
+async function checkCanDownload(){
+  if(!window._authUser){
+    document.getElementById('paywallEl').classList.add('show');
+    return false;
+  }
+  if(!_subData) await loadSubscription();
+  if(!_subData || _subData.plan === 'free'){
+    document.getElementById('paywallSub').textContent = 'Download your mastered track with a simple monthly plan. Cancel anytime.';
+    document.getElementById('paywallEl').classList.add('show');
+    return false;
+  }
+  if(_subData.plan === 'starter' && _subData.usage >= _subData.limit){
+    document.getElementById('paywallSub').textContent = "You've used all 10 masters this month. Upgrade to Pro for unlimited downloads!";
+    document.getElementById('paywallEl').classList.add('show');
+    return false;
+  }
+  return true;
+}
+
+async function startCheckout(plan){
+  var user = window._authUser;
+  if(!user){ alert('Please sign in first!'); return; }
+  var btn = document.querySelector('.plan-btn-' + plan);
+  if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
+  try {
+    var resp = await fetch(API + '/stripe/checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        price_id: PRICE_IDS[plan],
+        user_id: user.id,
+        user_email: user.email,
+        success_url: window.location.origin + '/master.html?success=1',
+        cancel_url: window.location.href
+      })
+    });
+    var data = await resp.json();
+    if(data.url) window.location.href = data.url;
+  } catch(e){
+    alert('Error starting checkout. Please try again!');
+    if(btn){ btn.textContent = plan === 'pro' ? 'Get Pro →' : 'Get Starter →'; btn.disabled = false; }
+  }
+}
+
+async function logUsage(){
+  var user = window._authUser;
+  if(!user) return;
+  try {
+    await fetch(API + '/stripe/log-usage/' + user.id, {method:'POST'});
+    if(_subData){ _subData.usage++; updateUsageBar(); }
+  } catch(e){}
+}
+
+// Check for success return from Stripe
+if(window.location.search.includes('success=1')){
+  window.history.replaceState({}, '', window.location.pathname);
+  setTimeout(function(){
+    alert('🎉 Welcome to AIMix Pro! Your subscription is now active. Enjoy unlimited mastering!');
+    loadSubscription();
+  }, 1000);
+}
+
+// Load subscription when auth is ready
+document.addEventListener('aimix-authed', function(){ loadSubscription(); });
+window.addEventListener('load', function(){
+  if(window._authUser) loadSubscription();
+  setTimeout(function(){ if(window._authUser && !_subData) loadSubscription(); }, 2000);
+});
+</script>
 
 </body>
 </html>
