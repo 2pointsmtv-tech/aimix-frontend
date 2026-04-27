@@ -10,7 +10,7 @@
 :root{
   --bg:#080808;--surface:#111;--surface2:#1a1a1a;--border:#222;--border2:#2a2a2a;
   --pink:#ff2d78;--purple:#b026ff;--teal:#00e5cc;
-  --drums:#9d6fff;--inst:#00d4aa;--vox:#ff6ec7;
+  --drums:#9d6fff;--inst:#00d4aa;--vox:#ff6ec7;--bass:#f5a623;
   --text:#fff;--text2:#888;--text3:#444;
 }
 html{scroll-behavior:smooth;}
@@ -127,7 +127,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--pink),var(--purp
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,#b026ff,#ff2d78);border-radius:2px;pointer-events:none;}
 
 /* CHANNELS */
-.channels{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px;}
+.channels{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px;}
 .ch{background:var(--surface);border-radius:16px;overflow:hidden;border:1px solid var(--border);opacity:.3;transition:opacity .5s,border-color .2s;}
 .ch.loaded{opacity:1;}
 .ch-head{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
@@ -135,6 +135,7 @@ h1 em{font-style:normal;background:linear-gradient(135deg,var(--pink),var(--purp
 .pill-d{background:#1a1030;color:#9d6fff;border:1px solid #3a2a6a;}
 .pill-i{background:#0f1a1a;color:#00d4aa;border:1px solid #005544;}
 .pill-v{background:#1a0f1a;color:#ff6ec7;border:1px solid #5a1a4a;}
+.pill-b{background:#1a1208;color:#f5a623;border:1px solid #5a3a00;}
 .ch-mute{font-size:9px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-weight:700;transition:all .15s;}
 .ch-mute.muted{background:#2a1010;border-color:#6a2020;color:#ff5555;}
 .ch-wv{padding:12px 14px 6px;}
@@ -150,6 +151,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .sl-d::-webkit-slider-thumb{background:#9d6fff;}
 .sl-i::-webkit-slider-thumb{background:#00d4aa;}
 .sl-v::-webkit-slider-thumb{background:#ff6ec7;}
+.sl-b::-webkit-slider-thumb{background:#f5a623;}
 
 /* ARTIST CHAIN */
 .chain-btn{width:100%;margin-top:12px;padding:8px 0;border-radius:8px;border:1px solid #3a1a3a;background:#120a18;color:#ff6ec7;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .2s;}
@@ -180,7 +182,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   h1{font-size:clamp(28px,8vw,48px);}
   .products{grid-template-columns:1fr;padding:0 16px;}
   .studio{padding:0 16px 40px;}
-  .channels{grid-template-columns:1fr;}
+  .channels{grid-template-columns:1fr 1fr;}
   .bottom-bar{flex-wrap:wrap;}
   .mbtn{flex:1;}
 }
@@ -354,7 +356,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 
 <script>
 const API='https://aimix-backend-production.up.railway.app';
-const CH_COLORS={drums:'#9d6fff',inst:'#00d4aa',vox:'#ff6ec7'};
+const CH_COLORS={drums:'#9d6fff',inst:'#00d4aa',bass:'#f5a623',vox:'#ff6ec7'};
 const SPOTIFY_CLIENT_ID='95cdc95ef2904df595d35f50b55a8680';
 
 const CHAINS=[
@@ -371,6 +373,7 @@ let activeChain=null;
 const stems={
   drums:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
   inst:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
+  bass:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false},
   vox:{buf:null,gain:null,hiShelf:null,punch:null,reverb:null,reverbGain:null,dryGain:null,src:null,muted:false}
 };
 let actx,masterPlaying=false,masterStartTime=0,masterOffset=0,masterDuration=0,animId;
@@ -472,9 +475,9 @@ function makeImpulse(c,dur,decay){const sr=c.sampleRate,len=Math.floor(sr*dur),b
 
 function buildGraph(id){
   const c=getCtx(),s=stems[id];
-  s.gain=c.createGain();s.gain.gain.value=id==='drums'?.8:id==='inst'?.75:.85;
-  s.hiShelf=c.createBiquadFilter();s.hiShelf.type='highshelf';s.hiShelf.frequency.value=8000;s.hiShelf.gain.value=0;
-  s.punch=c.createBiquadFilter();s.punch.type='peaking';s.punch.frequency.value=id==='drums'?200:2500;s.punch.Q.value=1;s.punch.gain.value=0;
+  s.gain=c.createGain();s.gain.gain.value=id==='drums'?.8:id==='inst'?.75:id==='bass'?.8:.85;
+  s.hiShelf=c.createBiquadFilter();s.hiShelf.type=id==='bass'?'lowshelf':'highshelf';s.hiShelf.frequency.value=id==='bass'?200:8000;s.hiShelf.gain.value=0;
+  s.punch=c.createBiquadFilter();s.punch.type='peaking';s.punch.frequency.value=id==='drums'?200:id==='bass'?800:2500;s.punch.Q.value=1;s.punch.gain.value=0;
   s.reverb=c.createConvolver();s.reverb.buffer=makeImpulse(c,2,2.5);
   s.reverbGain=c.createGain();s.reverbGain.gain.value=id==='drums'?.1:.15;
   s.dryGain=c.createGain();s.dryGain.gain.value=1;
@@ -553,7 +556,7 @@ function drawWaveform(id,buf,pct){
 }
 
 function setStemGain(id,val){const s=stems[id];if(s.gain&&!s.muted)s.gain.gain.value=val/100;}
-function setEQ(id,type,val){const s=stems[id];if(type==='hi'&&s.hiShelf)s.hiShelf.gain.value=+val;if(type==='punch'&&s.punch)s.punch.gain.value=+val;}
+function setEQ(id,type,val){const s=stems[id];if((type==='hi'||type==='lo')&&s.hiShelf)s.hiShelf.gain.value=+val;if((type==='punch'||type==='mid')&&s.punch)s.punch.gain.value=+val;}
 function setReverb(id,val){const s=stems[id];if(s.reverbGain)s.reverbGain.gain.value=val/100*.8;if(s.dryGain)s.dryGain.gain.value=1-val/200;}
 function toggleMute(id,btn){const s=stems[id];s.muted=!s.muted;btn.classList.toggle('muted',s.muted);if(s.gain)s.gain.gain.value=s.muted?0:(id==='drums'?.8:id==='inst'?.75:.85);}
 function rms(buf){const d=buf.getChannelData(0);let s=0;for(let i=0;i<d.length;i++)s+=d[i]*d[i];return Math.sqrt(s/d.length);}
@@ -561,7 +564,7 @@ function rms(buf){const d=buf.getChannelData(0);let s=0;for(let i=0;i<d.length;i
 function autoMix(){
   const loaded=Object.keys(stems).filter(id=>stems[id].buf);if(!loaded.length)return;
   document.getElementById('masterStatus').textContent='ANALYZING...';
-  const targets={drums:-14,inst:-18,vox:-12};
+  const targets={drums:-14,inst:-18,bass:-16,vox:-12};
   setTimeout(()=>{
     loaded.forEach(id=>{const r=rms(stems[id].buf),db=r>0?20*Math.log10(r):-60,g=Math.min(Math.max(Math.pow(10,(targets[id]-db)/20),0.1),2.5);if(stems[id].gain&&!stems[id].muted)stems[id].gain.gain.value=g;document.getElementById('v-'+id).textContent=Math.round(g*100)+'%';});
     if(stems.drums.hiShelf){stems.drums.hiShelf.gain.value=2;document.getElementById('p-drums').textContent='+2 dB';}
@@ -655,7 +658,7 @@ async function processTrack(file){
   setCookStep(4);await new Promise(r=>setTimeout(r,600));
   document.getElementById('cookingTracker').classList.remove('show');
   const c=getCtx();
-  const map={drums:data.stems.drums,inst:data.stems.instruments,vox:data.stems.vocals};
+  const map={drums:data.stems.drums,inst:data.stems.instruments,bass:data.stems.bass,vox:data.stems.vocals};
   const durations=[];
   for(const[id,b64]of Object.entries(map)){
     if(!b64)continue;
