@@ -944,7 +944,14 @@ function updateUsageBar(){
 }
 
 async function checkCanDownload(){
-  // If _authUser not set yet, try getting session directly from Supabase
+  // First check sessionStorage (instant - set by index.html on login)
+  if(!window._authUser){
+    try {
+      var stored = sessionStorage.getItem('aimix_user');
+      if(stored) window._authUser = JSON.parse(stored);
+    } catch(e) {}
+  }
+  // If still not set, try Supabase directly
   if(!window._authUser && window._sb){
     var res = await window._sb.auth.getSession();
     if(res.data && res.data.session && res.data.session.user){
@@ -1016,6 +1023,16 @@ if(window.location.search.includes('success=1')){
 // Load subscription when auth is ready
 document.addEventListener('aimix-authed', function(){ loadSubscription(); });
 window.addEventListener('load', function(){
+  // Try sessionStorage immediately on load
+  if(!window._authUser){
+    try {
+      var stored = sessionStorage.getItem('aimix_user');
+      if(stored){
+        window._authUser = JSON.parse(stored);
+        loadSubscription();
+      }
+    } catch(e) {}
+  }
   if(window._authUser) loadSubscription();
   setTimeout(function(){ if(window._authUser && !_subData) loadSubscription(); }, 2000);
 });
