@@ -225,8 +225,22 @@ function applyMasterChain(offCtx,inputNode,pct){
 async function renderMastered(){
   if(!_rawBuffer) return null;
   const sampleRate=_rawBuffer.sampleRate;
-  const offCtx=new OfflineAudioContext(2,_rawBuffer.length,sampleRate);
-  const src=offCtx.createBufferSource();src.buffer=_rawBuffer;src.start(0);
+  const length=_rawBuffer.length;
+  const offCtx=new OfflineAudioContext(2,length,sampleRate);
+  // Re-decode raw data for offline context to avoid cross-context issues
+  let buf;
+  try {
+    if(window._rawData){
+      buf=await offCtx.decodeAudioData(window._rawData.slice(0));
+    } else {
+      buf=_rawBuffer;
+    }
+  } catch(e) {
+    buf=_rawBuffer;
+  }
+  const src=offCtx.createBufferSource();
+  src.buffer=buf;
+  src.start(0);
   applyMasterChain(offCtx,src,_pct);
   return await offCtx.startRendering();
 }
@@ -234,15 +248,39 @@ async function renderMastered(){
 async function previewMix(){
   if(!_rawBuffer){alert('No mix loaded!');return;}
   const btn=document.getElementById('previewBtn');
-  if(_previewSrc){try{_previewSrc.stop();}catch(e){}; _previewSrc=null;btn.textContent='▶ Preview';return;}
-  btn.textContent='⏳ Rendering...';btn.disabled=true;
+  
+  // Stop if already playing
+  if(_previewSrc){
+    try{_previewSrc.stop();}catch(e){}
+    _previewSrc=null;
+    btn.textContent='▶ Preview';
+    btn.disabled=false;
+    return;
+  }
+  
+  btn.textContent='⏳ Rendering...';
+  btn.disabled=true;
+  
+  // Create AudioContext from user gesture click
+  if(!_actx) _actx=new(window.AudioContext||window.webkitAudioContext)();
+  if(_actx.state==='suspended') await _actx.resume();
+  
+  // Render mastered audio
   const rendered=await renderMastered();
-  if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();
-  await _actx.resume();
-  _previewSrc=_actx.createBufferSource();_previewSrc.buffer=rendered;
-  _previewSrc.connect(_actx.destination);_previewSrc.start(0);
-  _previewSrc.onended=()=>{_previewSrc=null;btn.textContent='▶ Preview';btn.disabled=false;};
-  btn.textContent='■ Stop';btn.disabled=false;
+  if(!rendered){btn.textContent='▶ Preview';btn.disabled=false;return;}
+  
+  // Play it
+  _previewSrc=_actx.createBufferSource();
+  _previewSrc.buffer=rendered;
+  _previewSrc.connect(_actx.destination);
+  _previewSrc.start(0);
+  _previewSrc.onended=function(){
+    _previewSrc=null;
+    btn.textContent='▶ Preview';
+    btn.disabled=false;
+  };
+  btn.textContent='■ Stop Preview';
+  btn.disabled=false;
 }
 
 function encodeWAV(buffer){
@@ -284,14 +322,19 @@ function loadMix(){
         document.getElementById('loadingState').innerHTML='<div style="color:#555;font-size:14px;">No mix found. <a href="index.html" style="color:#b026ff;">Go back to mixer →</a></div>';
         return;
       }
-      // Decode the audio data
+      // Store raw data for re-decoding
+      window._rawData=data.slice(0);
+      // Decode with temp context for duration/metadata
       const tmpCtx=new(window.AudioContext||window.webkitAudioContext)();
       tmpCtx.decodeAudioData(data).then(function(buf){
         _rawBuffer=buf;
+        tmpCtx.close();
         document.getElementById('loadingState').style.display='none';
         document.getElementById('mainState').style.display='flex';
         buildChain();
         onKnob(0);
+      }).catch(function(e){
+        document.getElementById('loadingState').innerHTML='<div style="color:#ff4444;">Error decoding audio: '+e.message+'<br><a href="index.html" style="color:#b026ff;">Go back →</a></div>';
       });
     };
     getReq.onerror=function(){
