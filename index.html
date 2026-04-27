@@ -909,13 +909,32 @@ function randomTone() {
 
 function saveMixState(){
   try {
-    // Save mix metadata to localStorage (fast, no async)
+    var loadedIds = Object.keys(stems).filter(function(id){return stems[id].buf;});
+    // Save mix metadata to localStorage
     var state = {
       duration: masterDuration,
       timestamp: Date.now(),
-      hasStems: Object.keys(stems).filter(function(id){return stems[id].buf;})
+      hasStems: loadedIds
     };
     localStorage.setItem('aimix_mix_state', JSON.stringify(state));
+    
+    // Save each stem as WAV to IndexedDB so new tab can restore
+    var req = indexedDB.open('aimix',1);
+    req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
+    req.onsuccess = function(ev){
+      var db = ev.target.result;
+      loadedIds.forEach(function(id){
+        if(!stems[id].buf) return;
+        // Encode stem as WAV blob
+        var stemBlob = encodeWAV(stems[id].buf);
+        var reader = new FileReader();
+        reader.onload = function(e){
+          var tx = db.transaction('mix','readwrite');
+          tx.objectStore('mix').put(e.target.result, 'stem_' + id);
+        };
+        reader.readAsArrayBuffer(stemBlob);
+      });
+    };
     
     // Render and save actual audio to IndexedDB (for master page + restore)
     var loaded = Object.keys(stems).filter(function(id){return stems[id].buf;});
@@ -948,6 +967,60 @@ function saveMixState(){
       reader.readAsArrayBuffer(blob);
     });
   } catch(e){ console.log('saveMixState error:', e); }
+}
+
+
+function restoreStemsFromDB(){
+  var stateStr = localStorage.getItem('aimix_mix_state');
+  if(!stateStr) return;
+  var state;
+  try { state = JSON.parse(stateStr); } catch(e){ return; }
+  var stemIds = state.hasStems || [];
+  if(!stemIds.length) return;
+  
+  document.getElementById('appStatus').textContent = 'RESTORING YOUR MIX...';
+  
+  var req = indexedDB.open('aimix',1);
+  req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
+  req.onsuccess = function(ev){
+    var db = ev.target.result;
+    var c = getCtx();
+    var loaded = 0;
+    var durations = [];
+    
+    stemIds.forEach(function(id){
+      var gr = db.transaction('mix','readonly').objectStore('mix').get('stem_' + id);
+      gr.onsuccess = function(e){
+        var data = e.target.result;
+        if(!data){ loaded++; return; }
+        c.decodeAudioData(data.slice(0)).then(function(buf){
+          stems[id].buf = buf;
+          buildGraph(id);
+          drawWaveform(id, buf, 0);
+          durations.push(buf.duration);
+          document.getElementById('ch-' + id).classList.add('loaded');
+          loaded++;
+          if(loaded === stemIds.length){
+            // All stems restored!
+            masterDuration = Math.max.apply(null, durations);
+            document.getElementById('masterTotal').textContent = '/ ' + fmtT(masterDuration);
+            document.getElementById('masterTransport').classList.add('show');
+            document.getElementById('appStatus').textContent = 'MIX RESTORED — HIT PLAY!';
+            document.getElementById('masterStatus').textContent = 'READY';
+            autoMix();
+            // Show listen now on iOS, play on desktop
+            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            if(!isIOS) startAllStems(0);
+            else {
+              document.getElementById('listenNowOverlay').classList.add('show');
+              document.getElementById('masterTransport').classList.add('show');
+            }
+          }
+        }).catch(function(){ loaded++; });
+      };
+      gr.onerror = function(){ loaded++; };
+    });
+  };
 }
 
 function checkRestoreMix(){
@@ -1094,9 +1167,11 @@ window.addEventListener('DOMContentLoaded', function(){
       if (session && session.user) {
         handleUser(session.user);
         document.getElementById('authWall').classList.remove('show');
-        // Play if stems are already loaded (email magic link flow)
+
+        // Check if stems are loaded in memory (same tab flow)
         var loaded = Object.keys(window.stems || {}).filter(function(id) { return window.stems[id] && window.stems[id].buf; });
         if (loaded.length > 0) {
+          // Stems loaded - play!
           var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
           if (!isIOS && typeof startAllStems === 'function') {
             startAllStems(0);
@@ -1106,8 +1181,21 @@ window.addEventListener('DOMContentLoaded', function(){
             if(lo) lo.classList.add('show');
             if(mt) mt.classList.add('show');
           }
+        } else if (event === 'SIGNED_IN') {
+          // New tab from magic link - check if we have a saved mix in IndexedDB
+          var stateStr = localStorage.getItem('aimix_mix_state');
+          if (stateStr) {
+            try {
+              var state = JSON.parse(stateStr);
+              // Mix saved within last 30 min - redirect to master page!
+              if (Date.now() - state.timestamp < 30*60*1000) {
+                // Restore stems from IndexedDB into the mixer!
+                restoreStemsFromDB();
+                return;
+              }
+            } catch(e) {}
+          }
         }
-        // If stems not loaded yet, just hide wall - processTrack will play when done
       }
     });
   }
