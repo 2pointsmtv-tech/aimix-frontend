@@ -730,13 +730,15 @@ function setCookStep(i){
 const SUPABASE_URL='https://bhuduafakmaywnxklfyk.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
 const SYSTEME_API_KEY='rnzkipes8urrxnsxo3ca70qr49f6gu7pt1f6bt54cwxbc2114bkfrwomu1onfuhn'; // Add your Systeme.io key here
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
+let supabase=null;
 let _currentUser=null;
 let _pendingPlay=false;
 
-// Check if user is already signed in on load
-supabase.auth.getSession().then(function({data}){
+function initSupabase(){
+  if(window.supabase&&!supabase){
+    supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+    // Check if user is already signed in
+    supabase.auth.getSession().then(function(result){var data=result.data;
   if(data.session&&data.session.user){
     onUserSignedIn(data.session.user);
   }
@@ -777,14 +779,14 @@ async function addToSysteme(email, name){
   }catch(e){console.log('Systeme.io:',e);}
 }
 
-async function signInGoogle(){
+async function signInGoogle(){if(!supabase){alert("Loading... try again!");return;}
   await supabase.auth.signInWithOAuth({
     provider:'google',
     options:{redirectTo:window.location.href}
   });
 }
 
-async function signInEmail(){
+async function signInEmail(){if(!supabase){alert("Loading... try again!");return;}
   const email=document.getElementById('authEmail').value.trim();
   if(!email||!email.includes('@')){
     document.getElementById('authEmail').style.borderColor='#ff2d78';
