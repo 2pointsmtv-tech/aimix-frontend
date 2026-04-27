@@ -282,11 +282,15 @@ const GROUP_COLORS={sparkle:'var(--sparkle)',clarity:'var(--clarity)',maximize:'
 // ── BUILD GRAPH ───────────────────────────────────────────────────
 function buildGraph(){
   const c=_actx;
-  // Sparkle
+  // Sparkle — Aphex Exciter style (hi-freq only saturation + air shelf)
   N.loShelf=c.createBiquadFilter();N.loShelf.type='lowshelf';N.loShelf.frequency.value=150;
-  N.hiShelf=c.createBiquadFilter();N.hiShelf.type='highshelf';N.hiShelf.frequency.value=9000;
+  N.hiShelf=c.createBiquadFilter();N.hiShelf.type='highshelf';N.hiShelf.frequency.value=10000;
+  // Exciter: high-pass -> gentle sat -> mix back at low level
+  N.exciterHP=c.createBiquadFilter();N.exciterHP.type='highpass';N.exciterHP.frequency.value=3000;N.exciterHP.Q.value=0.5;
+  N.exciterHP2=c.createBiquadFilter();N.exciterHP2.type='highpass';N.exciterHP2.frequency.value=3000;N.exciterHP2.Q.value=0.5;
   N.sat=c.createWaveShaper();N.sat.oversample='4x';
-  N.satGain=c.createGain();N.satGain.gain.value=1;
+  N.satGain=c.createGain();N.satGain.gain.value=0; // starts at 0 (exciter mix level)
+  N.dryGain=c.createGain();N.dryGain.gain.value=1;
   // Clarity
   N.mudCut=c.createBiquadFilter();N.mudCut.type='peaking';N.mudCut.frequency.value=350;N.mudCut.Q.value=0.7;
   N.harshCut=c.createBiquadFilter();N.harshCut.type='peaking';N.harshCut.frequency.value=2200;N.harshCut.Q.value=0.9;
@@ -299,10 +303,17 @@ function buildGraph(){
   N.ceiling=c.createGain();N.ceiling.gain.value=Math.pow(10,-0.5/20);
   N.analyser=c.createAnalyser();N.analyser.fftSize=2048;
   // Connect chain
+  // Exciter parallel path: input splits into dry + excited hi-freq
+  // Dry path: loShelf -> hiShelf -> dryGain -> mudCut
+  // Exciter path: hiShelf -> exciterHP -> sat -> satGain -> mudCut (mixes in)
   N.loShelf.connect(N.hiShelf);
-  N.hiShelf.connect(N.sat);
-  N.sat.connect(N.satGain);
-  N.satGain.connect(N.mudCut);
+  N.hiShelf.connect(N.dryGain);     // dry path
+  N.hiShelf.connect(N.exciterHP);   // exciter sidechain
+  N.exciterHP.connect(N.exciterHP2);// double HP for steeper rolloff
+  N.exciterHP2.connect(N.sat);      // saturate ONLY high freqs
+  N.sat.connect(N.satGain);         // mix level for exciter
+  N.dryGain.connect(N.mudCut);      // dry goes forward
+  N.satGain.connect(N.mudCut);      // excited highs blend in
   N.mudCut.connect(N.harshCut);
   N.harshCut.connect(N.midCut);
   N.midCut.connect(N.presence);
@@ -327,20 +338,33 @@ function updateSparkleNodes(v){
   if(!N.loShelf)return;
   const t=v/100;
   const a=_analysis;
-  // Low shelf warmth — scale back if already limited
-  N.loShelf.gain.value = a.alreadyLimited ? t*3 : t*5;
-  // High shelf air
-  N.hiShelf.gain.value = a.alreadyLimited ? t*2.5 : t*4;
-  // Saturation — very gentle on limited material
-  const drive = a.alreadyLimited ? t*6 : t*50;
-  const curve=new Float32Array(512);
+
+  // Low shelf — subtle body/warmth (max +3dB even at 100%)
+  N.loShelf.gain.value = t * (a.alreadyLimited ? 2 : 3);
+
+  // High shelf — air and brightness (max +4dB)
+  N.hiShelf.gain.value = t * (a.alreadyLimited ? 2.5 : 4);
+
+  // Exciter: soft even-harmonic curve (like tape/tube) — very low drive
+  // Even harmonics = warm, musical. Odd harmonics = harsh, distorted
+  // We use tanh-style curve which is naturally even-harmonic dominant
+  const drive = t * (a.alreadyLimited ? 3 : 8); // MAX drive is 8 — not 50!
+  const curve = new Float32Array(512);
   for(let i=0;i<512;i++){
     const x=(i*2)/512-1;
-    curve[i]=drive>0?((Math.PI+drive)*x)/(Math.PI+drive*Math.abs(x)):x;
+    // tanh approximation — much smoother than the previous formula
+    if(drive < 0.01){
+      curve[i]=x;
+    } else {
+      curve[i]=Math.tanh(drive*x)/Math.tanh(drive);
+    }
   }
   N.sat.curve=curve;
-  // Saturation output gain to compensate for level change
-  N.satGain.gain.value = 1/(1+t*0.15);
+
+  // Exciter mix level — blend in only a SMALL amount of excited highs
+  // This is what makes it sound like an Aphex Exciter vs distortion
+  N.satGain.gain.value = t * 0.25; // max 25% mix — subtle sparkle, not distortion
+  N.dryGain.gain.value = 1.0; // dry stays full
 }
 
 function onSparkle(v){
@@ -699,8 +723,14 @@ async function downloadMastered(){
   let buf=_rawBuf;
   if(window._rawData){try{buf=await offCtx.decodeAudioData(window._rawData.slice(0));}catch(e){}}
   src.buffer=buf;
-  src.connect(lo);lo.connect(hi);hi.connect(sat);sat.connect(satG);
-  satG.connect(mud);mud.connect(harsh);harsh.connect(midC);midC.connect(pres);
+  // Exciter parallel path in offline render
+  const excHP=offCtx.createBiquadFilter();excHP.type='highpass';excHP.frequency.value=3000;excHP.Q.value=0.5;
+  const excHP2=offCtx.createBiquadFilter();excHP2.type='highpass';excHP2.frequency.value=3000;excHP2.Q.value=0.5;
+  const dryG=offCtx.createGain();dryG.gain.value=N.dryGain.gain.value;
+  satG.gain.value=N.satGain.gain.value;
+  src.connect(lo);lo.connect(hi);
+  hi.connect(dryG);hi.connect(excHP);excHP.connect(excHP2);excHP2.connect(sat);sat.connect(satG);
+  dryG.connect(mud);satG.connect(mud);mud.connect(harsh);harsh.connect(midC);midC.connect(pres);
   pres.connect(delay);delay.connect(comp);comp.connect(outG);outG.connect(ceil);ceil.connect(offCtx.destination);
   src.start(0);
   const rendered=await offCtx.startRendering();
