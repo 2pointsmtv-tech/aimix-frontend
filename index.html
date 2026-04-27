@@ -186,6 +186,15 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   .bottom-bar{flex-wrap:wrap;}
   .mbtn{flex:1;}
 }
+
+.ios-banner{display:none;background:#1a1010;border:1px solid #5a2020;border-radius:10px;padding:10px 16px;margin-bottom:12px;font-size:12px;color:#ff9999;font-family:'JetBrains Mono',monospace;text-align:center;}
+.ios-banner.show{display:block;}
+
+.listen-now-overlay{display:none;position:absolute;inset:0;background:rgba(9,9,12,.85);border-radius:14px;z-index:50;flex-direction:column;align-items:center;justify-content:center;gap:16px;backdrop-filter:blur(4px);}
+.listen-now-overlay.show{display:flex;}
+.listen-now-btn{padding:16px 40px;background:linear-gradient(135deg,#b026ff,#7c6af5);color:#fff;border:none;border-radius:100px;font-family:'Syne',sans-serif;font-weight:800;font-size:18px;cursor:pointer;letter-spacing:.02em;box-shadow:0 0 30px #b026ff66;transition:transform .15s;}
+.listen-now-btn:active{transform:scale(.97);}
+.listen-now-txt{font-size:12px;color:#888;font-family:'JetBrains Mono',monospace;}
 </style>
 </head>
 <body>
@@ -294,6 +303,12 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   </div>
 
   <!-- MASTER TRANSPORT -->
+  <div class="ios-banner" id="iosBanner">🔇 Silent mode is on — turn off the ringer switch to hear your mix</div>
+  <div style="position:relative;">
+  <div class="listen-now-overlay" id="listenNowOverlay">
+    <button class="listen-now-btn" onclick="listenNow()">▶ Listen Now</button>
+    <div class="listen-now-txt">Tap to hear your mix</div>
+  </div>
   <div class="master-transport" id="masterTransport">
     <div class="transport-row">
       <button class="master-play" id="masterPlay" onclick="toggleMasterPlay()">
@@ -674,10 +689,26 @@ async function processTrack(file){
   document.getElementById('masterTransport').classList.add('show');
   document.getElementById('masterStatus').textContent='READY';
   autoMix();
-  // Don't autoplay on iOS - requires user gesture
   var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  if(!isIOS) startAllStems(0);
-  else document.getElementById('masterStatus').textContent='TAP ▶ TO PLAY';
+  if(!isIOS){
+    startAllStems(0);
+  } else {
+    // Show Listen Now overlay - audio must start from direct user tap on iOS
+    document.getElementById('listenNowOverlay').classList.add('show');
+    document.getElementById('masterTransport').classList.add('show');
+    document.getElementById('masterStatus').textContent='TAP LISTEN NOW';
+    // Check if silent mode - show banner on iOS
+    var silentCheck = document.createElement('audio');
+    silentCheck.src = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZA==';
+    silentCheck.volume = 0.001;
+    silentCheck.play().then(function(){
+      // Audio works - no silent mode banner needed
+      silentCheck.pause();
+    }).catch(function(){
+      // Show the banner
+      document.getElementById('iosBanner').classList.add('show');
+    });
+  }
   if(spotifyRef)applySpotifyRef();
 }
 
