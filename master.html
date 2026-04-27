@@ -3,353 +3,571 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AIMix — Master Your Mix</title>
+<title>AIMix — AI Mastering</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
-:root{--bg:#080808;--surface:#111;--border:#222;--purple:#b026ff;--pink:#ff2d78;--teal:#00e5cc;}
+:root{--bg:#080808;--surface:#111;--surface2:#161616;--border:#1e1e1e;--purple:#b026ff;--pink:#ff2d78;--teal:#00e5cc;}
 body{background:var(--bg);color:#fff;font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
-
-/* NAV */
 nav{display:flex;align-items:center;justify-content:space-between;padding:16px 32px;border-bottom:1px solid var(--border);}
 .nav-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:17px;}
 .nav-logo span{background:linear-gradient(90deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.nav-back{font-size:12px;color:#555;text-decoration:none;display:flex;align-items:center;gap:6px;transition:color .2s;}
+.nav-back{font-size:12px;color:#555;text-decoration:none;display:flex;align-items:center;gap:6px;transition:color .2s;cursor:pointer;}
 .nav-back:hover{color:#fff;}
 
 /* LOADING */
-.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
-.loading-spinner{width:48px;height:48px;border:3px solid #222;border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;}
+.loading{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;}
+.loading-spinner{width:52px;height:52px;border:3px solid #1a1a1a;border-top-color:var(--purple);border-radius:50%;animation:spin 1s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.loading-txt{font-size:14px;color:#555;font-family:'Inter',monospace;}
+.loading-step{font-size:13px;color:#444;font-family:'Inter',monospace;transition:color .3s;}
+.loading-step.active{color:var(--purple);}
+.loading-step.done{color:#2aff80;}
 
 /* MAIN */
-.main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;gap:0;}
+.main{flex:1;display:flex;flex-direction:column;align-items:center;padding:32px 20px 48px;gap:24px;max-width:520px;margin:0 auto;width:100%;}
 
-.hero-tag{display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:100px;border:1px solid #2a1a3a;background:#120a18;color:var(--purple);font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-bottom:20px;}
-h1{font-family:'Syne',sans-serif;font-size:clamp(28px,5vw,52px);font-weight:800;text-align:center;margin-bottom:8px;transition:color .3s;letter-spacing:-.02em;}
-.sub{font-size:15px;color:#555;text-align:center;margin-bottom:48px;}
+/* AI ANALYSIS CARD */
+.analysis-card{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;display:none;}
+.analysis-card.show{display:block;}
+.analysis-title{font-size:11px;color:#444;font-family:'Inter',monospace;text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.analysis-title::before{content:'';width:6px;height:6px;border-radius:50%;background:#2aff80;}
+.analysis-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+.stat-box{background:var(--surface2);border-radius:10px;padding:12px;text-align:center;}
+.stat-val{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:2px;}
+.stat-lbl{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.1em;font-family:'Inter',monospace;}
+.ai-verdict{margin-top:14px;padding:12px 14px;background:#0d1a0d;border:1px solid #1a3a1a;border-radius:10px;font-size:12px;color:#2aff80;line-height:1.5;}
 
 /* KNOB */
-.knob-section{display:flex;flex-direction:column;align-items:center;gap:0;margin-bottom:40px;}
-.knob-wrap{position:relative;width:220px;height:220px;margin-bottom:12px;}
-.knob-bg{position:absolute;inset:0;border-radius:50%;background:#111;border:2px solid #1a1a1a;}
-.knob-ring{position:absolute;inset:0;border-radius:50%;}
-.knob-inner{position:absolute;inset:16px;border-radius:50%;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;border:1px solid #1a1a1a;}
-.knob-number{font-family:'Syne',sans-serif;font-size:52px;font-weight:800;line-height:1;transition:color .2s;}
-.knob-unit{font-size:10px;color:#444;letter-spacing:.15em;font-family:'Inter',monospace;}
-.knob-range-labels{display:flex;justify-content:space-between;width:220px;font-size:10px;color:#333;font-family:'Inter',monospace;}
+.knob-section{display:flex;flex-direction:column;align-items:center;width:100%;}
+.knob-label-row{display:flex;justify-content:space-between;width:240px;font-size:10px;color:#333;font-family:'Inter',monospace;margin-bottom:4px;}
+.knob-wrap{position:relative;width:240px;height:240px;margin-bottom:8px;}
+.knob-bg{position:absolute;inset:0;border-radius:50%;}
+.knob-ring-svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.knob-inner{position:absolute;inset:18px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.knob-num{font-family:'Syne',sans-serif;font-size:58px;font-weight:800;line-height:1;transition:color .15s;}
+.knob-unit{font-size:9px;color:#333;letter-spacing:.15em;font-family:'Inter',monospace;}
 
 /* SLIDER */
-.slider-wrap{width:min(420px,90vw);margin-bottom:20px;}
-input[type=range].big-slider{width:100%;height:8px;-webkit-appearance:none;border-radius:4px;outline:none;cursor:pointer;transition:background .1s;}
-input[type=range].big-slider::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;cursor:pointer;transition:transform .15s;border:3px solid var(--bg);}
-input[type=range].big-slider:hover::-webkit-slider-thumb{transform:scale(1.15);}
+.slider-wrap{width:100%;max-width:420px;position:relative;}
+input[type=range].big-sl{width:100%;height:6px;-webkit-appearance:none;border-radius:3px;outline:none;cursor:pointer;}
+input[type=range].big-sl::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;cursor:pointer;transition:transform .15s;border:3px solid var(--bg);}
+input[type=range].big-sl:hover::-webkit-slider-thumb{transform:scale(1.15);}
 
 /* VIBE */
-.vibe-label{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;transition:color .2s;margin-bottom:8px;text-align:center;}
-.vibe-desc{font-size:12px;color:#444;text-align:center;font-family:'Inter',monospace;margin-bottom:40px;min-height:18px;}
+.vibe-row{text-align:center;}
+.vibe-name{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;transition:color .15s;margin-bottom:4px;}
+.vibe-desc{font-size:12px;color:#444;font-family:'Inter',monospace;}
 
-/* CHAIN DISPLAY */
-.chain-display{display:flex;gap:8px;margin-bottom:48px;flex-wrap:wrap;justify-content:center;}
-.chain-node{padding:5px 12px;border-radius:100px;font-size:10px;font-weight:600;font-family:'Inter',monospace;transition:all .3s;border:1px solid transparent;opacity:.3;}
-.chain-node.active{opacity:1;}
+/* CHAIN */
+.chain-row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%;}
+.chain-node{padding:4px 12px;border-radius:100px;font-size:10px;font-weight:600;font-family:'Inter',monospace;transition:all .25s;opacity:.2;border:1px solid transparent;background:transparent;}
+.chain-node.on{opacity:1;}
 
-/* BUTTONS */
-.action-btns{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
-.action-btn{padding:14px 32px;border-radius:100px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:14px;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
-.action-btn:hover{transform:translateY(-2px);}
-.action-btn:active{transform:scale(.97);}
-.btn-preview{background:#151525;color:var(--purple);border:1px solid #3a1a5a;}
-.btn-download{color:#fff;background:linear-gradient(135deg,var(--purple),var(--pink));}
-.btn-back{background:transparent;color:#444;border:1px solid #222;font-size:12px;padding:10px 24px;}
+/* LUFS TARGET */
+.target-row{display:flex;align-items:center;gap:12px;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;}
+.target-lbl{font-size:11px;color:#555;font-family:'Inter',monospace;flex:1;}
+.target-badges{display:flex;gap:6px;}
+.target-badge{padding:4px 12px;border-radius:100px;font-size:10px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid var(--border);color:#555;}
+.target-badge.active{color:#fff;}
 
 /* METER */
-.meter-bar{width:min(420px,90vw);height:4px;background:#111;border-radius:2px;margin-bottom:40px;overflow:hidden;}
-.meter-fill{height:100%;border-radius:2px;transition:all .3s;width:0%;}
+.meter-wrap{width:100%;max-width:420px;}
+.meter-track{height:6px;background:#111;border-radius:3px;overflow:hidden;margin-bottom:6px;}
+.meter-fill{height:100%;border-radius:3px;transition:all .2s;width:0%;}
+.meter-labels{display:flex;justify-content:space-between;font-size:9px;color:#333;font-family:'Inter',monospace;}
+
+/* BTNS */
+.action-row{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;width:100%;}
+.abtn{padding:13px 28px;border-radius:100px;border:none;font-family:'Syne',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;letter-spacing:.02em;}
+.abtn:hover{transform:translateY(-1px);}
+.abtn:active{transform:scale(.97);}
+.abtn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+.btn-prev{background:var(--surface);color:var(--purple);border:1px solid #3a1a5a;}
+.btn-dl{color:#fff;}
+.btn-back2{background:transparent;color:#444;border:1px solid var(--border);font-size:11px;padding:10px 20px;margin-top:4px;}
 </style>
+<style id="dynStyle"></style>
 </head>
 <body>
-
 <nav>
-  <div class="nav-logo">AI<span>MIX</span></div>
-  <a href="index.html" class="nav-back">← Back to Mixer</a>
+  <div class="nav-logo">AI<span>MIX</span> — Mastering</div>
+  <span class="nav-back" onclick="window.location.href='index.html'">← Back to Mixer</span>
 </nav>
 
-<div class="loading" id="loadingState">
+<div class="loading" id="loadingEl">
   <div class="loading-spinner"></div>
-  <div class="loading-txt">Loading your mix...</div>
+  <div style="display:flex;flex-direction:column;gap:8px;align-items:center;">
+    <div class="loading-step active" id="step1">⚡ Loading your mix...</div>
+    <div class="loading-step" id="step2">📊 Analyzing dynamics...</div>
+    <div class="loading-step" id="step3">🧠 AI calibrating chain...</div>
+  </div>
 </div>
 
-<div class="main" id="mainState" style="display:none;">
-  <div class="hero-tag">✦ AI Mastering</div>
-  <h1 id="pageTitle">Master Your Mix</h1>
-  <p class="sub">One knob. Full chain. Dial it in.</p>
+<div class="main" id="mainEl" style="display:none;">
 
+  <!-- AI Analysis Card -->
+  <div class="analysis-card" id="analysisCard">
+    <div class="analysis-title">AI Analysis Complete</div>
+    <div class="analysis-grid">
+      <div class="stat-box">
+        <div class="stat-val" id="statLUFS">–</div>
+        <div class="stat-lbl">LUFS</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statDR">–</div>
+        <div class="stat-lbl">Dynamic Range</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="statPeak">–</div>
+        <div class="stat-lbl">True Peak</div>
+      </div>
+    </div>
+    <div class="ai-verdict" id="aiVerdict"></div>
+  </div>
+
+  <!-- Knob -->
   <div class="knob-section">
+    <div class="knob-label-row"><span>Raw</span><span>Maximum</span></div>
     <div class="knob-wrap">
       <div class="knob-bg"></div>
-      <svg class="knob-ring" viewBox="0 0 220 220" style="position:absolute;inset:0;transform:rotate(-90deg);">
-        <circle cx="110" cy="110" r="100" fill="none" stroke="#1a1a1a" stroke-width="10"/>
-        <circle id="knobProgress" cx="110" cy="110" r="100" fill="none" stroke-width="10"
-          stroke-linecap="round" stroke-dasharray="628" stroke-dashoffset="628"
+      <svg class="knob-ring-svg" viewBox="0 0 240 240">
+        <circle cx="120" cy="120" r="108" fill="none" stroke="#1a1a1a" stroke-width="10"/>
+        <circle id="ringProg" cx="120" cy="120" r="108" fill="none" stroke-width="10"
+          stroke-linecap="round" stroke-dasharray="678.6" stroke-dashoffset="678.6"
           style="transition:stroke-dashoffset .1s,stroke .1s;"/>
       </svg>
       <div class="knob-inner">
-        <div class="knob-number" id="knobNum">0</div>
+        <div class="knob-num" id="knobNum">0</div>
         <div class="knob-unit">INTENSITY</div>
       </div>
     </div>
-    <div class="knob-range-labels"><span>Raw</span><span>Maximum</span></div>
   </div>
 
+  <!-- Slider -->
   <div class="slider-wrap">
-    <input type="range" class="big-slider" id="intensitySlider" min="0" max="100" value="0" oninput="onKnob(this.value)">
+    <input type="range" class="big-sl" id="sl" min="0" max="100" value="0" oninput="onKnob(+this.value)">
   </div>
 
-  <div class="vibe-label" id="vibeLabel">Raw Mix</div>
-  <div class="vibe-desc" id="vibeDesc">No mastering applied</div>
-
-  <div class="chain-display" id="chainDisplay"></div>
-
-  <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
-
-  <div class="action-btns">
-    <button class="action-btn btn-preview" id="previewBtn" onclick="previewMix()">▶ Preview</button>
-    <button class="action-btn btn-download" id="downloadBtn" onclick="downloadMastered()">↓ Download Mastered WAV</button>
+  <!-- Vibe -->
+  <div class="vibe-row">
+    <div class="vibe-name" id="vibeName">Raw Mix</div>
+    <div class="vibe-desc" id="vibeDesc">No mastering applied</div>
   </div>
-  <br><br>
-  <button class="action-btn btn-back" onclick="window.location.href='index.html'">← Back to Mixer</button>
+
+  <!-- Chain nodes -->
+  <div class="chain-row" id="chainRow"></div>
+
+  <!-- Loudness target -->
+  <div class="target-row">
+    <div class="target-lbl">🎯 Loudness Target</div>
+    <div class="target-badges">
+      <div class="target-badge" id="tb-14" onclick="setTarget(-14)">-14 LUFS</div>
+      <div class="target-badge" id="tb-9" onclick="setTarget(-9)">-9 LUFS</div>
+      <div class="target-badge" id="tb-6" onclick="setTarget(-6)">-6 LUFS</div>
+    </div>
+  </div>
+
+  <!-- Meter -->
+  <div class="meter-wrap">
+    <div class="meter-track"><div class="meter-fill" id="meterFill"></div></div>
+    <div class="meter-labels"><span>-∞</span><span id="meterLbl">Estimated Output</span><span>0 dBFS</span></div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="action-row">
+    <button class="abtn btn-prev" id="prevBtn" onclick="previewMix()">▶ Preview</button>
+    <button class="abtn btn-dl" id="dlBtn" onclick="downloadMastered()">↓ Download Master</button>
+  </div>
+  <button class="abtn btn-back2" onclick="window.location.href='index.html'">← Back to Mixer</button>
 </div>
 
 <script>
+// ── STATE ──────────────────────────────────────────────────────────
+let _rawBuffer=null, _rawData=null, _actx=null, _prevSrc=null;
+let _pct=0, _target=-14;
+let _analysis={lufs:-23,dr:15,peak:-3,headroom:1.0};
+
+// ── VIBES ──────────────────────────────────────────────────────────
 const VIBES=[
-  {min:0,  max:10,  label:'Raw Mix',       desc:'No mastering applied',                 color:'#888', glow:'#88888833'},
-  {min:10, max:25,  label:'Polished',      desc:'Subtle EQ + light limiting',           color:'#00bfff',glow:'#00bfff33'},
-  {min:25, max:40,  label:'Radio Ready',   desc:'Full EQ · presence · limiter',         color:'#00e5cc',glow:'#00e5cc33'},
-  {min:40, max:55,  label:'Warm & Full',   desc:'Saturation · low end · wide stereo',   color:'#b026ff',glow:'#b026ff33'},
-  {min:55, max:70,  label:'Club Loud',     desc:'Heavy compression · loud · punchy',    color:'#ff6ec7',glow:'#ff6ec733'},
-  {min:70, max:82,  label:'SLAMMING 🔥',  desc:'Maximum saturation · pushed hard',     color:'#ff6b35',glow:'#ff6b3533'},
-  {min:82, max:92,  label:'CRUSHING 💥',  desc:'Brickwall limiter · aggressive',        color:'#ff2d78',glow:'#ff2d7833'},
-  {min:92, max:101, label:'MAXIMUM 🚀',   desc:'Fully cranked · wall of sound',         color:'#ffdd00',glow:'#ffdd0033'},
+  {min:0,  max:10,  name:'Raw Mix',      desc:'No mastering applied',                        color:'#666',   glow:'#66666622'},
+  {min:10, max:22,  name:'Polished',     desc:'Subtle EQ · light limiting · clean',           color:'#00bfff',glow:'#00bfff22'},
+  {min:22, max:38,  name:'Radio Ready',  desc:'Full EQ · stereo width · limiter engaged',     color:'#00e5cc',glow:'#00e5cc22'},
+  {min:38, max:54,  name:'Warm & Full',  desc:'Saturation added · low end boosted · wide',    color:'#b026ff',glow:'#b026ff22'},
+  {min:54, max:68,  name:'Club Loud',    desc:'Heavy limiting · punchy · stage-ready',        color:'#ff6ec7',glow:'#ff6ec722'},
+  {min:68, max:80,  name:'SLAMMING 🔥', desc:'Maximum saturation · walls closing in',         color:'#ff6b35',glow:'#ff6b3522'},
+  {min:80, max:91,  name:'CRUSHING 💥', desc:'Brickwall · aggressive · no mercy',             color:'#ff2d78',glow:'#ff2d7822'},
+  {min:91, max:101, name:'MAXIMUM 🚀',  desc:'Fully cranked · wall of sound · ear fatigue',  color:'#ffdd00',glow:'#ffdd0022'},
 ];
 
-const CHAIN_NODES=['Low Shelf','High Shelf','Mid Presence','Stereo Width','Saturation','Limiter','Output Gain'];
-
-let _pct=0;
-let _rawBuffer=null;
-let _actx=null;
-let _previewSrc=null;
+const CHAIN=['Low Shelf','High Shelf','Mid Presence','Harmonic Sat','Stereo Width','L4 Limiter','Output Gain'];
 
 function getVibe(p){return VIBES.find(v=>p>=v.min&&p<v.max)||VIBES[0];}
 
-function buildChain(){
-  const el=document.getElementById('chainDisplay');
-  el.innerHTML=CHAIN_NODES.map((n,i)=>`<div class="chain-node" id="cn${i}">${n}</div>`).join('');
+// ── LOUDNESS TARGET ────────────────────────────────────────────────
+function setTarget(t){
+  _target=t;
+  ['tb-14','tb-9','tb-6'].forEach(id=>{
+    const el=document.getElementById(id);
+    const val=id==='tb-14'?-14:id==='tb-9'?-9:-6;
+    const v=getVibe(_pct);
+    el.classList.toggle('active',val===t);
+    if(val===t){el.style.background=v.color;el.style.borderColor=v.color;}
+    else{el.style.background='';el.style.borderColor='';}
+  });
+  onKnob(_pct);
 }
 
+// ── AI ANALYSIS ────────────────────────────────────────────────────
+function analyzeMix(buffer){
+  const data=buffer.getChannelData(0);
+  const len=data.length;
+  const sr=buffer.sampleRate;
+
+  // RMS LUFS (simplified ITU-R BS.1770 measurement)
+  let rmsSum=0;
+  const blockSize=Math.floor(sr*0.4); // 400ms blocks
+  let validBlocks=0;
+  for(let i=0;i<len-blockSize;i+=blockSize){
+    let blockRMS=0;
+    for(let j=0;j<blockSize;j++) blockRMS+=data[i+j]*data[i+j];
+    blockRMS=Math.sqrt(blockRMS/blockSize);
+    if(blockRMS>0.001){rmsSum+=blockRMS*blockRMS;validBlocks++;}
+  }
+  const overallRMS=validBlocks>0?Math.sqrt(rmsSum/validBlocks):0.001;
+  const lufs=overallRMS>0?Math.max(-60,20*Math.log10(overallRMS)-0.691):-60;
+
+  // True peak
+  let peak=0;
+  for(let i=0;i<len;i++){const a=Math.abs(data[i]);if(a>peak)peak=a;}
+  const peakDB=peak>0?20*Math.log10(peak):-60;
+
+  // Dynamic range (difference between loud and quiet RMS blocks)
+  const blockRMSvals=[];
+  for(let i=0;i<len-blockSize;i+=blockSize){
+    let b=0;for(let j=0;j<blockSize;j++)b+=data[i+j]*data[i+j];
+    const r=Math.sqrt(b/blockSize);if(r>0.001)blockRMSvals.push(r);
+  }
+  blockRMSvals.sort((a,b)=>b-a);
+  let dr=12;
+  if(blockRMSvals.length>=4){
+    const loud=blockRMSvals[Math.floor(blockRMSvals.length*0.1)];
+    const quiet=blockRMSvals[Math.floor(blockRMSvals.length*0.9)];
+    dr=quiet>0?Math.round(20*Math.log10(loud/quiet)):12;
+    dr=Math.max(3,Math.min(25,dr));
+  }
+
+  // Calculate how much headroom we have to work with
+  // If already loud (>-10 LUFS) = low headroom, be gentle
+  // If quiet (<-20 LUFS) = lots of headroom, can push hard
+  const headroom=Math.max(0,Math.min(1,(lufs-(-30))/((-10)-(-30))));
+
+  return {lufs:Math.round(lufs*10)/10,dr,peak:Math.round(peakDB*10)/10,headroom};
+}
+
+function showAnalysis(a){
+  _analysis=a;
+  document.getElementById('statLUFS').textContent=a.lufs+' dB';
+  document.getElementById('statDR').textContent=a.dr+' dB';
+  document.getElementById('statPeak').textContent=a.peak+' dB';
+
+  // Color-code LUFS
+  const lufsEl=document.getElementById('statLUFS');
+  if(a.lufs>-10)lufsEl.style.color='#ff6b35';
+  else if(a.lufs>-16)lufsEl.style.color='#2aff80';
+  else lufsEl.style.color='#00bfff';
+
+  // AI verdict
+  let verdict='';
+  if(a.lufs>-10){
+    verdict=`⚡ Already very loud at ${a.lufs} LUFS. Even at max intensity, processing will be gentle to preserve transients. Heavy limiting would only degrade quality.`;
+  } else if(a.lufs>-16){
+    verdict=`✓ Well-balanced mix at ${a.lufs} LUFS with ${a.dr} dB of dynamic range. The AI chain will add polish and presence without over-processing.`;
+  } else if(a.lufs>-22){
+    verdict=`📈 Mix has good dynamics at ${a.lufs} LUFS. Plenty of headroom — cranking the knob will add serious loudness and energy.`;
+  } else {
+    verdict=`🎚️ Very dynamic mix at ${a.lufs} LUFS. This gives us a lot to work with — expect a dramatic transformation as you increase intensity.`;
+  }
+  document.getElementById('aiVerdict').textContent=verdict;
+  document.getElementById('analysisCard').classList.add('show');
+}
+
+// ── KNOB UPDATE ────────────────────────────────────────────────────
 function onKnob(val){
-  _pct=parseInt(val);
+  _pct=val;
   const v=getVibe(_pct);
-  
-  // Update number
+
   document.getElementById('knobNum').textContent=_pct;
   document.getElementById('knobNum').style.color=v.color;
-  
-  // Update ring
-  const circ=2*Math.PI*100;
-  const offset=circ-(circ*_pct/100);
-  document.getElementById('knobProgress').style.strokeDashoffset=offset;
-  document.getElementById('knobProgress').style.stroke=v.color;
-  
-  // Update slider
-  const sl=document.getElementById('intensitySlider');
+
+  // Ring progress
+  const circ=2*Math.PI*108;
+  document.getElementById('ringProg').style.strokeDashoffset=circ-(circ*_pct/100);
+  document.getElementById('ringProg').style.stroke=v.color;
+
+  // Slider
+  const sl=document.getElementById('sl');
   sl.style.background=`linear-gradient(90deg,${v.color} ${_pct}%,#1a1a1a ${_pct}%)`;
-  sl.style.setProperty('--thumb-color',v.color);
-  
-  // Slider thumb color via dynamic style
-  document.getElementById('sliderStyle').textContent=
-    `input[type=range].big-slider::-webkit-slider-thumb{background:${v.color};}`;
-  
-  // Vibe labels
-  document.getElementById('vibeLabel').textContent=v.label;
-  document.getElementById('vibeLabel').style.color=v.color;
+  document.getElementById('dynStyle').textContent=
+    `.big-sl::-webkit-slider-thumb{background:${v.color}!important;}
+     .active.target-badge, .target-badge.active{background:${v.color}!important;border-color:${v.color}!important;}`;
+
+  // Vibe
+  document.getElementById('vibeName').textContent=v.name;
+  document.getElementById('vibeName').style.color=v.color;
   document.getElementById('vibeDesc').textContent=v.desc;
-  
-  // Title
-  document.getElementById('pageTitle').style.color=_pct>0?v.color:'#fff';
-  
-  // Chain nodes - activate based on intensity
-  const activeCount=Math.ceil((_pct/100)*CHAIN_NODES.length);
-  CHAIN_NODES.forEach((_,i)=>{
-    const el=document.getElementById('cn'+i);
-    if(el){
-      el.classList.toggle('active',i<activeCount);
-      if(i<activeCount){el.style.borderColor=v.color;el.style.color=v.color;el.style.background=v.glow;}
-      else{el.style.borderColor='transparent';el.style.color='#555';el.style.background='transparent';}
-    }
+
+  // Chain nodes — adaptive: more nodes active if mix has headroom
+  const effectivePct=_pct*(0.3+_analysis.headroom*0.7);
+  const activeCount=Math.ceil((effectivePct/100)*CHAIN.length);
+  document.querySelectorAll('.chain-node').forEach((el,i)=>{
+    const on=i<activeCount;
+    el.classList.toggle('on',on);
+    el.style.borderColor=on?v.color:'transparent';
+    el.style.color=on?v.color:'#333';
+    el.style.background=on?v.glow:'transparent';
   });
-  
-  // Meter
-  document.getElementById('meterFill').style.width=_pct+'%';
+
+  // Target badges color
+  ['tb-14','tb-9','tb-6'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el.classList.contains('active')){el.style.background=v.color;el.style.borderColor=v.color;}
+  });
+
+  // Meter — estimate output LUFS
+  const gainNeeded=_target-_analysis.lufs;
+  const appliedGain=gainNeeded*(_pct/100)*_analysis.headroom;
+  const estimatedLUFS=Math.min(-0.5,_analysis.lufs+appliedGain);
+  const meterPct=Math.max(0,Math.min(100,(estimatedLUFS+40)/40*100));
+  document.getElementById('meterFill').style.width=meterPct+'%';
   document.getElementById('meterFill').style.background=`linear-gradient(90deg,#00bfff,${v.color})`;
   document.getElementById('meterFill').style.boxShadow=_pct>50?`0 0 6px ${v.color}`:'none';
-  
-  // Download button
-  document.getElementById('downloadBtn').style.background=
+  document.getElementById('meterLbl').textContent=`Est. ${estimatedLUFS.toFixed(1)} LUFS`;
+
+  // Download button color
+  document.getElementById('dlBtn').style.background=
     `linear-gradient(135deg,${v.color},${v.color}bb)`;
 }
 
-function makeImpulse(c,dur,decay){
-  const sr=c.sampleRate,len=Math.floor(sr*dur),b=c.createBuffer(2,len,sr);
-  for(let ch=0;ch<2;ch++){const d=b.getChannelData(ch);for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay);}
-  return b;
+// Build chain UI
+function buildChain(){
+  document.getElementById('chainRow').innerHTML=CHAIN.map((n,i)=>
+    `<div class="chain-node" id="cn${i}">${n}</div>`
+  ).join('');
 }
 
-function applyMasterChain(offCtx,inputNode,pct){
+// ── L4-STYLE BRICKWALL LIMITER ────────────────────────────────────
+function createL4Limiter(ctx,threshold,release){
+  // Look-ahead delay
+  const delay=ctx.createDelay(0.05);
+  delay.delayTime.value=0.003; // 3ms look-ahead
+
+  // Brickwall compressor (100:1 ratio = true brickwall)
+  const comp=ctx.createDynamicsCompressor();
+  comp.threshold.value=threshold;
+  comp.knee.value=0;        // Hard knee
+  comp.ratio.value=100;     // True brickwall
+  comp.attack.value=0.0005; // 0.5ms
+  comp.release.value=release;
+
+  return{delay,comp};
+}
+
+// ── ADAPTIVE MASTERING CHAIN ──────────────────────────────────────
+function applyAdaptiveMaster(offCtx,inputNode,pct,analysis){
   const t=pct/100;
-  const lo=offCtx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=120;lo.gain.value=t*5;
-  const hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=10000;hi.gain.value=t*4;
-  const mid=offCtx.createBiquadFilter();mid.type='peaking';mid.frequency.value=3500;mid.Q.value=0.8;mid.gain.value=t*2-0.5;
-  const width=offCtx.createGain();width.gain.value=1+t*0.2;
-  const ws=offCtx.createWaveShaper();
+  // headroom: 0=already loud, 1=lots of room
+  const h=analysis.headroom;
+  // effectiveT scales with headroom - if already loud, chain is gentler
+  const eT=t*(0.25+h*0.75);
+
+  // 1. Low shelf — warmth/body
+  const lo=offCtx.createBiquadFilter();
+  lo.type='lowshelf';
+  lo.frequency.value=120;
+  lo.gain.value=eT*5; // 0 to +5dB
+
+  // 2. High shelf — air/presence
+  const hi=offCtx.createBiquadFilter();
+  hi.type='highshelf';
+  hi.frequency.value=10000;
+  hi.gain.value=eT*4; // 0 to +4dB
+
+  // 3. Mid presence
+  const mid=offCtx.createBiquadFilter();
+  mid.type='peaking';
+  mid.frequency.value=3500;
+  mid.Q.value=0.8;
+  mid.gain.value=eT*2.5-0.5; // slight dip at low pct, boost at high
+
+  // 4. Harmonic saturation (tape-like)
+  const sat=offCtx.createWaveShaper();
   const curve=new Float32Array(512);
-  for(let i=0;i<512;i++){const x=(i*2)/512-1,k=t*80;curve[i]=((Math.PI+k)*x)/(Math.PI+k*Math.abs(x));}
-  ws.curve=curve;ws.oversample='4x';
-  const comp=offCtx.createDynamicsCompressor();
-  comp.threshold.value=-6+(1-t)*6;comp.knee.value=2;comp.ratio.value=4+t*16;comp.attack.value=0.001;comp.release.value=0.08;
-  const out=offCtx.createGain();out.gain.value=1+t*0.9;
-  inputNode.connect(lo);lo.connect(hi);hi.connect(mid);mid.connect(width);width.connect(ws);ws.connect(comp);comp.connect(out);out.connect(offCtx.destination);
+  const k=eT*60; // drive amount
+  for(let i=0;i<512;i++){
+    const x=(i*2)/512-1;
+    curve[i]=k>0?((Math.PI+k)*x)/(Math.PI+k*Math.abs(x)):x;
+  }
+  sat.curve=curve;sat.oversample='4x';
+
+  // 5. Stereo width — gain stage (mono compat)
+  const width=offCtx.createGain();
+  width.gain.value=1+eT*0.15;
+
+  // 6. L4-style brickwall limiter
+  // Threshold adapts: if mix is already loud, threshold is lower
+  const threshBase=-3+(1-h)*-3; // -3 to -6 dB base
+  const thresh=threshBase+(1-eT)*3; // at low pct, gentler
+  const rel=0.05+eT*0.15; // program-dependent release
+  const {delay,comp}=createL4Limiter(offCtx,thresh,rel);
+
+  // 7. Output gain — loudness makeup to hit target
+  const gainNeeded=_target-analysis.lufs;
+  const appliedGain=gainNeeded*t*h*0.8; // scale with headroom
+  const outGainDB=Math.max(-3,Math.min(12,appliedGain));
+  const outGain=offCtx.createGain();
+  outGain.gain.value=Math.pow(10,outGainDB/20);
+
+  // 8. Final ceiling at -0.3dB to prevent ISP clipping
+  const ceiling=offCtx.createGain();
+  ceiling.gain.value=Math.pow(10,-0.3/20);
+
+  // Chain: input -> lo -> hi -> mid -> sat -> width -> delay -> comp -> outGain -> ceiling -> dest
+  inputNode.connect(lo);
+  lo.connect(hi);
+  hi.connect(mid);
+  mid.connect(sat);
+  sat.connect(width);
+  width.connect(delay);
+  delay.connect(comp);
+  comp.connect(outGain);
+  outGain.connect(ceiling);
+  ceiling.connect(offCtx.destination);
 }
 
+// ── RENDER ────────────────────────────────────────────────────────
 async function renderMastered(){
-  if(!_rawBuffer) return null;
-  const sampleRate=_rawBuffer.sampleRate;
-  const length=_rawBuffer.length;
-  const offCtx=new OfflineAudioContext(2,length,sampleRate);
-  // Re-decode raw data for offline context to avoid cross-context issues
-  let buf;
-  try {
-    if(window._rawData){
-      buf=await offCtx.decodeAudioData(window._rawData.slice(0));
-    } else {
-      buf=_rawBuffer;
-    }
-  } catch(e) {
-    buf=_rawBuffer;
+  if(!_rawBuffer)return null;
+  const offCtx=new OfflineAudioContext(2,_rawBuffer.length,_rawBuffer.sampleRate);
+  let buf=_rawBuffer;
+  if(_rawData){
+    try{buf=await offCtx.decodeAudioData(_rawData.slice(0));}catch(e){}
   }
-  const src=offCtx.createBufferSource();
-  src.buffer=buf;
-  src.start(0);
-  applyMasterChain(offCtx,src,_pct);
-  return await offCtx.startRendering();
+  const src=offCtx.createBufferSource();src.buffer=buf;src.start(0);
+  applyAdaptiveMaster(offCtx,src,_pct,_analysis);
+  return offCtx.startRendering();
 }
 
+// ── PREVIEW ───────────────────────────────────────────────────────
 async function previewMix(){
-  if(!_rawBuffer){alert('No mix loaded!');return;}
-  const btn=document.getElementById('previewBtn');
-  
-  // Stop if already playing
-  if(_previewSrc){
-    try{_previewSrc.stop();}catch(e){}
-    _previewSrc=null;
-    btn.textContent='▶ Preview';
-    btn.disabled=false;
-    return;
+  if(!_rawBuffer){alert('No mix found!');return;}
+  const btn=document.getElementById('prevBtn');
+  if(_prevSrc){
+    try{_prevSrc.stop();}catch(e){}
+    _prevSrc=null;btn.textContent='▶ Preview';return;
   }
-  
-  btn.textContent='⏳ Rendering...';
-  btn.disabled=true;
-  
-  // Create AudioContext from user gesture click
-  if(!_actx) _actx=new(window.AudioContext||window.webkitAudioContext)();
-  if(_actx.state==='suspended') await _actx.resume();
-  
-  // Render mastered audio
+  btn.textContent='⏳ Rendering...';btn.disabled=true;
   const rendered=await renderMastered();
   if(!rendered){btn.textContent='▶ Preview';btn.disabled=false;return;}
-  
-  // Play it
-  _previewSrc=_actx.createBufferSource();
-  _previewSrc.buffer=rendered;
-  _previewSrc.connect(_actx.destination);
-  _previewSrc.start(0);
-  _previewSrc.onended=function(){
-    _previewSrc=null;
-    btn.textContent='▶ Preview';
-    btn.disabled=false;
-  };
-  btn.textContent='■ Stop Preview';
-  btn.disabled=false;
+  if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();
+  await _actx.resume();
+  _prevSrc=_actx.createBufferSource();
+  _prevSrc.buffer=rendered;
+  _prevSrc.connect(_actx.destination);
+  _prevSrc.start(0);
+  _prevSrc.onended=()=>{_prevSrc=null;btn.textContent='▶ Preview';btn.disabled=false;};
+  btn.textContent='■ Stop';btn.disabled=false;
 }
 
+// ── DOWNLOAD ──────────────────────────────────────────────────────
 function encodeWAV(buffer){
-  const numCh=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length;
-  const out=new ArrayBuffer(44+len*numCh*2),view=new DataView(out);
+  const nc=buffer.numberOfChannels,sr=buffer.sampleRate,len=buffer.length;
+  const out=new ArrayBuffer(44+len*nc*2),view=new DataView(out);
   function ws(o,s){for(let i=0;i<s.length;i++)view.setUint8(o+i,s.charCodeAt(i));}
-  ws(0,'RIFF');view.setUint32(4,36+len*numCh*2,true);ws(8,'WAVE');ws(12,'fmt ');
-  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,numCh,true);
-  view.setUint32(24,sr,true);view.setUint32(28,sr*numCh*2,true);view.setUint16(32,numCh*2,true);view.setUint16(34,16,true);
-  ws(36,'data');view.setUint32(40,len*numCh*2,true);
-  let offset=44;const chs=[];for(let c=0;c<numCh;c++)chs.push(buffer.getChannelData(c));
-  for(let i=0;i<len;i++)for(let c=0;c<numCh;c++){const s=Math.max(-1,Math.min(1,chs[c][i]));view.setInt16(offset,s<0?s*0x8000:s*0x7FFF,true);offset+=2;}
+  ws(0,'RIFF');view.setUint32(4,36+len*nc*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,nc,true);
+  view.setUint32(24,sr,true);view.setUint32(28,sr*nc*2,true);
+  view.setUint16(32,nc*2,true);view.setUint16(34,16,true);
+  ws(36,'data');view.setUint32(40,len*nc*2,true);
+  let off=44;const chs=[];for(let c=0;c<nc;c++)chs.push(buffer.getChannelData(c));
+  for(let i=0;i<len;i++)for(let c=0;c<nc;c++){
+    const s=Math.max(-1,Math.min(1,chs[c][i]));
+    view.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;
+  }
   return new Blob([out],{type:'audio/wav'});
 }
 
 async function downloadMastered(){
-  if(!_rawBuffer){alert('No mix loaded!');return;}
-  const btn=document.getElementById('downloadBtn');
+  if(!_rawBuffer){alert('No mix found!');return;}
+  const btn=document.getElementById('dlBtn');
   btn.textContent='⏳ Mastering...';btn.disabled=true;
   const rendered=await renderMastered();
+  if(!rendered){btn.textContent='↓ Download Master';btn.disabled=false;return;}
   const blob=encodeWAV(rendered);
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a');a.href=url;a.download='aimix_mastered.wav';a.click();
   URL.revokeObjectURL(url);
-  btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
+  btn.textContent='↓ Download Master';btn.disabled=false;
 }
 
-// Load mix from IndexedDB
+// ── LOAD MIX FROM INDEXEDDB ───────────────────────────────────────
+function animateLoading(){
+  setTimeout(()=>{
+    document.getElementById('step1').classList.remove('active');
+    document.getElementById('step1').classList.add('done');
+    document.getElementById('step2').classList.add('active');
+  },400);
+  setTimeout(()=>{
+    document.getElementById('step2').classList.remove('active');
+    document.getElementById('step2').classList.add('done');
+    document.getElementById('step3').classList.add('active');
+  },900);
+}
+
 function loadMix(){
+  animateLoading();
   const req=indexedDB.open('aimix',1);
-  req.onupgradeneeded=function(e){e.target.result.createObjectStore('mix');};
-  req.onsuccess=function(e){
+  req.onupgradeneeded=e=>e.target.result.createObjectStore('mix');
+  req.onsuccess=e=>{
     const db=e.target.result;
-    const tx=db.transaction('mix','readonly');
-    const getReq=tx.objectStore('mix').get('rendered');
-    getReq.onsuccess=function(ev){
+    const gr=db.transaction('mix','readonly').objectStore('mix').get('rendered');
+    gr.onsuccess=ev=>{
       const data=ev.target.result;
       if(!data){
-        document.getElementById('loadingState').innerHTML='<div style="color:#555;font-size:14px;">No mix found. <a href="index.html" style="color:#b026ff;">Go back to mixer →</a></div>';
+        document.getElementById('loadingEl').innerHTML=
+          '<div style="color:#555;font-size:14px;text-align:center;">No mix found.<br><br><a href="index.html" style="color:var(--purple);">← Go back to mixer</a></div>';
         return;
       }
-      // Store raw data for re-decoding
-      window._rawData=data.slice(0);
-      // Decode with temp context for duration/metadata
-      const tmpCtx=new(window.AudioContext||window.webkitAudioContext)();
-      tmpCtx.decodeAudioData(data).then(function(buf){
+      _rawData=data.slice(0);
+      const tmp=new(window.AudioContext||window.webkitAudioContext)();
+      tmp.decodeAudioData(data).then(buf=>{
         _rawBuffer=buf;
-        tmpCtx.close();
-        document.getElementById('loadingState').style.display='none';
-        document.getElementById('mainState').style.display='flex';
-        buildChain();
-        onKnob(0);
-      }).catch(function(e){
-        document.getElementById('loadingState').innerHTML='<div style="color:#ff4444;">Error decoding audio: '+e.message+'<br><a href="index.html" style="color:#b026ff;">Go back →</a></div>';
+        tmp.close();
+
+        // Analyze the mix
+        const analysis=analyzeMix(buf);
+
+        setTimeout(()=>{
+          document.getElementById('step3').classList.remove('active');
+          document.getElementById('step3').classList.add('done');
+          setTimeout(()=>{
+            document.getElementById('loadingEl').style.display='none';
+            document.getElementById('mainEl').style.display='flex';
+            buildChain();
+            showAnalysis(analysis);
+            setTarget(-14);
+            onKnob(0);
+          },400);
+        },600);
+
+      }).catch(err=>{
+        document.getElementById('loadingEl').innerHTML=
+          `<div style="color:#ff4444;text-align:center;">Error loading mix:<br>${err.message}<br><br><a href="index.html" style="color:var(--purple);">← Go back</a></div>`;
       });
-    };
-    getReq.onerror=function(){
-      document.getElementById('loadingState').innerHTML='<div style="color:#555;">Error loading mix. <a href="index.html" style="color:#b026ff;">Go back →</a></div>';
     };
   };
 }
 
-// Init
-buildChain();
 loadMix();
 </script>
-
-<!-- Dynamic slider thumb style -->
-<style id="sliderStyle"></style>
-
 </body>
 </html>
