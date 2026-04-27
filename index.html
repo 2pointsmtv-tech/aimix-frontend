@@ -1203,6 +1203,14 @@ window.addEventListener('DOMContentLoaded', function(){
   function handleUser(user) {
     currentUser = user;
     window._authUser = user;
+    // Save to sessionStorage so master.html can read it instantly
+    try {
+      sessionStorage.setItem('aimix_user', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name: user.user_metadata && user.user_metadata.full_name || ''
+      }));
+    } catch(e) {}
     var email = user.email || '';
     var initial = email[0] ? email[0].toUpperCase() : '?';
     var pill = document.getElementById('userPill');
