@@ -944,18 +944,13 @@ function updateUsageBar(){
 }
 
 async function checkCanDownload(){
-  // Wait up to 3 seconds for auth to initialize
-  if(!window._authUser){
-    await new Promise(function(resolve){
-      var attempts = 0;
-      var interval = setInterval(function(){
-        attempts++;
-        if(window._authUser || attempts > 30){
-          clearInterval(interval);
-          resolve();
-        }
-      }, 100);
-    });
+  // If _authUser not set yet, try getting session directly from Supabase
+  if(!window._authUser && window._sb){
+    var res = await window._sb.auth.getSession();
+    if(res.data && res.data.session && res.data.session.user){
+      window._authUser = res.data.session.user;
+      if(typeof loadSubscription === 'function') loadSubscription();
+    }
   }
   if(!window._authUser){
     document.getElementById('paywallEl').classList.add('show');
