@@ -889,9 +889,9 @@ function loadMix(){
             var waveWrap = document.getElementById('waveformWrap');
             var _waveBuilt = false;
             function tryBuildWaveform(){
-              var dbg = document.getElementById('waveDebug');
-              if(dbg){dbg.style.display='block';dbg.textContent='tryBuild: built='+_waveBuilt+' w='+waveWrap.getBoundingClientRect().width+' rawBuf='+(!!_rawBuf);}
               if(_waveBuilt) return;
+              var dbg = document.getElementById('waveDebug');
+              if(dbg){dbg.style.display='block';dbg.textContent='tryBuild: w='+waveWrap.getBoundingClientRect().width+' rawBuf='+(!!_rawBuf);}
               var w = waveWrap.getBoundingClientRect().width;
               if(w > 10){
                 _waveBuilt = true;
