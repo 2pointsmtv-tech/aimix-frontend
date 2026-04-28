@@ -873,13 +873,7 @@ function loadMix(){
         _rawBuf=buf;_duration=buf.duration;tmp.close();
         const analysis=analyzeMix(buf);
         // Build waveform after short delay (let DOM render)
-        // Wait for DOM to render fully before building waveform
-        requestAnimationFrame(function(){
-          requestAnimationFrame(function(){
-            buildWaveform(buf);
-            initWaveformEvents();
-          });
-        });
+
         setTimeout(()=>{
           document.getElementById('step3').className='loading-step done';
           setTimeout(()=>{
@@ -887,6 +881,11 @@ function loadMix(){
             document.getElementById('mainEl').style.display='flex';
             buildChain();showAnalysis(analysis);setTarget(-14);
             document.getElementById('totalTime').textContent=fmtT(_duration);
+            // Build waveform NOW that main is visible and has real dimensions
+            setTimeout(function(){
+              buildWaveform(_rawBuf);
+              initWaveformEvents();
+            }, 100);
             // Show Listen Now on iOS
             var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
             if(isIOS) document.getElementById('listenOverlay').classList.add('show');
