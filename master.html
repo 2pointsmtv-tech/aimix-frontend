@@ -871,8 +871,8 @@ loadMix();
 <script>
 // ── SUPABASE AUTH ON MASTER PAGE ─────────────────────────────────
 (function(){
-  var SURL= + SUPABASE_URL + ;
-  var SKEY= + SUPABASE_KEY + ;
+  var SURL='https://bhuduafakmaywnxklfyk.supabase.co';
+  var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
   function initAuth(){
     if(!window.supabase){setTimeout(initAuth,200);return;}
     var sb=window.supabase.createClient(SURL,SKEY);
@@ -911,7 +911,13 @@ async function loadSubscription(){
   if(!user) return;
   try {
     var resp = await fetch(API + '/stripe/subscription/' + user.id);
-    _subData = await resp.json();
+    var data = await resp.json();
+    console.log('Server sub data:', JSON.stringify(data));
+    _subData = data;
+    // Save fresh data to localStorage
+    if(data && data.plan !== 'free'){
+      localStorage.setItem('aimix_sub', JSON.stringify(data));
+    }
     updateUsageBar();
   } catch(e){ console.log('Sub check error:', e); }
 }
@@ -947,7 +953,7 @@ async function checkCanDownload(){
   // First check sessionStorage (instant - set by index.html on login)
   if(!window._authUser){
     try {
-      var stored = sessionStorage.getItem('aimix_user');
+      var stored = localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');
       if(stored) window._authUser = JSON.parse(stored);
     } catch(e) {}
   }
@@ -966,7 +972,7 @@ async function checkCanDownload(){
   // Check sessionStorage for sub as fallback
   if(!_subData){
     try{
-      var storedSub=sessionStorage.getItem('aimix_sub');
+      var storedSub=localStorage.getItem('aimix_sub');
       if(storedSub) _subData=JSON.parse(storedSub);
     }catch(e){}
   }
@@ -1026,7 +1032,7 @@ if(window.location.search.includes('success=1')){
     // Wait for auth
     for(var i=0;i<50;i++){
       if(window._authUser) break;
-      try{var s=sessionStorage.getItem('aimix_user');if(s){window._authUser=JSON.parse(s);break;}}catch(e){}
+      try{var s=localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');if(s){window._authUser=JSON.parse(s);break;}}catch(e){}
       if(window._sb){var r=await window._sb.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){window._authUser=r.data.session.user;break;}}
       await new Promise(function(r){setTimeout(r,100);});
     }
@@ -1054,7 +1060,7 @@ if(window.location.search.includes('success=1')){
       
       // Save to sessionStorage as immediate fallback
       try {
-        sessionStorage.setItem('aimix_sub', JSON.stringify({
+        localStorage.setItem('aimix_sub', JSON.stringify({
           plan: data.plan,
           status: data.status,
           usage: 0,
@@ -1090,7 +1096,7 @@ window.addEventListener('load', function(){
   // Try sessionStorage immediately on load
   if(!window._authUser){
     try {
-      var stored = sessionStorage.getItem('aimix_user');
+      var stored = localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');
       if(stored){
         window._authUser = JSON.parse(stored);
         loadSubscription();
