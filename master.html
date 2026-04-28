@@ -779,7 +779,10 @@ async function downloadMastered(){
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(isIOS && navigator.share){
     // iOS: Use Web Share API for reliable file saving
-    const file=new File([blob],'aimix_mastered.wav',{type:'audio/wav'});
+    var trackName2='';
+    try{trackName2=localStorage.getItem('aimix_trackname')||'';}catch(e){}
+    var fileName2=(trackName2?trackName2+' - ':'')+'Mastered by AIMixingMastering.com.wav';
+    const file=new File([blob],fileName2,{type:'audio/wav'});
     try{
       await navigator.share({files:[file],title:'AIMix Master',text:'Your mastered track'});
     }catch(e){
@@ -791,7 +794,10 @@ async function downloadMastered(){
   } else {
     // Desktop: standard download
     const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='aimix_mastered.wav';
+    var trackName='';
+    try{trackName=localStorage.getItem('aimix_trackname')||'';}catch(e){}
+    var fileName=(trackName?trackName+' - ':'')+'Mastered by AIMixingMastering.com.wav';
+    const a=document.createElement('a');a.href=url;a.download=fileName;
     document.body.appendChild(a);a.click();
     setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
   }
