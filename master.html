@@ -640,9 +640,14 @@ function startPlay(offset){
   _playing=true;updateIcon();animLoop();
 }
 function stopPlay(){
-  _offset=_playing?Math.max(0,_actx.currentTime-_startTime):_offset;
+  // Save current position
+  if(_playing && _actx){
+    _offset=Math.max(0,_actx.currentTime-_startTime);
+  }
   if(_src){try{_src.stop();}catch(e){}}_src=null;
-  _playing=false;cancelAnimationFrame(_animId);updateIcon();
+  _playing=false;
+  cancelAnimationFrame(_animId);
+  updateIcon();
 }
 function listenNow(){
   document.getElementById('listenOverlay').classList.remove('show');
@@ -693,16 +698,39 @@ function listenNow(){
 
 function togglePlay(){
   if(!_rawBuf){alert('No mix loaded!');return;}
-  if(!_actx){
-    // On iOS, show listen overlay to get user gesture
-    var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-    if(isIOS){document.getElementById('listenOverlay').classList.add('show');return;}
-    _actx=new(window.AudioContext||window.webkitAudioContext)();buildGraph();
+  
+  // iOS: need special audio unlock
+  var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(!_actx && isIOS){
+    document.getElementById('listenOverlay').classList.add('show');
+    return;
   }
+  
+  // Create AudioContext on first use
+  if(!_actx){
+    _actx=new(window.AudioContext||window.webkitAudioContext)();
+    buildGraph();
+  }
+  
+  // Always resume first (handles auto-suspend by browser)
+  var doAction = function(){
+    if(_playing){
+      // PAUSE: save position and stop
+      _offset = Math.max(0, _actx.currentTime - _startTime);
+      if(_src){try{_src.stop();}catch(e){}}_src=null;
+      _playing=false;
+      cancelAnimationFrame(_animId);
+      updateIcon();
+    } else {
+      // PLAY: start from saved position
+      startPlay(_offset);
+    }
+  };
+  
   if(_actx.state==='suspended'){
-    _actx.resume().then(()=>{if(_playing)stopPlay();else startPlay(_offset);});
+    _actx.resume().then(doAction);
   } else {
-    if(_playing)stopPlay();else startPlay(_offset);
+    doAction();
   }
 }
 function seekTo(e){
