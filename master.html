@@ -776,9 +776,25 @@ async function downloadMastered(){
   src.start(0);
   const rendered=await offCtx.startRendering();
   const blob=encodeWAV(rendered);
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='aimix_mastered.wav';a.click();
-  URL.revokeObjectURL(url);
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
+  if(isIOS && navigator.share){
+    // iOS: Use Web Share API for reliable file saving
+    const file=new File([blob],'aimix_mastered.wav',{type:'audio/wav'});
+    try{
+      await navigator.share({files:[file],title:'AIMix Master',text:'Your mastered track'});
+    }catch(e){
+      // Fallback: open in new tab
+      const url=URL.createObjectURL(blob);
+      window.open(url,'_blank');
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+    }
+  } else {
+    // Desktop: standard download
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='aimix_mastered.wav';
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+  }
   btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
 }
 
