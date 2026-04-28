@@ -640,13 +640,12 @@ function startPlay(offset){
   _playing=true;updateIcon();animLoop();
 }
 function stopPlay(){
-  // Save current position
   if(_playing && _actx){
     _offset=Math.max(0,_actx.currentTime-_startTime);
   }
-  if(_src){try{_src.stop();}catch(e){}}_src=null;
-  _playing=false;
+  _playing=false;  // Set BEFORE stop() to prevent onended from resetting _offset
   cancelAnimationFrame(_animId);
+  if(_src){try{_src.stop();}catch(e){}}_src=null;
   updateIcon();
 }
 function listenNow(){
@@ -715,11 +714,12 @@ function togglePlay(){
   // Always resume first (handles auto-suspend by browser)
   var doAction = function(){
     if(_playing){
-      // PAUSE: save position and stop
+      // PAUSE: save position THEN set _playing=false BEFORE stop()
+      // (stop() triggers onended which checks _playing)
       _offset = Math.max(0, _actx.currentTime - _startTime);
-      if(_src){try{_src.stop();}catch(e){}}_src=null;
-      _playing=false;
+      _playing=false;  // Set BEFORE stop() so onended doesn't reset _offset
       cancelAnimationFrame(_animId);
+      if(_src){try{_src.stop();}catch(e){}}_src=null;
       updateIcon();
     } else {
       // PLAY: start from saved position
