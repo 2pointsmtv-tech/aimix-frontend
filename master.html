@@ -862,6 +862,102 @@ function animLoad(){
   setTimeout(()=>{document.getElementById('step1').className='loading-step done';document.getElementById('step2').className='loading-step active';},400);
   setTimeout(()=>{document.getElementById('step2').className='loading-step done';document.getElementById('step3').className='loading-step active';},900);
 }
+
+// ── WAVEFORM ──────────────────────────────────────────────────────
+var _waveformData = null;
+var _isDragging = false;
+
+function buildWaveform(buffer){
+  var dbg = document.getElementById('waveDebug');
+  if(dbg){dbg.style.display='block';dbg.textContent='Building waveform...';}
+  try{
+    if(!buffer) throw new Error('no buffer');
+    var container = document.getElementById('waveformBars');
+    if(!container) throw new Error('no container element');
+
+    var BARS = 150;
+    var data = buffer.getChannelData(0);
+    var step = Math.max(1, Math.floor(data.length / BARS));
+    _waveformData = [];
+
+    for(var i=0;i<BARS;i++){
+      var peak = 0;
+      for(var j=0;j<step;j++){
+        var si=i*step+j;
+        if(si<data.length){var v=Math.abs(data[si]);if(v>peak)peak=v;}
+      }
+      _waveformData.push(Math.max(0.04, Math.min(1, peak*1.5)));
+    }
+
+    var out = [];
+    for(var i=0;i<BARS;i++){
+      var h = Math.max(4, Math.floor(_waveformData[i]*70));
+      out.push('<div style="flex:1;min-width:2px;height:'+h+'px;background:#b026ff;opacity:0.7;border-radius:1px;"></div>');
+    }
+    container.innerHTML = out.join('');
+
+    if(dbg) dbg.textContent='✓ Waveform built! '+out.length+' bars';
+    var em=document.getElementById('waveformEmpty');
+    if(em) em.parentNode.removeChild(em);
+  } catch(err){
+    if(dbg) dbg.textContent='ERROR: '+err.message;
+    console.error('buildWaveform error:', err);
+  }
+}
+
+function drawWaveformCanvas(playPct){
+  if(!_waveformData) return;
+  var playX = Math.floor(_waveformData.length * playPct);
+  var W = _waveformData.length;
+  var container = document.getElementById('waveformBars');
+  if(!container) return;
+  var bars = container.children;
+  for(var i=0;i<bars.length;i++){
+    if(i < playX){
+      var ratio = i/W;
+      var r=Math.round(176+(255-176)*ratio);
+      var g=Math.round(38+(45-38)*ratio);
+      var b=Math.round(255+(120-255)*ratio);
+      bars[i].style.background='rgb('+r+','+g+','+b+')';
+      bars[i].style.opacity='1';
+    } else {
+      bars[i].style.background='#3a3a4a';
+      bars[i].style.opacity='0.6';
+    }
+  }
+}
+
+function updateWaveformPlayhead(pct){
+  var wrap = document.getElementById('waveformWrap');
+  var playhead = document.getElementById('wavePlayhead');
+  if(!wrap||!playhead) return;
+  playhead.style.left = (pct * 100) + '%';
+  drawWaveformCanvas(pct);
+}
+
+function initWaveformEvents(){
+  var wrap = document.getElementById('waveformWrap');
+  if(!wrap) return;
+
+  function getPct(e){
+    var rect=wrap.getBoundingClientRect();
+    var clientX=e.touches?e.touches[0].clientX:e.clientX;
+    return Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
+  }
+  function doSeek(pct){
+    _offset=pct*_duration;
+    updateWaveformPlayhead(pct);
+    document.getElementById('curTime').textContent=fmtT(_offset);
+    if(_playing){stopPlay();startPlay(_offset);}
+  }
+  wrap.addEventListener('mousedown',function(e){_isDragging=true;doSeek(getPct(e));e.preventDefault();});
+  document.addEventListener('mousemove',function(e){if(_isDragging)doSeek(getPct(e));});
+  document.addEventListener('mouseup',function(){_isDragging=false;});
+  wrap.addEventListener('touchstart',function(e){_isDragging=true;doSeek(getPct(e));e.preventDefault();},{passive:false});
+  wrap.addEventListener('touchmove',function(e){if(_isDragging){doSeek(getPct(e));e.preventDefault();}},{passive:false});
+  wrap.addEventListener('touchend',function(){_isDragging=false;});
+}
+
 function loadMix(){
   animLoad();
   const req=indexedDB.open('aimix',1);
