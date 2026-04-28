@@ -913,10 +913,13 @@ async function loadSubscription(){
     var resp = await fetch(API + '/stripe/subscription/' + user.id);
     var data = await resp.json();
     console.log('Server sub data:', JSON.stringify(data));
-    _subData = data;
-    // Save fresh data to localStorage
-    if(data && data.plan !== 'free'){
-      localStorage.setItem('aimix_sub', JSON.stringify(data));
+    // Only overwrite _subData if server returns valid plan
+    // OR if current _subData is null/free
+    if(data && data.plan && (data.plan!=='free' || !_subData || _subData.plan==='free')){
+      _subData = data;
+      if(data.plan!=='free'){
+        localStorage.setItem('aimix_sub', JSON.stringify(data));
+      }
     }
     updateUsageBar();
   } catch(e){ console.log('Sub check error:', e); }
