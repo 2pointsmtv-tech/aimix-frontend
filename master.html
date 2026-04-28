@@ -197,10 +197,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
   </div>
 
   <!-- Waveform -->
-  <div class="waveform-wrap" id="waveformWrap" style="height:80px;width:100%;background:#111;border-radius:10px;overflow:hidden;border:1px solid #222;position:relative;cursor:pointer;">
-    <div id="waveformBars" style="display:flex;align-items:center;width:100%;height:100%;gap:0px;pointer-events:none;"></div>
-    <div class="waveform-playhead" id="wavePlayhead" style="position:absolute;top:0;left:0;width:2px;height:100%;background:#fff;opacity:.8;pointer-events:none;"></div>
-    <div id="waveformEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#444;font-family:'Inter',monospace;pointer-events:none;letter-spacing:.05em;">
+  <div class="waveform-wrap" id="waveformWrap" style="height:100px;width:100%;background:#0a0a0a;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e;position:relative;cursor:pointer;">
+    <canvas id="waveCanvas" style="position:absolute;inset:0;width:100%;height:100%;"></canvas>
+    <div id="wavePlayhead" style="position:absolute;top:0;left:0;width:1px;height:100%;background:rgba(255,255,255,0.8);pointer-events:none;box-shadow:0 0 4px rgba(255,255,255,0.4);"></div>
+    <div id="waveformEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#333;font-family:'Inter',monospace;pointer-events:none;letter-spacing:.08em;">
       ◎ Upload a mix to see waveform
     </div>
   </div>
@@ -931,31 +931,73 @@ function buildWaveform(buffer){
 
 function drawWaveformCanvas(playPct){
   if(!_waveformData) return;
-  var playX = Math.floor(_waveformData.length * playPct);
-  var W = _waveformData.length;
-  var container = document.getElementById('waveformBars');
-  if(!container) return;
-  var bars = container.children;
-  for(var i=0;i<bars.length;i++){
-    if(i < playX){
+  var canvas = document.getElementById('waveCanvas');
+  if(!canvas) return;
+  var W = canvas.width, H = canvas.height;
+  var ctx = canvas.getContext('2d');
+  var mid = H / 2;
+  var playX = Math.floor(W * playPct);
+
+  // Background
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Center line
+  ctx.fillStyle = '#1e1e1e';
+  ctx.fillRect(0, mid - 0.5, W, 1);
+
+  for(var i=0;i<W;i++){
+    var d = _waveformData[i];
+    if(!d) continue;
+    var played = i < playX;
+
+    // Color scheme: played = purple/pink, unplayed = muted grey/blue
+    var peakColor, rmsColor;
+    if(played){
       var ratio = i/W;
       var r=Math.round(176+(255-176)*ratio);
       var g=Math.round(38+(45-38)*ratio);
       var b=Math.round(255+(120-255)*ratio);
-      bars[i].style.background='rgb('+r+','+g+','+b+')';
-      bars[i].style.opacity='1';
+      peakColor = 'rgba('+r+','+g+','+b+',0.35)';
+      rmsColor  = 'rgba('+r+','+g+','+b+',0.9)';
     } else {
-      bars[i].style.background='#3a3a4a';
-      bars[i].style.opacity='0.6';
+      peakColor = 'rgba(80,80,100,0.35)';
+      rmsColor  = 'rgba(120,120,150,0.75)';
     }
+
+    // TOP HALF
+    var peakH = d.peak * mid * 0.92;
+    var rmsH  = d.rms  * mid * 0.85;
+
+    // Peak fill (wider, transparent)
+    ctx.fillStyle = peakColor;
+    ctx.fillRect(i, mid - peakH, 1, peakH);
+
+    // RMS fill (tighter, solid) — the main "body"
+    ctx.fillStyle = rmsColor;
+    ctx.fillRect(i, mid - rmsH, 1, rmsH);
+
+    // BOTTOM HALF (mirror)
+    ctx.fillStyle = peakColor;
+    ctx.fillRect(i, mid, 1, peakH);
+
+    ctx.fillStyle = rmsColor;
+    ctx.fillRect(i, mid, 1, rmsH);
   }
+
+  // Subtle gradient overlay for depth
+  var grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0,   'rgba(0,0,0,0.25)');
+  grad.addColorStop(0.45,'rgba(0,0,0,0)');
+  grad.addColorStop(0.55,'rgba(0,0,0,0)');
+  grad.addColorStop(1,   'rgba(0,0,0,0.25)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
 }
 
 function updateWaveformPlayhead(pct){
-  var wrap = document.getElementById('waveformWrap');
   var playhead = document.getElementById('wavePlayhead');
-  if(!wrap||!playhead) return;
-  playhead.style.left = (pct * 100) + '%';
+  if(playhead) playhead.style.left = (pct * 100) + '%';
   drawWaveformCanvas(pct);
 }
 
