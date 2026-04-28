@@ -913,16 +913,33 @@ async function loadSubscription(){
     var resp = await fetch(API + '/stripe/subscription/' + user.id);
     var data = await resp.json();
     console.log('Server sub data:', JSON.stringify(data));
-    // Only overwrite _subData if server returns valid plan
-    // OR if current _subData is null/free
-    if(data && data.plan && (data.plan!=='free' || !_subData || _subData.plan==='free')){
-      _subData = data;
-      if(data.plan!=='free'){
+    if(data && data.plan){
+      // Never downgrade paid plan to free from server
+      // Only update if server says paid, OR if we have no data yet
+      var cached = null;
+      try{ var c=localStorage.getItem('aimix_sub'); if(c) cached=JSON.parse(c); }catch(e){}
+      var hasPaidCache = cached && cached.plan && cached.plan !== 'free';
+      
+      if(data.plan !== 'free'){
+        // Server confirms paid - use it and save
+        _subData = data;
         localStorage.setItem('aimix_sub', JSON.stringify(data));
+      } else if(!hasPaidCache){
+        // Server says free and no paid cache - use server data
+        _subData = data;
       }
+      // If server says free BUT we have paid cache - keep cache
+      // (might be timing issue with Supabase)
     }
     updateUsageBar();
-  } catch(e){ console.log('Sub check error:', e); }
+  } catch(e){ 
+    console.log('Sub check error:', e);
+    // On error, try to load from cache
+    try{
+      var c=localStorage.getItem('aimix_sub');
+      if(c){ _subData=JSON.parse(c); updateUsageBar(); }
+    }catch(e2){}
+  }
 }
 
 function updateUsageBar(){
