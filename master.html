@@ -132,6 +132,20 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 .usage-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#2aff80,#ffdd00,#ff2d78);transition:width .3s;}
 .usage-text{font-size:10px;color:#555;font-family:'Inter',monospace;white-space:nowrap;}
 
+
+/* SONGS REMAINING COUNTER */
+.songs-remaining{display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;gap:14px;flex-direction:column;}
+.songs-remaining.show{display:flex;}
+.songs-remaining-top{display:flex;align-items:center;justify-content:space-between;}
+.songs-remaining-label{font-size:12px;color:#888;font-family:'Inter',monospace;}
+.songs-remaining-count{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;}
+.songs-remaining-sub{font-size:10px;color:#444;font-family:'Inter',monospace;}
+.songs-bar-track{height:6px;background:#1a1a1a;border-radius:3px;overflow:hidden;width:100%;}
+.songs-bar-fill{height:100%;border-radius:3px;transition:width .4s,background .3s;}
+.songs-upgrade-btn{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(135deg,#b026ff,#ff2d78);color:#fff;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .2s;display:none;}
+.songs-upgrade-btn.show{display:block;}
+.songs-upgrade-btn:hover{transform:scale(1.02);}
+
 </style>
 <style id="dynStyle"></style>
 </head>
@@ -272,6 +286,27 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
   <div class="usage-bar" id="usageBar">
     <div class="usage-track"><div class="usage-fill" id="usageFill" style="width:0%"></div></div>
     <div class="usage-text" id="usageText">Loading...</div>
+  </div>
+  <!-- SONGS REMAINING COUNTER (Starter plan only) -->
+  <div class="songs-remaining" id="songsRemaining">
+    <div class="songs-remaining-top">
+      <div>
+        <div class="songs-remaining-label">🎵 MASTERS REMAINING</div>
+        <div class="songs-remaining-count" id="songsCount">10</div>
+        <div class="songs-remaining-sub">this month · resets monthly</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="songs-remaining-label">PLAN</div>
+        <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#b026ff;">Starter</div>
+        <div class="songs-remaining-sub">$9.99/mo</div>
+      </div>
+    </div>
+    <div class="songs-bar-track">
+      <div class="songs-bar-fill" id="songsBarFill"></div>
+    </div>
+    <button class="songs-upgrade-btn" id="songsUpgradeBtn" onclick="startCheckout('pro')">
+      ⚡ Upgrade to Pro — Unlimited Masters →
+    </button>
   </div>
   <div class="btn-row">
     <button class="abtn btn-dl" id="dlBtn" onclick="downloadMastered()">↓ Download Mastered WAV</button>
@@ -949,30 +984,62 @@ async function loadSubscription(){
   } catch(e){ console.log('loadSub error:', e); }
 }
 
-// ── USAGE BAR ─────────────────────────────────────────────────────
+// ── USAGE BAR + SONGS COUNTER ────────────────────────────────────
 function updateUsageBar(){
   if(!_subData) return;
   var bar=document.getElementById('usageBar');
   var fill=document.getElementById('usageFill');
   var text=document.getElementById('usageText');
+  var songsEl=document.getElementById('songsRemaining');
+  var songsCount=document.getElementById('songsCount');
+  var songsBar=document.getElementById('songsBarFill');
+  var upgradeBtn=document.getElementById('songsUpgradeBtn');
+
   if(!bar) return;
+
   if(_subData.plan==='free'){
     bar.classList.add('show');
     fill.style.width='0%';
     text.textContent='Free plan — subscribe to download';
     text.style.color='#ff6b35';
+    if(songsEl) songsEl.classList.remove('show');
+
   } else if(_subData.plan==='starter'){
+    // Usage bar
     bar.classList.add('show');
-    var pct=Math.min(100,(_subData.usage/_subData.limit)*100);
+    var used=_subData.usage||0;
+    var limit=_subData.limit||10;
+    var left=Math.max(0,limit-used);
+    var pct=Math.min(100,(used/limit)*100);
     fill.style.width=pct+'%';
-    var left=Math.max(0,_subData.limit-_subData.usage);
-    text.textContent=left+' masters left this month';
-    text.style.color=left<=2?'#ff6b35':'#2aff80';
+    text.textContent=left+' of '+limit+' masters used';
+    text.style.color=left<=2?'#ff6b35':left<=5?'#ffdd00':'#2aff80';
+
+    // Songs remaining counter
+    if(songsEl){
+      songsEl.classList.add('show');
+      if(songsCount) songsCount.textContent=left;
+      if(songsCount) songsCount.style.color=left===0?'#ff2d78':left<=2?'#ff6b35':left<=5?'#ffdd00':'#2aff80';
+      if(songsBar){
+        var remainPct=(left/limit)*100;
+        songsBar.style.width=remainPct+'%';
+        songsBar.style.background=left===0?'#ff2d78':left<=2?'linear-gradient(90deg,#ff6b35,#ff2d78)':left<=5?'linear-gradient(90deg,#ffdd00,#ff6b35)':'linear-gradient(90deg,#2aff80,#00bfff)';
+      }
+      // Show upgrade button when low or empty
+      if(upgradeBtn){
+        upgradeBtn.classList.toggle('show', left<=3);
+        if(left===0) upgradeBtn.textContent='⚡ No masters left — Upgrade to Pro →';
+        else if(left===1) upgradeBtn.textContent='⚡ Last master! Upgrade to Pro — Unlimited →';
+        else upgradeBtn.textContent='⚡ Running low — Upgrade to Pro — Unlimited →';
+      }
+    }
+
   } else if(_subData.plan==='pro'){
     bar.classList.add('show');
     fill.style.width='100%';
-    text.textContent='∞ Unlimited — Pro plan';
+    text.textContent='∞ Unlimited — Pro plan active';
     text.style.color='#2aff80';
+    if(songsEl) songsEl.classList.remove('show'); // Hide counter for Pro (unlimited)
   }
 }
 
