@@ -725,6 +725,11 @@ function setCookStep(i){
 
 async function processTrack(file){
   if(!file) return;
+  // Save filename for mastering page
+  try{
+    var cleanName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
+    localStorage.setItem('aimix_trackname', cleanName);
+  }catch(e){}
   var ct=document.getElementById('cookingTracker');
   document.getElementById('dz').style.display='none';
   ct.removeAttribute('style');
@@ -1205,7 +1210,7 @@ window.addEventListener('DOMContentLoaded', function(){
     window._authUser = user;
     // Save to sessionStorage so master.html can read it instantly
     try {
-      sessionStorage.setItem('aimix_user', JSON.stringify({
+      localStorage.setItem('aimix_user', JSON.stringify({
         id: user.id,
         email: user.email,
         name: user.user_metadata && user.user_metadata.full_name || ''
