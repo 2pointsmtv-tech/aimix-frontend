@@ -1095,10 +1095,11 @@ if(window.location.search.includes('success=1')){
       // Also reload from server
       await loadSubscription();
       
+      // Update UI to show subscribed state
+      document.getElementById('paywallEl').classList.remove('show');
       if(dlBtn){
         dlBtn.style.background='linear-gradient(135deg,#2aff80,#00bfff)';
-        dlBtn.textContent='🎉 ' + (data.plan === 'pro' ? 'Pro' : 'Starter') + ' Plan Active — Download!';
-        setTimeout(function(){ dlBtn.textContent='↓ Download Mastered WAV'; dlBtn.style.background=''; }, 5000);
+        dlBtn.textContent='🎉 Welcome to AIMix ' + (data.plan === 'pro' ? 'Pro' : 'Starter') + '! Download your master →';
       }
     } catch(e) {
       console.log('Verify error:', e);
