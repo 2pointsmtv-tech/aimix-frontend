@@ -990,7 +990,7 @@ async function startCheckout(plan){
         price_id: PRICE_IDS[plan],
         user_id: user.id,
         user_email: user.email,
-        success_url: window.location.origin + '/master.html?success=1',
+        success_url: window.location.origin + '/master.html?success=1&session_id={CHECKOUT_SESSION_ID}',
         cancel_url: window.location.href
       })
     });
@@ -1014,10 +1014,53 @@ async function logUsage(){
 // Check for success return from Stripe
 if(window.location.search.includes('success=1')){
   window.history.replaceState({}, '', window.location.pathname);
-  setTimeout(function(){
-    alert('🎉 Welcome to AIMix Pro! Your subscription is now active. Enjoy unlimited mastering!');
-    loadSubscription();
-  }, 1000);
+  // Wait for auth to be ready then reload subscription
+  async function handleSuccess(){
+    // Wait for auth
+    for(var i=0;i<50;i++){
+      if(window._authUser) break;
+      try{var s=sessionStorage.getItem('aimix_user');if(s){window._authUser=JSON.parse(s);break;}}catch(e){}
+      if(window._sb){var r=await window._sb.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){window._authUser=r.data.session.user;break;}}
+      await new Promise(function(r){setTimeout(r,100);});
+    }
+    if(!window._authUser) return;
+    
+    // Get session_id from URL and verify directly with Stripe
+    var urlParams = new URLSearchParams(window.location.search);
+    var sessionId = urlParams.get('session_id');
+    
+    var dlBtn = document.getElementById('dlBtn');
+    if(dlBtn){ dlBtn.textContent='⏳ Activating subscription...'; }
+    
+    try {
+      // Call our verify-session endpoint directly - no webhook needed!
+      var resp = await fetch(API + '/stripe/verify-session', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          session_id: sessionId,
+          user_id: window._authUser.id
+        })
+      });
+      var data = await resp.json();
+      console.log('Subscription verified:', data);
+      
+      // Reload subscription data
+      await loadSubscription();
+      
+      if(dlBtn){
+        dlBtn.style.background='linear-gradient(135deg,#2aff80,#00bfff)';
+        dlBtn.textContent='🎉 ' + (data.plan === 'pro' ? 'Pro' : 'Starter') + ' Plan Active — Download!';
+        setTimeout(function(){ dlBtn.textContent='↓ Download Mastered WAV'; dlBtn.style.background=''; }, 5000);
+      }
+    } catch(e) {
+      console.log('Verify error:', e);
+      // Fall back to just reloading subscription
+      await loadSubscription();
+      if(dlBtn){ dlBtn.textContent='↓ Download Mastered WAV'; }
+    }
+  }
+  handleSuccess();
 }
 
 // Load subscription when auth is ready
