@@ -195,11 +195,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
     <div class="time-info"><span id="curTime">0:00</span></div>
     <div class="total-time" id="totalTime">0:00</div>
   </div>
-  <!-- Debug status -->
-  <div id="waveDebug" style="font-size:10px;color:#ff6b35;font-family:monospace;padding:4px 0;display:none;"></div>
+
   <!-- Waveform -->
   <div class="waveform-wrap" id="waveformWrap" style="height:80px;width:100%;background:#111;border-radius:10px;overflow:hidden;border:1px solid #222;position:relative;cursor:pointer;">
-    <div id="waveformBars" style="display:flex;align-items:center;width:100%;height:100%;gap:0px;"></div>
+    <div id="waveformBars" style="display:flex;align-items:center;width:100%;height:100%;gap:0px;pointer-events:none;"></div>
     <div class="waveform-playhead" id="wavePlayhead" style="position:absolute;top:0;left:0;width:2px;height:100%;background:#fff;opacity:.8;pointer-events:none;"></div>
     <div id="waveformEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#444;font-family:'Inter',monospace;pointer-events:none;letter-spacing:.05em;">
       ◎ Upload a mix to see waveform
@@ -868,8 +867,7 @@ var _waveformData = null;
 var _isDragging = false;
 
 function buildWaveform(buffer){
-  var dbg = document.getElementById('waveDebug');
-  if(dbg){dbg.style.display='block';dbg.textContent='Building waveform...';}
+
   try{
     if(!buffer) throw new Error('no buffer');
     var container = document.getElementById('waveformBars');
@@ -892,17 +890,14 @@ function buildWaveform(buffer){
     var out = [];
     for(var i=0;i<BARS;i++){
       var h = Math.max(4, Math.floor(_waveformData[i]*70));
-      out.push('<div style="flex:1;min-width:2px;height:'+h+'px;background:#b026ff;opacity:0.7;border-radius:1px;"></div>');
+      out.push('<div style="flex:1;min-width:2px;height:'+h+'px;background:#b026ff;opacity:0.7;border-radius:1px;pointer-events:none;"></div>');
     }
     container.innerHTML = out.join('');
 
-    if(dbg) dbg.textContent='✓ Waveform built! '+out.length+' bars';
+
     var em=document.getElementById('waveformEmpty');
     if(em) em.parentNode.removeChild(em);
-  } catch(err){
-    if(dbg) dbg.textContent='ERROR: '+err.message;
-    console.error('buildWaveform error:', err);
-  }
+  } catch(err){ console.error('buildWaveform error:', err); }
 }
 
 function drawWaveformCanvas(playPct){
@@ -948,7 +943,10 @@ function initWaveformEvents(){
     _offset=pct*_duration;
     updateWaveformPlayhead(pct);
     document.getElementById('curTime').textContent=fmtT(_offset);
-    if(_playing){stopPlay();startPlay(_offset);}
+    if(_playing){
+      stopPlay();
+      startPlay(_offset);
+    }
   }
   wrap.addEventListener('mousedown',function(e){_isDragging=true;doSeek(getPct(e));e.preventDefault();});
   document.addEventListener('mousemove',function(e){if(_isDragging)doSeek(getPct(e));});
@@ -986,8 +984,7 @@ function loadMix(){
             var _waveBuilt = false;
             function tryBuildWaveform(){
               if(_waveBuilt) return;
-              var dbg = document.getElementById('waveDebug');
-              if(dbg){dbg.style.display='block';dbg.textContent='tryBuild: w='+waveWrap.getBoundingClientRect().width+' rawBuf='+(!!_rawBuf);}
+
               var w = waveWrap.getBoundingClientRect().width;
               if(w > 10){
                 _waveBuilt = true;
