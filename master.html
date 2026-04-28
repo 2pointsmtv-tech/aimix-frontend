@@ -963,6 +963,13 @@ async function checkCanDownload(){
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
+  // Check sessionStorage for sub as fallback
+  if(!_subData){
+    try{
+      var storedSub=sessionStorage.getItem('aimix_sub');
+      if(storedSub) _subData=JSON.parse(storedSub);
+    }catch(e){}
+  }
   if(!_subData) await loadSubscription();
   if(!_subData || _subData.plan === 'free'){
     document.getElementById('paywallSub').textContent = 'Download your mastered track with a simple monthly plan. Cancel anytime.';
@@ -1045,7 +1052,21 @@ if(window.location.search.includes('success=1')){
       var data = await resp.json();
       console.log('Subscription verified:', data);
       
-      // Reload subscription data
+      // Save to sessionStorage as immediate fallback
+      try {
+        sessionStorage.setItem('aimix_sub', JSON.stringify({
+          plan: data.plan,
+          status: data.status,
+          usage: 0,
+          limit: data.plan === 'pro' ? -1 : 10
+        }));
+      } catch(e) {}
+      
+      // Update _subData directly
+      _subData = {plan: data.plan, status: data.status, usage: 0, limit: data.plan === 'pro' ? -1 : 10};
+      updateUsageBar();
+      
+      // Also reload from server
       await loadSubscription();
       
       if(dlBtn){
