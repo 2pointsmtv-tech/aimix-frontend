@@ -881,11 +881,30 @@ function loadMix(){
             document.getElementById('mainEl').style.display='flex';
             buildChain();showAnalysis(analysis);setTarget(-14);
             document.getElementById('totalTime').textContent=fmtT(_duration);
-            // Build waveform NOW that main is visible and has real dimensions
-            setTimeout(function(){
-              buildWaveform(_rawBuf);
-              initWaveformEvents();
-            }, 100);
+            // Build waveform when element has real size
+            var waveWrap = document.getElementById('waveformWrap');
+            var _waveBuilt = false;
+            function tryBuildWaveform(){
+              if(_waveBuilt) return;
+              var w = waveWrap.getBoundingClientRect().width;
+              if(w > 10){
+                _waveBuilt = true;
+                buildWaveform(_rawBuf);
+                initWaveformEvents();
+              }
+            }
+            // Try immediately
+            tryBuildWaveform();
+            // Use ResizeObserver as backup
+            if(window.ResizeObserver){
+              var ro = new ResizeObserver(function(){ tryBuildWaveform(); });
+              ro.observe(waveWrap);
+              setTimeout(function(){ ro.disconnect(); }, 2000);
+            }
+            // Fallback timeouts
+            setTimeout(tryBuildWaveform, 50);
+            setTimeout(tryBuildWaveform, 200);
+            setTimeout(tryBuildWaveform, 500);
             // Show Listen Now on iOS
             var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
             if(isIOS) document.getElementById('listenOverlay').classList.add('show');
