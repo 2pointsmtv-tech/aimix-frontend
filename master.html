@@ -873,7 +873,13 @@ function loadMix(){
         _rawBuf=buf;_duration=buf.duration;tmp.close();
         const analysis=analyzeMix(buf);
         // Build waveform after short delay (let DOM render)
-        setTimeout(function(){ buildWaveform(buf); initWaveformEvents(); }, 200);
+        // Wait for DOM to render fully before building waveform
+        requestAnimationFrame(function(){
+          requestAnimationFrame(function(){
+            buildWaveform(buf);
+            initWaveformEvents();
+          });
+        });
         setTimeout(()=>{
           document.getElementById('step3').className='loading-step done';
           setTimeout(()=>{
