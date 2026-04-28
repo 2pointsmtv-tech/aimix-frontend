@@ -898,7 +898,7 @@ loadMix();
 <script src="https://js.stripe.com/v3/"></script>
 <script>
 // ── STRIPE PAYWALL ────────────────────────────────────────────────
-var STRIPE_PK = 'pk_live_yMrWVifOoYrn5G9azIfT1h4g00ULnTVRLZ'; // Will be replaced
+var STRIPE_PK = 'pk_live_yMrWVifOoYrn5G9azIfT1h4g00ULnTVRLZ';
 var _subData = null;
 var API = 'https://aimix-backend-production.up.railway.app';
 var PRICE_IDS = {
@@ -906,226 +906,220 @@ var PRICE_IDS = {
   pro: 'price_1TQwzACRAaos6o5umqGIoyEM'
 };
 
+// ── LOAD SUBSCRIPTION ─────────────────────────────────────────────
 async function loadSubscription(){
   var user = window._authUser;
-  if(!user) return;
+  if(!user || !user.id) return;
   try {
     var resp = await fetch(API + '/stripe/subscription/' + user.id);
     var data = await resp.json();
-    console.log('Server sub data:', JSON.stringify(data));
-    if(data && data.plan){
-      // Never downgrade paid plan to free from server
-      // Only update if server says paid, OR if we have no data yet
-      var cached = null;
-      try{ var c=localStorage.getItem('aimix_sub'); if(c) cached=JSON.parse(c); }catch(e){}
-      var hasPaidCache = cached && cached.plan && cached.plan !== 'free';
-      
-      if(data.plan !== 'free'){
-        // Server confirms paid - use it and save
-        _subData = data;
-        localStorage.setItem('aimix_sub', JSON.stringify(data));
-      } else if(!hasPaidCache){
-        // Server says free and no paid cache - use server data
-        _subData = data;
-      }
-      // If server says free BUT we have paid cache - keep cache
-      // (might be timing issue with Supabase)
+    console.log('Server sub:', JSON.stringify(data));
+    if(data && data.plan && data.plan !== 'free'){
+      // Server confirms paid — update cache
+      _subData = data;
+      try{ localStorage.setItem('aimix_sub', JSON.stringify(data)); }catch(e){}
+    } else if(!_subData || _subData.plan === 'free'){
+      // Server says free and no paid cache — use it
+      _subData = data;
     }
+    // If server says free but we have paid cache — KEEP CACHE
     updateUsageBar();
-  } catch(e){ 
-    console.log('Sub check error:', e);
-    // On error, try to load from cache
-    try{
-      var c=localStorage.getItem('aimix_sub');
-      if(c){ _subData=JSON.parse(c); updateUsageBar(); }
-    }catch(e2){}
-  }
+  } catch(e){ console.log('loadSub error:', e); }
 }
 
+// ── USAGE BAR ─────────────────────────────────────────────────────
 function updateUsageBar(){
   if(!_subData) return;
-  var bar = document.getElementById('usageBar');
-  var fill = document.getElementById('usageFill');
-  var text = document.getElementById('usageText');
+  var bar=document.getElementById('usageBar');
+  var fill=document.getElementById('usageFill');
+  var text=document.getElementById('usageText');
   if(!bar) return;
-  
-  if(_subData.plan === 'free'){
+  if(_subData.plan==='free'){
     bar.classList.add('show');
-    fill.style.width = '0%';
-    text.textContent = 'Free plan — subscribe to download';
-    text.style.color = '#ff6b35';
-  } else if(_subData.plan === 'starter'){
+    fill.style.width='0%';
+    text.textContent='Free plan — subscribe to download';
+    text.style.color='#ff6b35';
+  } else if(_subData.plan==='starter'){
     bar.classList.add('show');
-    var pct = Math.min(100, (_subData.usage / _subData.limit) * 100);
-    fill.style.width = pct + '%';
-    var left = Math.max(0, _subData.limit - _subData.usage);
-    text.textContent = left + ' masters left this month';
-    text.style.color = left <= 2 ? '#ff6b35' : '#2aff80';
-  } else if(_subData.plan === 'pro'){
+    var pct=Math.min(100,(_subData.usage/_subData.limit)*100);
+    fill.style.width=pct+'%';
+    var left=Math.max(0,_subData.limit-_subData.usage);
+    text.textContent=left+' masters left this month';
+    text.style.color=left<=2?'#ff6b35':'#2aff80';
+  } else if(_subData.plan==='pro'){
     bar.classList.add('show');
-    fill.style.width = '100%';
-    text.textContent = '∞ Unlimited — Pro plan';
-    text.style.color = '#2aff80';
+    fill.style.width='100%';
+    text.textContent='∞ Unlimited — Pro plan';
+    text.style.color='#2aff80';
   }
 }
 
+// ── CHECK CAN DOWNLOAD ────────────────────────────────────────────
 async function checkCanDownload(){
-  // First check sessionStorage (instant - set by index.html on login)
+  // 1. Get auth user
   if(!window._authUser){
-    try {
-      var stored = localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');
-      if(stored) window._authUser = JSON.parse(stored);
-    } catch(e) {}
-  }
-  // If still not set, try Supabase directly
-  if(!window._authUser && window._sb){
-    var res = await window._sb.auth.getSession();
-    if(res.data && res.data.session && res.data.session.user){
-      window._authUser = res.data.session.user;
-      if(typeof loadSubscription === 'function') loadSubscription();
-    }
-  }
-  if(!window._authUser){
-    document.getElementById('paywallEl').classList.add('show');
-    return false;
-  }
-  // Check sessionStorage for sub as fallback
-  if(!_subData){
     try{
-      var storedSub=localStorage.getItem('aimix_sub');
-      if(storedSub) _subData=JSON.parse(storedSub);
+      var u=localStorage.getItem('aimix_user')||sessionStorage.getItem('aimix_user');
+      if(u) window._authUser=JSON.parse(u);
     }catch(e){}
   }
-  if(!_subData) await loadSubscription();
-  if(!_subData || _subData.plan === 'free'){
-    document.getElementById('paywallSub').textContent = 'Download your mastered track with a simple monthly plan. Cancel anytime.';
+  if(!window._authUser && window._sb){
+    try{
+      var r=await window._sb.auth.getSession();
+      if(r.data&&r.data.session&&r.data.session.user){
+        window._authUser=r.data.session.user;
+        try{localStorage.setItem('aimix_user',JSON.stringify({id:r.data.session.user.id,email:r.data.session.user.email}));}catch(e){}
+      }
+    }catch(e){}
+  }
+  if(!window._authUser){
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
-  if(_subData.plan === 'starter' && _subData.usage >= _subData.limit){
-    document.getElementById('paywallSub').textContent = "You've used all 10 masters this month. Upgrade to Pro for unlimited downloads!";
+
+  // 2. Check localStorage FIRST — primary source of truth
+  var cachedSub = null;
+  try{
+    var c=localStorage.getItem('aimix_sub');
+    if(c) cachedSub=JSON.parse(c);
+  }catch(e){}
+
+  if(cachedSub && cachedSub.plan && cachedSub.plan!=='free'){
+    _subData = cachedSub;
+    console.log('Using cached sub:', JSON.stringify(cachedSub));
+    // Refresh from server in background
+    setTimeout(loadSubscription, 1000);
+    // Check usage for starter
+    if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
+      document.getElementById('paywallSub').textContent="You've used all 10 masters this month. Upgrade to Pro!";
+      document.getElementById('paywallEl').classList.add('show');
+      return false;
+    }
+    updateUsageBar();
+    return true;
+  }
+
+  // 3. No paid cache — try server
+  await loadSubscription();
+  if(!_subData || _subData.plan==='free'){
+    document.getElementById('paywallEl').classList.add('show');
+    return false;
+  }
+  if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
+    document.getElementById('paywallSub').textContent="You've used all 10 masters this month. Upgrade to Pro!";
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
   return true;
 }
 
+// ── CHECKOUT ──────────────────────────────────────────────────────
 async function startCheckout(plan){
-  var user = window._authUser;
-  if(!user){ alert('Please sign in first!'); return; }
-  var btn = document.querySelector('.plan-btn-' + plan);
-  if(btn){ btn.textContent = 'Loading...'; btn.disabled = true; }
-  try {
-    var resp = await fetch(API + '/stripe/checkout', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        price_id: PRICE_IDS[plan],
-        user_id: user.id,
-        user_email: user.email,
-        success_url: window.location.origin + '/master.html?success=1&session_id={CHECKOUT_SESSION_ID}',
-        cancel_url: window.location.href
+  var user=window._authUser;
+  if(!user){alert('Please sign in first!');return;}
+  var btn=document.querySelector('.plan-btn-'+plan);
+  if(btn){btn.textContent='Loading...';btn.disabled=true;}
+  try{
+    var resp=await fetch(API+'/stripe/checkout',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        price_id:PRICE_IDS[plan],
+        user_id:user.id,
+        user_email:user.email,
+        success_url:window.location.origin+'/master.html?success=1&session_id={CHECKOUT_SESSION_ID}',
+        cancel_url:window.location.href
       })
     });
-    var data = await resp.json();
-    if(data.url) window.location.href = data.url;
-  } catch(e){
-    alert('Error starting checkout. Please try again!');
-    if(btn){ btn.textContent = plan === 'pro' ? 'Get Pro →' : 'Get Starter →'; btn.disabled = false; }
+    var data=await resp.json();
+    if(data.url) window.location.href=data.url;
+  }catch(e){
+    alert('Error starting checkout!');
+    if(btn){btn.textContent=plan==='pro'?'Get Pro →':'Get Starter →';btn.disabled=false;}
   }
 }
 
+// ── USAGE LOGGING ─────────────────────────────────────────────────
 async function logUsage(){
-  var user = window._authUser;
+  var user=window._authUser;
   if(!user) return;
-  try {
-    await fetch(API + '/stripe/log-usage/' + user.id, {method:'POST'});
-    if(_subData){ _subData.usage++; updateUsageBar(); }
-  } catch(e){}
+  try{
+    await fetch(API+'/stripe/log-usage/'+user.id,{method:'POST'});
+    if(_subData){_subData.usage++;updateUsageBar();}
+    // Update cache
+    try{localStorage.setItem('aimix_sub',JSON.stringify(_subData));}catch(e){}
+  }catch(e){}
 }
 
-// Check for success return from Stripe
+// ── HANDLE SUCCESS RETURN FROM STRIPE ────────────────────────────
 if(window.location.search.includes('success=1')){
-  window.history.replaceState({}, '', window.location.pathname);
-  // Wait for auth to be ready then reload subscription
+  window.history.replaceState({},'',window.location.pathname);
+  
   async function handleSuccess(){
-    // Wait for auth
+    // Wait for auth (up to 5s)
     for(var i=0;i<50;i++){
       if(window._authUser) break;
-      try{var s=localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');if(s){window._authUser=JSON.parse(s);break;}}catch(e){}
-      if(window._sb){var r=await window._sb.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){window._authUser=r.data.session.user;break;}}
+      try{var u=localStorage.getItem('aimix_user')||sessionStorage.getItem('aimix_user');if(u){window._authUser=JSON.parse(u);break;}}catch(e){}
+      if(window._sb){try{var r=await window._sb.auth.getSession();if(r.data&&r.data.session&&r.data.session.user){window._authUser=r.data.session.user;break;}}catch(e){}}
       await new Promise(function(r){setTimeout(r,100);});
     }
-    if(!window._authUser) return;
+    if(!window._authUser){console.log('No auth user for success');return;}
     
-    // Get session_id from URL and verify directly with Stripe
-    var urlParams = new URLSearchParams(window.location.search);
-    var sessionId = urlParams.get('session_id');
+    // Get session_id from URL
+    var urlParams=new URLSearchParams(window.location.search);
+    // Already cleared above, get from referrer or just verify after delay
     
-    var dlBtn = document.getElementById('dlBtn');
-    if(dlBtn){ dlBtn.textContent='⏳ Activating subscription...'; }
+    var dlBtn=document.getElementById('dlBtn');
+    if(dlBtn) dlBtn.textContent='⏳ Activating...';
     
-    try {
-      // Call our verify-session endpoint directly - no webhook needed!
-      var resp = await fetch(API + '/stripe/verify-session', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({
-          session_id: sessionId,
-          user_id: window._authUser.id
-        })
-      });
-      var data = await resp.json();
-      console.log('Subscription verified:', data);
+    try{
+      // Get session_id - it was in URL before we cleared it
+      // Use verify-session to confirm and save subscription
+      var sessionId=new URLSearchParams(document.referrer.split('?')[1]||'').get('session_id');
       
-      // Save to sessionStorage as immediate fallback
-      try {
-        localStorage.setItem('aimix_sub', JSON.stringify({
-          plan: data.plan,
-          status: data.status,
-          usage: 0,
-          limit: data.plan === 'pro' ? -1 : 10
-        }));
-      } catch(e) {}
-      
-      // Update _subData directly
-      _subData = {plan: data.plan, status: data.status, usage: 0, limit: data.plan === 'pro' ? -1 : 10};
-      updateUsageBar();
-      
-      // Also reload from server
-      await loadSubscription();
-      
-      // Update UI to show subscribed state
-      document.getElementById('paywallEl').classList.remove('show');
-      if(dlBtn){
-        dlBtn.style.background='linear-gradient(135deg,#2aff80,#00bfff)';
-        dlBtn.textContent='🎉 Welcome to AIMix ' + (data.plan === 'pro' ? 'Pro' : 'Starter') + '! Download your master →';
-      }
-    } catch(e) {
-      console.log('Verify error:', e);
-      // Fall back to just reloading subscription
-      await loadSubscription();
-      if(dlBtn){ dlBtn.textContent='↓ Download Mastered WAV'; }
+      // Fallback: just load subscription from server after delay
+      setTimeout(async function(){
+        await loadSubscription();
+        if(_subData && _subData.plan && _subData.plan!=='free'){
+          // Save to localStorage
+          try{localStorage.setItem('aimix_sub',JSON.stringify(_subData));}catch(e){}
+          if(dlBtn){
+            dlBtn.style.background='linear-gradient(135deg,#2aff80,#00bfff)';
+            dlBtn.textContent='🎉 Welcome to AIMix '+(_subData.plan==='pro'?'Pro':'Starter')+'! Download your master →';
+          }
+          document.getElementById('paywallEl').classList.remove('show');
+        } else {
+          if(dlBtn) dlBtn.textContent='↓ Download Mastered WAV';
+        }
+      }, 2000);
+    }catch(e){
+      if(dlBtn) dlBtn.textContent='↓ Download Mastered WAV';
     }
   }
   handleSuccess();
 }
 
-// Load subscription when auth is ready
+// ── INIT ON PAGE LOAD ─────────────────────────────────────────────
 document.addEventListener('aimix-authed', function(){ loadSubscription(); });
+
 window.addEventListener('load', function(){
-  // Try sessionStorage immediately on load
+  // Pre-load sub from localStorage immediately
+  try{
+    var c=localStorage.getItem('aimix_sub');
+    if(c){_subData=JSON.parse(c);updateUsageBar();console.log('Pre-loaded sub:',JSON.stringify(_subData));}
+  }catch(e){}
+  
+  // Get auth user
   if(!window._authUser){
-    try {
-      var stored = localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user');
-      if(stored){
-        window._authUser = JSON.parse(stored);
-        loadSubscription();
-      }
-    } catch(e) {}
+    try{
+      var u=localStorage.getItem('aimix_user')||sessionStorage.getItem('aimix_user');
+      if(u) window._authUser=JSON.parse(u);
+    }catch(e){}
   }
+  
+  // Refresh from server in background
   if(window._authUser) loadSubscription();
-  setTimeout(function(){ if(window._authUser && !_subData) loadSubscription(); }, 2000);
+  setTimeout(function(){ if(window._authUser && !_subData) loadSubscription(); }, 2500);
 });
 </script>
 
