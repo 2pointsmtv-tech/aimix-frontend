@@ -146,6 +146,14 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 .songs-upgrade-btn.show{display:block;}
 .songs-upgrade-btn:hover{transform:scale(1.02);}
 
+
+/* WAVEFORM */
+.waveform-wrap{width:100%;position:relative;cursor:pointer;border-radius:10px;overflow:hidden;background:#0d0d0d;border:1px solid var(--border);height:72px;user-select:none;}
+.waveform-wrap canvas{width:100%;height:100%;display:block;}
+.waveform-playhead{position:absolute;top:0;left:0;width:2px;height:100%;background:#fff;opacity:.9;pointer-events:none;transition:left .1s linear;box-shadow:0 0 6px #fff6;}
+.waveform-hover{position:absolute;top:0;width:1px;height:100%;background:#ffffff44;pointer-events:none;}
+.waveform-time-tooltip{position:absolute;top:-24px;transform:translateX(-50%);background:#111;border:1px solid #333;border-radius:4px;padding:2px 8px;font-size:10px;color:#fff;font-family:'Inter',monospace;pointer-events:none;white-space:nowrap;}
+
 </style>
 <style id="dynStyle"></style>
 </head>
@@ -185,8 +193,13 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
       <svg id="playIcon" width="16" height="16" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
     </button>
     <div class="time-info"><span id="curTime">0:00</span></div>
-    <div class="prog-wrap" onclick="seekTo(event)"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
     <div class="total-time" id="totalTime">0:00</div>
+  </div>
+  <!-- Waveform -->
+  <div class="waveform-wrap" id="waveformWrap">
+    <canvas id="waveCanvas"></canvas>
+    <div class="waveform-playhead" id="wavePlayhead"></div>
+    <div class="waveform-hover" id="waveHover" style="display:none;"></div>
   </div>
 
   <!-- 3 KNOBS -->
@@ -706,8 +719,9 @@ function animLoop(){
   if(!_playing||!_actx)return;
   const e=Math.max(0,_actx.currentTime-_startTime);
   document.getElementById('curTime').textContent=fmtT(e);
-  document.getElementById('progFill').style.width=Math.min(e/_duration*100,100)+'%';
-  if(e>=_duration){_playing=false;_offset=0;updateIcon();cancelAnimationFrame(_animId);}
+  // Update waveform playhead
+  if(_duration>0 && !_isDragging) updateWaveformPlayhead(e/_duration);
+  if(e>=_duration){_playing=false;_offset=0;updateIcon();updateWaveformPlayhead(0);cancelAnimationFrame(_animId);}
 }
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
@@ -858,6 +872,8 @@ function loadMix(){
       tmp.decodeAudioData(data).then(buf=>{
         _rawBuf=buf;_duration=buf.duration;tmp.close();
         const analysis=analyzeMix(buf);
+        // Build waveform after short delay (let DOM render)
+        setTimeout(function(){ buildWaveform(buf); initWaveformEvents(); }, 200);
         setTimeout(()=>{
           document.getElementById('step3').className='loading-step done';
           setTimeout(()=>{
