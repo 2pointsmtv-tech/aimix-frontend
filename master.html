@@ -698,39 +698,40 @@ function listenNow(){
 function togglePlay(){
   if(!_rawBuf){alert('No mix loaded!');return;}
   
-  // iOS: need special audio unlock
+  // iOS: need special audio unlock on first play
   var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(!_actx && isIOS){
     document.getElementById('listenOverlay').classList.add('show');
     return;
   }
   
-  // Create AudioContext on first use
+  // First play: create context and start
   if(!_actx){
     _actx=new(window.AudioContext||window.webkitAudioContext)();
     buildGraph();
+    _actx.resume().then(function(){ startPlay(0); });
+    return;
   }
   
-  // Always resume first (handles auto-suspend by browser)
-  var doAction = function(){
-    if(_playing){
-      // PAUSE: save position THEN set _playing=false BEFORE stop()
-      // (stop() triggers onended which checks _playing)
-      _offset = Math.max(0, _actx.currentTime - _startTime);
-      _playing=false;  // Set BEFORE stop() so onended doesn't reset _offset
-      cancelAnimationFrame(_animId);
-      if(_src){try{_src.stop();}catch(e){}}_src=null;
-      updateIcon();
-    } else {
-      // PLAY: start from saved position
-      startPlay(_offset);
-    }
-  };
-  
-  if(_actx.state==='suspended'){
-    _actx.resume().then(doAction);
+  if(_playing){
+    // PAUSE: suspend the AudioContext — freezes time exactly where it is
+    _playing=false;
+    cancelAnimationFrame(_animId);
+    updateIcon();
+    _actx.suspend();
   } else {
-    doAction();
+    // RESUME: resume the AudioContext from exact pause point
+    _actx.resume().then(function(){
+      if(!_src){
+        // Source was stopped (e.g. song ended) — restart from _offset
+        startPlay(_offset);
+      } else {
+        // Source still connected — just resuming from suspend
+        _playing=true;
+        updateIcon();
+        animLoop();
+      }
+    });
   }
 }
 function seekTo(e){
