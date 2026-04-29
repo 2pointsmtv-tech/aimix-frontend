@@ -197,21 +197,10 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
   </div>
 
   <!-- Waveform -->
-  <div class="waveform-wrap" id="waveformWrap" style="height:96px;width:100%;background:#0a0a0a;border-radius:12px;overflow:hidden;border:1px solid #1e1e1e;position:relative;cursor:pointer;box-sizing:border-box;">
-    <!-- Top half bars -->
-    <div id="waveBarsTop" style="position:absolute;top:0;left:0;right:0;height:48px;display:flex;align-items:flex-end;pointer-events:none;"></div>
-    <!-- Bottom half bars (mirrored) -->
-    <div id="waveBarsBot" style="position:absolute;bottom:0;left:0;right:0;height:48px;display:flex;align-items:flex-start;pointer-events:none;"></div>
-    <!-- Center line -->
-    <div style="position:absolute;top:50%;left:0;right:0;height:1px;background:#1e1e1e;pointer-events:none;transform:translateY(-50%);"></div>
-    <!-- Playhead -->
-    <div id="wavePlayhead" style="position:absolute;top:0;left:0;width:2px;height:100%;background:rgba(255,255,255,0.9);pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,0.5);z-index:10;"></div>
-    <!-- Played overlay -->
-    <div id="waveOverlay" style="position:absolute;top:0;left:0;width:0%;height:100%;background:rgba(176,38,255,0.08);pointer-events:none;z-index:5;"></div>
-    <!-- Empty state -->
-    <div id="waveformEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#333;font-family:'Inter',monospace;pointer-events:none;letter-spacing:.08em;">
-      ◎ Upload a mix to see waveform
-    </div>
+  <div id="waveformWrap" style="height:88px;width:100%;background:#0d0d0d;border-radius:12px;overflow:hidden;border:1px solid #222;position:relative;cursor:pointer;">
+    <div id="waveformBars" style="width:100%;height:100%;display:flex;align-items:center;gap:1px;padding:0 4px;box-sizing:border-box;pointer-events:none;"></div>
+    <div id="wavePlayhead" style="position:absolute;top:0;left:0;width:2px;height:100%;background:rgba(255,255,255,0.9);pointer-events:none;box-shadow:0 0 8px rgba(255,255,255,0.6);z-index:10;transition:left 0.05s linear;"></div>
+    <div id="waveformEmpty" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#333;font-family:'Inter',monospace;pointer-events:none;letter-spacing:.08em;">◎ Play your mix to see waveform</div>
   </div>
 
   <!-- 3 KNOBS -->
@@ -940,38 +929,21 @@ function buildWaveform(buffer){
 
 function drawWaveformCanvas(playPct){
   if(!_waveformData) return;
-  var BARS = _waveformData.length;
-  var playX = Math.floor(BARS * playPct);
-  
-  // Update played overlay
-  var overlay = document.getElementById('waveOverlay');
-  if(overlay) overlay.style.width = (playPct*100)+'%';
-  
-  // Update bar colors
-  var topEl = document.getElementById('waveBarsTop');
-  var botEl = document.getElementById('waveBarsBot');
-  if(!topEl||!botEl) return;
-  
-  var topBars = topEl.children;
-  var botBars = botEl.children;
-  
-  for(var i=0;i<topBars.length;i++){
-    var played = i < playX;
-    var ratio = i/BARS;
-    if(played){
+  var container=document.getElementById('waveformBars');
+  if(!container) return;
+  var bars=container.children;
+  var playX=Math.floor(bars.length*playPct);
+  for(var i=0;i<bars.length;i++){
+    if(i<playX){
+      var ratio=i/bars.length;
       var r=Math.round(176+(255-176)*ratio);
       var g=Math.round(38+(45-38)*ratio);
       var b=Math.round(255+(120-255)*ratio);
-      var col='rgba('+r+','+g+','+b+',';
-      topBars[i].style.background=col+'0.5)';
-      botBars[i].style.background=col+'0.5)';
-      if(topBars[i].children[0]) topBars[i].children[0].style.background=col+'0.95)';
-      if(botBars[i].children[0]) botBars[i].children[0].style.background=col+'0.95)';
+      bars[i].style.background='rgb('+r+','+g+','+b+')';
+      bars[i].style.opacity='1';
     } else {
-      topBars[i].style.background='rgba(100,90,130,0.4)';
-      botBars[i].style.background='rgba(100,90,130,0.4)';
-      if(topBars[i].children[0]) topBars[i].children[0].style.background='rgba(150,130,180,0.7)';
-      if(botBars[i].children[0]) botBars[i].children[0].style.background='rgba(150,130,180,0.7)';
+      bars[i].style.background='#6040a0';
+      bars[i].style.opacity='0.5';
     }
   }
 }
