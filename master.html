@@ -720,24 +720,20 @@ function togglePlay(){
   }
   
   if(_playing){
-    // PAUSE: suspend the AudioContext — freezes time exactly where it is
-    _playing=false;
+    // PAUSE: save position, set playing false BEFORE stop to prevent onended reset
+    _offset = Math.max(0, _actx.currentTime - _startTime);
+    _playing = false;
     cancelAnimationFrame(_animId);
     updateIcon();
-    _actx.suspend();
+    // Stop source cleanly — no more looping glitch
+    if(_src){ try{ _src.stop(); }catch(e){} _src=null; }
   } else {
-    // RESUME: resume the AudioContext from exact pause point
-    _actx.resume().then(function(){
-      if(!_src){
-        // Source was stopped (e.g. song ended) — restart from _offset
-        startPlay(_offset);
-      } else {
-        // Source still connected — just resuming from suspend
-        _playing=true;
-        updateIcon();
-        animLoop();
-      }
-    });
+    // PLAY: resume AudioContext then start from saved offset
+    if(_actx.state === 'suspended'){
+      _actx.resume().then(function(){ startPlay(_offset); });
+    } else {
+      startPlay(_offset);
+    }
   }
 }
 function seekTo(e){
