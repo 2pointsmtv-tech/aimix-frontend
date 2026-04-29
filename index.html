@@ -228,6 +228,20 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .user-pill.show{display:flex;}
 .user-pill-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#b026ff,#ff2d78);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
 
+
+/* MIXER WAVEFORM */
+.mix-waveform-section{width:100%;padding:0 0 8px;}
+.mix-track-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 2px;}
+.mix-track-name{display:flex;align-items:center;gap:8px;}
+.mix-track-dot{width:6px;height:6px;border-radius:50%;background:#b026ff;flex-shrink:0;}
+.mix-track-dot.active{animation:pulse 1.5s infinite;}
+.mix-track-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;}
+.mix-track-dur{font-size:10px;color:#444;font-family:'JetBrains Mono',monospace;}
+#mixWaveWrap{height:72px;width:100%;background:#0d0d0d;border-radius:10px;overflow:hidden;border:1px solid #1e1e1e;position:relative;cursor:pointer;}
+#mixWaveBars{width:100%;height:100%;display:flex;align-items:center;gap:1px;padding:0 3px;box-sizing:border-box;pointer-events:none;}
+#mixWaveHead{position:absolute;top:0;left:0;width:2px;height:100%;background:rgba(255,255,255,0.85);pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,0.5);z-index:10;}
+#mixWaveEmpty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;pointer-events:none;letter-spacing:.08em;}
+
 </style>
 </head>
 <body>
@@ -341,7 +355,21 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <button class="listen-now-btn" style="pointer-events:none;">▶ Listen Now</button>
     <div class="listen-now-txt" style="pointer-events:none;">Tap anywhere to hear your mix</div>
   </div>
-  <div class="master-transport" id="masterTransport">
+  <div class="mix-waveform-section" id="mixWaveSection" style="display:none;">
+  <div class="mix-track-header">
+    <div class="mix-track-name">
+      <div class="mix-track-dot" id="mixTrackDot"></div>
+      <div class="mix-track-title" id="mixTrackTitle">No track loaded</div>
+    </div>
+    <div class="mix-track-dur" id="mixTrackDur"></div>
+  </div>
+  <div id="mixWaveWrap" onclick="seekMixerWaveform(event)">
+    <div id="mixWaveBars"></div>
+    <div id="mixWaveHead"></div>
+    <div id="mixWaveEmpty">◎ Stems loading...</div>
+  </div>
+</div>
+<div class="master-transport" id="masterTransport">
     <div class="transport-row">
       <button class="master-play" id="masterPlay" onclick="toggleMasterPlay()">
         <svg id="masterPlayIcon" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -779,6 +807,8 @@ async function processTrack(file){
   document.getElementById('masterTransport').classList.add('show');
   document.getElementById('masterStatus').textContent='READY';
   autoMix();
+  // Build mixer waveform from stems
+  setTimeout(function(){ buildMixerWaveform(); }, 200);
   // Save mix state to IndexedDB so magic link redirect can restore it
   saveMixState();
   // Hide auth wall now that mix is ready, play if signed in
@@ -1043,6 +1073,95 @@ function checkRestoreMix(){
     document.body.appendChild(banner);
     setTimeout(function(){if(banner.parentElement)banner.remove();}, 8000);
   } catch(e){}
+}
+
+
+// ── MIXER WAVEFORM ─────────────────────────────────────────────────
+var _mixWaveData = null;
+
+function buildMixerWaveform(){
+  // Build from first available stem (drums preferred)
+  var order=['drums','bass','inst','vox'];
+  var buf = null;
+  for(var i=0;i<order.length;i++){
+    if(stems[order[i]]&&stems[order[i]].buf){ buf=stems[order[i]].buf; break; }
+  }
+  if(!buf) return;
+
+  var container = document.getElementById('mixWaveBars');
+  var empty = document.getElementById('mixWaveEmpty');
+  var section = document.getElementById('mixWaveSection');
+  var dot = document.getElementById('mixTrackDot');
+  if(!container) return;
+
+  // Show section
+  if(section) section.style.display='block';
+  if(dot) dot.classList.add('active');
+
+  // Track name from localStorage
+  var trackName = '';
+  try{ trackName = localStorage.getItem('aimix_trackname')||''; }catch(e){}
+  var titleEl = document.getElementById('mixTrackTitle');
+  var durEl = document.getElementById('mixTrackDur');
+  if(titleEl) titleEl.textContent = trackName || 'Untitled Mix';
+  if(durEl) durEl.textContent = fmtT(buf.duration);
+
+  // Build waveform data
+  var BARS = 200;
+  var data = buf.getChannelData(0);
+  var step = Math.max(1, Math.floor(data.length/BARS));
+  _mixWaveData = [];
+  for(var i=0;i<BARS;i++){
+    var peak=0;
+    for(var j=0;j<step;j++){
+      var si=i*step+j;
+      if(si<data.length){var v=Math.abs(data[si]);if(v>peak)peak=v;}
+    }
+    _mixWaveData.push(Math.max(0.03,Math.min(1,peak*1.4)));
+  }
+
+  // Render bars
+  var MAX=60;
+  var html='';
+  for(var i=0;i<BARS;i++){
+    var h=Math.max(3,Math.round(_mixWaveData[i]*MAX));
+    html+='<div style="flex:1;height:'+h+'px;background:#6040a0;border-radius:2px;opacity:0.75;"></div>';
+  }
+  container.innerHTML=html;
+  if(empty) empty.style.display='none';
+}
+
+function drawMixerWaveform(pct){
+  var container=document.getElementById('mixWaveBars');
+  var head=document.getElementById('mixWaveHead');
+  if(!container||!_mixWaveData) return;
+  if(head) head.style.left=(pct*100)+'%';
+  var bars=container.children;
+  var playX=Math.floor(bars.length*pct);
+  for(var i=0;i<bars.length;i++){
+    if(i<playX){
+      var ratio=i/bars.length;
+      var r=Math.round(176+(255-176)*ratio);
+      var g=Math.round(38+(45-38)*ratio);
+      var b=Math.round(255+(120-255)*ratio);
+      bars[i].style.background='rgb('+r+','+g+','+b+')';
+      bars[i].style.opacity='1';
+    } else {
+      bars[i].style.background='#6040a0';
+      bars[i].style.opacity='0.6';
+    }
+  }
+}
+
+function seekMixerWaveform(e){
+  var wrap=document.getElementById('mixWaveWrap');
+  if(!wrap||!masterDuration) return;
+  var rect=wrap.getBoundingClientRect();
+  var pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
+  masterOffset=pct*masterDuration;
+  drawMixerWaveform(pct);
+  document.getElementById('masterTime').textContent=fmtT(masterOffset);
+  if(masterPlaying){ stopAllStems(); startAllStems(masterOffset); }
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
