@@ -160,7 +160,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 <body>
 <nav>
   <div class="nav-logo">AI<span>MIX</span> — Mastering</div>
-  <span class="nav-back" onclick="window.location.href='index.html'">← Back to Mixer</span>
+  <span class="nav-back" onclick="clearAndGoBack()">← New Mix</span>
 </nav>
 
 <div class="loading" id="loadingEl">
@@ -757,6 +757,23 @@ function animLoop(){
   if(_duration>0 && !_isDragging) updateWaveformPlayhead(e/_duration);
   if(e>=_duration){_playing=false;_offset=0;updateIcon();updateWaveformPlayhead(0);cancelAnimationFrame(_animId);}
 }
+function clearAndGoBack(){
+  // Clear IndexedDB so mixer starts fresh
+  try{
+    var req = indexedDB.open('aimix', 1);
+    req.onsuccess = function(e){
+      var db = e.target.result;
+      try{
+        var tx = db.transaction('mix','readwrite');
+        tx.objectStore('mix').clear();
+        tx.oncomplete = function(){ window.location.href='index.html'; };
+        tx.onerror = function(){ window.location.href='index.html'; };
+      } catch(e){ window.location.href='index.html'; }
+    };
+    req.onerror = function(){ window.location.href='index.html'; };
+  } catch(e){ window.location.href='index.html'; }
+}
+
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 // ── ANALYSIS ──────────────────────────────────────────────────────
