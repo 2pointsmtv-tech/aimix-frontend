@@ -228,20 +228,6 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .user-pill.show{display:flex;}
 .user-pill-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#b026ff,#ff2d78);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
 
-
-/* MIXER WAVEFORM */
-.mix-waveform-section{width:100%;padding:0 0 8px;}
-.mix-track-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding:0 2px;}
-.mix-track-name{display:flex;align-items:center;gap:8px;}
-.mix-track-dot{width:6px;height:6px;border-radius:50%;background:#b026ff;flex-shrink:0;}
-.mix-track-dot.active{animation:pulse 1.5s infinite;}
-.mix-track-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;}
-.mix-track-dur{font-size:10px;color:#444;font-family:'JetBrains Mono',monospace;}
-#mixWaveWrap{height:72px;width:100%;background:#0d0d0d;border-radius:10px;overflow:hidden;border:1px solid #1e1e1e;position:relative;cursor:pointer;}
-#mixWaveBars{width:100%;height:100%;display:flex;align-items:center;gap:1px;padding:0 3px;box-sizing:border-box;pointer-events:none;}
-#mixWaveHead{position:absolute;top:0;left:0;width:2px;height:100%;background:rgba(255,255,255,0.85);pointer-events:none;box-shadow:0 0 6px rgba(255,255,255,0.5);z-index:10;}
-#mixWaveEmpty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;pointer-events:none;letter-spacing:.08em;}
-
 </style>
 </head>
 <body>
@@ -355,21 +341,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <button class="listen-now-btn" style="pointer-events:none;">▶ Listen Now</button>
     <div class="listen-now-txt" style="pointer-events:none;">Tap anywhere to hear your mix</div>
   </div>
-  <div class="mix-waveform-section" id="mixWaveSection" style="display:none;">
-  <div class="mix-track-header">
-    <div class="mix-track-name">
-      <div class="mix-track-dot" id="mixTrackDot"></div>
-      <div class="mix-track-title" id="mixTrackTitle">No track loaded</div>
-    </div>
-    <div class="mix-track-dur" id="mixTrackDur"></div>
-  </div>
-  <div id="mixWaveWrap" onclick="seekMixerWaveform(event)">
-    <div id="mixWaveBars"></div>
-    <div id="mixWaveHead"></div>
-    <div id="mixWaveEmpty">◎ Stems loading...</div>
-  </div>
-</div>
-<div class="master-transport" id="masterTransport">
+  <div class="master-transport" id="masterTransport">
     <div class="transport-row">
       <button class="master-play" id="masterPlay" onclick="toggleMasterPlay()">
         <svg id="masterPlayIcon" width="18" height="18" viewBox="0 0 24 24" fill="#fff"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -753,20 +725,11 @@ function setCookStep(i){
 
 async function processTrack(file){
   if(!file) return;
-  // Save filename for mastering page
-  try{
-    var cleanName = file.name.replace(/\.[^/.]+$/, ''); // Remove extension
-    localStorage.setItem('aimix_trackname', cleanName);
-  }catch(e){}
   var ct=document.getElementById('cookingTracker');
   document.getElementById('dz').style.display='none';
   ct.removeAttribute('style');
   ct.classList.add('show');
   setTimeout(function(){ct.scrollIntoView({behavior:'smooth',block:'center'});},50);
-  // Show auth wall DURING cooking if not signed in
-  if(!window.isAuthed || !window.isAuthed()){
-    document.getElementById('authWall').classList.add('show');
-  }
   setCookStep(0);await new Promise(r=>setTimeout(r,800));setCookStep(1);
   const fd=new FormData();fd.append('file',file);
   let data;
@@ -807,12 +770,7 @@ async function processTrack(file){
   document.getElementById('masterTransport').classList.add('show');
   document.getElementById('masterStatus').textContent='READY';
   autoMix();
-  // Build mixer waveform from stems
-  setTimeout(function(){ buildMixerWaveform(); }, 200);
-  // Save mix state to IndexedDB so magic link redirect can restore it
-  saveMixState();
-  // Hide auth wall now that mix is ready, play if signed in
-  document.getElementById('authWall').classList.remove('show');
+  // Show auth wall if not signed in
   if(window.isAuthed && window.isAuthed()){
     var isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
     if(!isIOS) startAllStems(0);
@@ -821,7 +779,6 @@ async function processTrack(file){
       document.getElementById('masterTransport').classList.add('show');
     }
   } else {
-    // Not signed in yet - show auth wall again so they can sign in to hear mix
     document.getElementById('authWall').classList.add('show');
   }
 }
@@ -941,229 +898,6 @@ function randomTone() {
   setTimeout(function(){ statusEl.textContent = 'READY'; statusEl.style.color = ''; }, 2500);
 }
 
-
-function saveMixState(){
-  try {
-    var loadedIds = Object.keys(stems).filter(function(id){return stems[id].buf;});
-    // Save mix metadata to localStorage
-    var state = {
-      duration: masterDuration,
-      timestamp: Date.now(),
-      hasStems: loadedIds
-    };
-    localStorage.setItem('aimix_mix_state', JSON.stringify(state));
-    
-    // Save each stem as WAV to IndexedDB so new tab can restore
-    var req = indexedDB.open('aimix',1);
-    req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
-    req.onsuccess = function(ev){
-      var db = ev.target.result;
-      loadedIds.forEach(function(id){
-        if(!stems[id].buf) return;
-        // Encode stem as WAV blob
-        var stemBlob = encodeWAV(stems[id].buf);
-        var reader = new FileReader();
-        reader.onload = function(e){
-          var tx = db.transaction('mix','readwrite');
-          tx.objectStore('mix').put(e.target.result, 'stem_' + id);
-        };
-        reader.readAsArrayBuffer(stemBlob);
-      });
-    };
-    
-    // Render and save actual audio to IndexedDB (for master page + restore)
-    var loaded = Object.keys(stems).filter(function(id){return stems[id].buf;});
-    if(!loaded.length) return;
-    var c = getCtx();
-    var maxDur = Math.max.apply(null, loaded.map(function(id){return stems[id].buf.duration;}));
-    var offCtx = new OfflineAudioContext(2, Math.ceil(maxDur*c.sampleRate), c.sampleRate);
-    var impulse = makeImpulse(offCtx,2,2.5);
-    loaded.forEach(function(id){
-      var s=stems[id],src=offCtx.createBufferSource();src.buffer=s.buf;
-      var gain=offCtx.createGain();gain.gain.value=s.muted?0:(s.gain?s.gain.gain.value:.8);
-      var hi=offCtx.createBiquadFilter();hi.type='highshelf';hi.frequency.value=8000;hi.gain.value=s.hiShelf?s.hiShelf.gain.value:0;
-      var conv=offCtx.createConvolver();conv.buffer=impulse;
-      var rg=offCtx.createGain();rg.gain.value=s.reverbGain?s.reverbGain.gain.value:.1;
-      var dg=offCtx.createGain();dg.gain.value=s.dryGain?s.dryGain.gain.value:1;
-      src.connect(gain);gain.connect(hi);hi.connect(dg);hi.connect(conv);conv.connect(rg);
-      dg.connect(offCtx.destination);rg.connect(offCtx.destination);src.start(0);
-    });
-    offCtx.startRendering().then(function(rendered){
-      var blob = encodeWAV(rendered);
-      var reader = new FileReader();
-      reader.onload = function(e){
-        var req = indexedDB.open('aimix',1);
-        req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
-        req.onsuccess = function(ev){
-          var tx = ev.target.result.transaction('mix','readwrite');
-          tx.objectStore('mix').put(e.target.result, 'rendered');
-        };
-      };
-      reader.readAsArrayBuffer(blob);
-    });
-  } catch(e){ console.log('saveMixState error:', e); }
-}
-
-
-function restoreStemsFromDB(){
-  var stateStr = localStorage.getItem('aimix_mix_state');
-  if(!stateStr) return;
-  var state;
-  try { state = JSON.parse(stateStr); } catch(e){ return; }
-  var stemIds = state.hasStems || [];
-  if(!stemIds.length) return;
-  
-  document.getElementById('appStatus').textContent = 'RESTORING YOUR MIX...';
-  
-  var req = indexedDB.open('aimix',1);
-  req.onupgradeneeded = function(ev){ev.target.result.createObjectStore('mix');};
-  req.onsuccess = function(ev){
-    var db = ev.target.result;
-    var c = getCtx();
-    var loaded = 0;
-    var durations = [];
-    
-    stemIds.forEach(function(id){
-      var gr = db.transaction('mix','readonly').objectStore('mix').get('stem_' + id);
-      gr.onsuccess = function(e){
-        var data = e.target.result;
-        if(!data){ loaded++; return; }
-        c.decodeAudioData(data.slice(0)).then(function(buf){
-          stems[id].buf = buf;
-          buildGraph(id);
-          drawWaveform(id, buf, 0);
-          durations.push(buf.duration);
-          document.getElementById('ch-' + id).classList.add('loaded');
-          loaded++;
-          if(loaded === stemIds.length){
-            // All stems restored!
-            masterDuration = Math.max.apply(null, durations);
-            document.getElementById('masterTotal').textContent = '/ ' + fmtT(masterDuration);
-            document.getElementById('masterTransport').classList.add('show');
-            document.getElementById('appStatus').textContent = 'MIX RESTORED — HIT PLAY!';
-            document.getElementById('masterStatus').textContent = 'READY';
-            autoMix();
-            // Show listen now on iOS, play on desktop
-            var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            if(!isIOS) startAllStems(0);
-            else {
-              document.getElementById('listenNowOverlay').classList.add('show');
-              document.getElementById('masterTransport').classList.add('show');
-            }
-          }
-        }).catch(function(){ loaded++; });
-      };
-      gr.onerror = function(){ loaded++; };
-    });
-  };
-}
-
-function checkRestoreMix(){
-  // Check if we have a saved mix state (user returned from magic link)
-  try {
-    var stateStr = localStorage.getItem('aimix_mix_state');
-    if(!stateStr) return;
-    var state = JSON.parse(stateStr);
-    // Only restore if saved within last 30 minutes
-    if(Date.now() - state.timestamp > 30*60*1000) return;
-    // Show a "restore mix" banner
-    var banner = document.createElement('div');
-    banner.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a0a2a;border:1px solid #b026ff;border-radius:12px;padding:12px 20px;font-size:13px;color:#e8e4ff;z-index:500;display:flex;align-items:center;gap:12px;font-family:Inter,sans-serif;';
-    banner.innerHTML = "<span>🎛️ Your mix is ready!</span><button onclick=\"location.href='index.html'\" style=\"background:#b026ff;border:none;color:#fff;padding:6px 14px;border-radius:8px;cursor:pointer;font-weight:600;font-size:12px;\">Open Mixer →</button><button onclick=\"this.parentElement.remove()\" style=\"background:transparent;border:none;color:#555;cursor:pointer;font-size:16px;\">✕</button>";
-    document.body.appendChild(banner);
-    setTimeout(function(){if(banner.parentElement)banner.remove();}, 8000);
-  } catch(e){}
-}
-
-
-// ── MIXER WAVEFORM ─────────────────────────────────────────────────
-var _mixWaveData = null;
-
-function buildMixerWaveform(){
-  // Build from first available stem (drums preferred)
-  var order=['drums','bass','inst','vox'];
-  var buf = null;
-  for(var i=0;i<order.length;i++){
-    if(stems[order[i]]&&stems[order[i]].buf){ buf=stems[order[i]].buf; break; }
-  }
-  if(!buf) return;
-
-  var container = document.getElementById('mixWaveBars');
-  var empty = document.getElementById('mixWaveEmpty');
-  var section = document.getElementById('mixWaveSection');
-  var dot = document.getElementById('mixTrackDot');
-  if(!container) return;
-
-  // Show section
-  if(section) section.style.display='block';
-  if(dot) dot.classList.add('active');
-
-  // Track name from localStorage
-  var trackName = '';
-  try{ trackName = localStorage.getItem('aimix_trackname')||''; }catch(e){}
-  var titleEl = document.getElementById('mixTrackTitle');
-  var durEl = document.getElementById('mixTrackDur');
-  if(titleEl) titleEl.textContent = trackName || 'Untitled Mix';
-  if(durEl) durEl.textContent = fmtT(buf.duration);
-
-  // Build waveform data
-  var BARS = 200;
-  var data = buf.getChannelData(0);
-  var step = Math.max(1, Math.floor(data.length/BARS));
-  _mixWaveData = [];
-  for(var i=0;i<BARS;i++){
-    var peak=0;
-    for(var j=0;j<step;j++){
-      var si=i*step+j;
-      if(si<data.length){var v=Math.abs(data[si]);if(v>peak)peak=v;}
-    }
-    _mixWaveData.push(Math.max(0.03,Math.min(1,peak*1.4)));
-  }
-
-  // Render bars
-  var MAX=60;
-  var html='';
-  for(var i=0;i<BARS;i++){
-    var h=Math.max(3,Math.round(_mixWaveData[i]*MAX));
-    html+='<div style="flex:1;height:'+h+'px;background:#6040a0;border-radius:2px;opacity:0.75;"></div>';
-  }
-  container.innerHTML=html;
-  if(empty) empty.style.display='none';
-}
-
-function drawMixerWaveform(pct){
-  var container=document.getElementById('mixWaveBars');
-  var head=document.getElementById('mixWaveHead');
-  if(!container||!_mixWaveData) return;
-  if(head) head.style.left=(pct*100)+'%';
-  var bars=container.children;
-  var playX=Math.floor(bars.length*pct);
-  for(var i=0;i<bars.length;i++){
-    if(i<playX){
-      var ratio=i/bars.length;
-      var r=Math.round(176+(255-176)*ratio);
-      var g=Math.round(38+(45-38)*ratio);
-      var b=Math.round(255+(120-255)*ratio);
-      bars[i].style.background='rgb('+r+','+g+','+b+')';
-      bars[i].style.opacity='1';
-    } else {
-      bars[i].style.background='#6040a0';
-      bars[i].style.opacity='0.6';
-    }
-  }
-}
-
-function seekMixerWaveform(e){
-  var wrap=document.getElementById('mixWaveWrap');
-  if(!wrap||!masterDuration) return;
-  var rect=wrap.getBoundingClientRect();
-  var pct=Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width));
-  masterOffset=pct*masterDuration;
-  drawMixerWaveform(pct);
-  document.getElementById('masterTime').textContent=fmtT(masterOffset);
-  if(masterPlaying){ stopAllStems(); startAllStems(masterOffset); }
-}
-
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
 
 const dz=document.getElementById('dz');
@@ -1243,17 +977,17 @@ window.addEventListener('DOMContentLoaded', function(){
 <div class="auth-wall" id="authWall">
   <div class="auth-box">
     <div class="auth-logo">AI<em>MIX</em></div>
-    <div class="auth-title">Almost there! 🎛️</div>
-    <div class="auth-sub">Sign in free while we separate your stems — by the time you're done, your mix will be ready!</div>
-    <div id="authEmailSection">
-      <input type="email" class="auth-email-input" id="authEmailInput" placeholder="your@email.com" onkeydown="if(event.key==='Enter')signInEmail()">
-      <button class="auth-submit-btn" id="authSubmitBtn" onclick="signInEmail()">✉️ Send Magic Link →</button>
-    </div>
-    <div class="auth-divider"><span>or</span></div>
+    <div class="auth-title">Hear Your Mix 🎛️</div>
+    <div class="auth-sub">Free account to play your AI-mixed track and unlock the full studio.</div>
     <button class="auth-google-btn" onclick="signInGoogle()">
       <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Continue with Google
     </button>
+    <div class="auth-divider"><span>or use email</span></div>
+    <div id="authEmailSection">
+      <input type="email" class="auth-email-input" id="authEmailInput" placeholder="your@email.com">
+      <button class="auth-submit-btn" id="authSubmitBtn" onclick="signInEmail()">Get Free Access →</button>
+    </div>
     <div id="authSuccessSection" style="display:none;">
       <div class="auth-success-box">
         <div class="auth-success-icon">📧</div>
@@ -1286,39 +1020,17 @@ window.addEventListener('DOMContentLoaded', function(){
       }
     });
 
-    // Listen for auth changes (magic link clicks, Google OAuth return)
+    // Listen for auth changes (magic link clicks)
     sb.auth.onAuthStateChange(function(event, session) {
       if (session && session.user) {
         handleUser(session.user);
         document.getElementById('authWall').classList.remove('show');
-
-        // Check if stems are loaded in memory (same tab flow)
+        // Try to play if stems are loaded
         var loaded = Object.keys(window.stems || {}).filter(function(id) { return window.stems[id] && window.stems[id].buf; });
         if (loaded.length > 0) {
-          // Stems loaded - play!
           var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-          if (!isIOS && typeof startAllStems === 'function') {
-            startAllStems(0);
-          } else {
-            var lo = document.getElementById('listenNowOverlay');
-            var mt = document.getElementById('masterTransport');
-            if(lo) lo.classList.add('show');
-            if(mt) mt.classList.add('show');
-          }
-        } else if (event === 'SIGNED_IN') {
-          // New tab from magic link - check if we have a saved mix in IndexedDB
-          var stateStr = localStorage.getItem('aimix_mix_state');
-          if (stateStr) {
-            try {
-              var state = JSON.parse(stateStr);
-              // Mix saved within last 30 min - redirect to master page!
-              if (Date.now() - state.timestamp < 30*60*1000) {
-                // Restore stems from IndexedDB into the mixer!
-                restoreStemsFromDB();
-                return;
-              }
-            } catch(e) {}
-          }
+          if (!isIOS && typeof startAllStems === 'function') startAllStems(0);
+          else if (typeof masterOffset !== 'undefined') document.getElementById('masterStatus').textContent = 'TAP ▶ TO PLAY';
         }
       }
     });
@@ -1327,14 +1039,6 @@ window.addEventListener('DOMContentLoaded', function(){
   function handleUser(user) {
     currentUser = user;
     window._authUser = user;
-    // Save to sessionStorage so master.html can read it instantly
-    try {
-      localStorage.setItem('aimix_user', JSON.stringify({
-        id: user.id,
-        email: user.email,
-        name: user.user_metadata && user.user_metadata.full_name || ''
-      }));
-    } catch(e) {}
     var email = user.email || '';
     var initial = email[0] ? email[0].toUpperCase() : '?';
     var pill = document.getElementById('userPill');
@@ -1374,14 +1078,12 @@ window.addEventListener('DOMContentLoaded', function(){
     btn.textContent = 'Sending...';
     btn.disabled = true;
     addToSysteme(email, '');
-    var redirectUrl = 'https://aimix-frontend.vercel.app';
     sb.auth.signInWithOtp({
       email: email,
-      options: {emailRedirectTo: redirectUrl, shouldCreateUser: true}
+      options: {emailRedirectTo: window.location.href}
     }).then(function(res) {
       if (res.error) {
-        console.log('OTP error:', res.error);
-        btn.textContent = res.error.message || 'Error - try again';
+        btn.textContent = 'Error - try again';
         btn.disabled = false;
         return;
       }
