@@ -823,7 +823,7 @@ function encodeWAV(buf){
   return new Blob([out],{type:'audio/wav'});
 }
 
-async function downloadMastered(){
+async async function downloadMastered(){
   // Check subscription before downloading
   var canDl = await checkCanDownload();
   if(!canDl) return;
