@@ -302,7 +302,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <div style="font-size:11px;color:#888;font-family:'Inter',monospace;display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #222;border-radius:99px;">① Mix <span style="color:#ff2d78;">→</span> ② Master</div>
   </div>
   <div class="auth-wrap" id="authWrap">
-    <button class="auth-btn" id="authBtn" onclick="aimixToggleAuthDD(event)">
+    <button class="auth-btn" id="authBtn" onmousedown="aimixToggleAuthDD(event)">
       <div class="auth-icon" id="authBtnIcon">?</div>
       <span id="authBtnText">Sign In</span>
       <span class="auth-caret">▼</span>
@@ -1265,7 +1265,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-plan-row"><span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
         + '<div class="auth-credits-info"><div class="auth-credits-num">' + creditsLeft + '</div>'
         + '<div class="auth-credits-label">credits left</div></div></div>'
-        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<button class="auth-upgrade-btn" onclick="window.open('https://aimixingmastering.com','_blank')">✦ Upgrade to Pro — Unlimited</button>' : '')
+        + (plan === 'starter' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://aimixingmastering.com" target="_blank">✦ Upgrade to Pro — Unlimited</a>' : '')
         + '</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal('magic');aimixCloseAuthDD()">✉️ Magic Link Sign In</div>'
@@ -1284,27 +1284,20 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 
   window.aimixToggleAuthDD = function(e) {
-    if (e && e.stopPropagation) e.stopPropagation();
+    // Use stopImmediatePropagation to prevent any other handlers from closing the DD
+    if (e) { e.stopPropagation(); e.stopImmediatePropagation(); }
     var dd = document.getElementById('authDD');
     if (!dd) return;
-    var isOpen = dd.classList.contains('show');
-    // Close all first
-    dd.classList.remove('show');
-    // If it was closed, open it
-    if (!isOpen) {
-      dd.classList.add('show');
-      // Use a flag to skip the first document click (which is this same click)
-      var skipNext = true;
-      document.addEventListener('click', function h(ev) {
-        if (skipNext) { skipNext = false; return; }
-        var wrap = document.getElementById('authWrap');
-        if (!wrap || !wrap.contains(ev.target)) {
-          dd.classList.remove('show');
-          document.removeEventListener('click', h);
-        }
-      });
-    }
+    dd.classList.toggle('show');
   };
+  // Close dropdown when clicking outside - attached once at document level
+  document.addEventListener('click', function(e) {
+    var wrap = document.getElementById('authWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      var dd = document.getElementById('authDD');
+      if (dd) dd.classList.remove('show');
+    }
+  }, true); // useCapture=true so it runs in capture phase, not competing with button
 
   window.aimixCloseAuthDD = function() {
     var dd = document.getElementById('authDD');
