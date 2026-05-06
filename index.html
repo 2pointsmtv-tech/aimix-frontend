@@ -854,6 +854,24 @@ function setCookStep(i){
 
 async function processTrack(file){
   if(!file) return;
+  // Check if user has a valid subscription before processing
+  var _u = null;
+  var _s = {};
+  try { _u = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
+  try { _s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+  if (!_u || !_u.email || !_s.plan || _s.plan === 'none') {
+    document.getElementById('authWall').classList.add('show');
+    return;
+  }
+  // Starter plan - check credits
+  if (_s.plan === 'starter') {
+    var _used = _s.usage || 0;
+    var _limit = _s.limit || 10;
+    if (_used >= _limit) {
+      document.getElementById('authWall').classList.add('show');
+      return;
+    }
+  }
   var ct=document.getElementById('cookingTracker');
   document.getElementById('dz').style.display='none';
   ct.removeAttribute('style');
@@ -1063,6 +1081,28 @@ window.addEventListener('load', function(){
 
 
 async function goToMaster(){
+  // Check subscription before allowing master/download
+  (function() {
+    var u = null;
+    try { u = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
+    if (!u || !u.email) {
+      // Not logged in at all
+      document.getElementById('authWall').classList.add('show');
+      return false;
+    }
+    var s = {};
+    try { s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+    var plan = s.plan || 'none';
+    var usage = s.usage || 0;
+    var limit = s.limit || 10;
+    // Block if no plan or starter with 0 credits
+    if (plan === 'none' || (!plan)) {
+      document.getElementById('authWall').classList.add('show');
+      return false;
+    }
+    return true;
+  })() || (function() { return; })();
+
   const loaded=Object.keys(stems).filter(id=>stems[id].buf);
   if(!loaded.length){alert('Upload and mix a track first!');return;}
   
