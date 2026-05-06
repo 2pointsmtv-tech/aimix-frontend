@@ -1337,8 +1337,17 @@ window.addEventListener('DOMContentLoaded', function(){
   window.aimixSignOut = function() {
     localStorage.removeItem('aimix_user');
     localStorage.removeItem('aimix_sub');
-    if (window._sb) window._sb.auth.signOut();
-    location.reload();
+    localStorage.removeItem('aimix_mix_state');
+    // Wait for Supabase signOut to complete BEFORE reloading
+    if (window._sb) {
+      window._sb.auth.signOut().then(function() {
+        location.reload();
+      });
+    } else {
+      location.reload();
+    }
+    // Update UI immediately so it feels instant
+    buildAuthDD(null, null);
   };
 
   function sendLink(email, btnEl) {
