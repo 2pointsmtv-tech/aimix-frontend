@@ -1497,6 +1497,12 @@ window.addEventListener('DOMContentLoaded', function(){
     try { user = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
     try { sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
     buildAuthDD(user, sub);
+    // If user is in localStorage, set _authUser immediately so authWall stays hidden
+    if (user && user.email) {
+      window._authUser = user;
+      // Sync old system on load too
+      if (typeof window.handleUser === 'function') window.handleUser(user);
+    }
 
     // MOBILE FIX: Detect magic link token in URL hash immediately
     // On mobile, clicking a magic link opens the app with #access_token=xxx in URL
@@ -1540,11 +1546,18 @@ window.addEventListener('DOMContentLoaded', function(){
           var cached = {};
           try { cached = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
           buildAuthDD(sbUser, cached);
+          // Set window._authUser so the old authWall system knows user is logged in
+          window._authUser = sbUser;
           // Also save to localStorage so it persists
           try {
             var u = { email: sbUser.email, id: sbUser.id, name: '' };
             localStorage.setItem('aimix_user', JSON.stringify(u));
           } catch(e) {}
+          // Hide authWall if showing (user was already logged in)
+          var aw = document.getElementById('authWall');
+          if (aw) aw.classList.remove('show');
+          // Also call existing handleUser to sync old system
+          if (typeof window.handleUser === 'function') window.handleUser(sbUser);
         }
       });
     }
@@ -1571,10 +1584,17 @@ window.addEventListener('DOMContentLoaded', function(){
           var s = {};
           try { s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
           buildAuthDD(sbUser, s);
+          // Set window._authUser so the old authWall system knows user is logged in
+          window._authUser = sbUser;
           // Save to localStorage
           try {
             localStorage.setItem('aimix_user', JSON.stringify({ email: sbUser.email, id: sbUser.id, name: '' }));
           } catch(e) {}
+          // Hide authWall if showing
+          var aw = document.getElementById('authWall');
+          if (aw) aw.classList.remove('show');
+          // Sync old system
+          if (typeof window.handleUser === 'function') window.handleUser(sbUser);
         } else if (event === 'SIGNED_OUT') {
           buildAuthDD(null, null);
         }
