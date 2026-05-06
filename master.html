@@ -1252,61 +1252,36 @@ async function checkCanDownload(){
     }catch(e){}
   }
   if(!window._authUser){
+    document.getElementById('paywallSub').textContent='Sign in to download your master!';
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
 
-  // 2. Check localStorage FIRST — primary source of truth
-  var cachedSub = null;
-  try{
-    var c=localStorage.getItem('aimix_sub');
-    if(c) cachedSub=JSON.parse(c);
-  }catch(e){}
-
-  if(cachedSub && cachedSub.plan && cachedSub.plan!=='free'){
-    _subData = cachedSub;
-    console.log('Using cached sub:', JSON.stringify(cachedSub));
-    // Refresh from server in background
-    setTimeout(loadSubscription, 1000);
-    // Block cancelled or past_due subscriptions
-    if(cachedSub.status && (cachedSub.status==='canceled' || cachedSub.status==='cancelled' || cachedSub.status==='past_due')){
-      document.getElementById('paywallSub').textContent='Your subscription is inactive — renew below to download your master!';
-      document.getElementById('paywallEl').classList.add('show');
-      return false;
-    }
-    // Check usage for starter
-    if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
-      document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below to keep going!";
-      document.getElementById('paywallEl').classList.add('show');
-      return false;
-    }
-    updateUsageBar();
-    return true;
-  }
-
-  // 3. No paid cache — fetch fresh from Supabase
+  // 2. Always fetch LIVE from Supabase — never trust localStorage for payment decisions
   await loadSubscription();
 
   // No plan at all
-  if(!_subData || _subData.plan==='free' || _subData.plan==='none'){
+  if(!_subData || _subData.plan==='none' || _subData.plan==='free'){
     document.getElementById('paywallSub').textContent='Get a plan below to download your master!';
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
   // Cancelled or past_due
-  if(_subData.status==='canceled' || _subData.status==='cancelled' || _subData.status==='past_due'){
-    document.getElementById('paywallSub').textContent='Your subscription is inactive — renew below to download your master!';
+  if(_subData.status==='canceled'||_subData.status==='cancelled'||_subData.status==='past_due'){
+    document.getElementById('paywallSub').textContent='Your subscription is inactive — renew below to download!';
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
   // Out of credits (starter)
   if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
-    document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below to keep going!";
+    document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below!";
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
+  updateUsageBar();
   return true;
 }
+
 
 // ── CHECKOUT ──────────────────────────────────────────────────────
 async function startCheckout(plan){
