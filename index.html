@@ -1417,6 +1417,7 @@ window.addEventListener('DOMContentLoaded', function(){
         }
 
         if (plan === 'pro') {
+          try { localStorage.setItem('aimix_sub', JSON.stringify({plan: 'pro', status: status, limit: 999, usage: 0})); } catch(e) {}
           renderAuthDD(user, 'pro', '∞');
         } else {
           // Fetch real usage count for starter
@@ -1424,7 +1425,7 @@ window.addEventListener('DOMContentLoaded', function(){
             .then(function(usageRes) {
               var used = usageRes.count || 0;
               var remaining = Math.max(0, 10 - used);
-              try { localStorage.setItem('aimix_sub', JSON.stringify({plan: plan, limit: 10, usage: used})); } catch(e) {}
+              try { localStorage.setItem('aimix_sub', JSON.stringify({plan: plan, status: status, limit: 10, usage: used})); } catch(e) {}
               renderAuthDD(user, plan, remaining);
             });
         }
