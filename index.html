@@ -1268,16 +1268,16 @@ window.addEventListener('DOMContentLoaded', function(){
         + (plan === 'starter' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://aimixingmastering.com" target="_blank">✦ Upgrade to Pro — Unlimited</a>' : '')
         + '</div>'
         + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('magic');aimixCloseAuthDD()">✉️ Magic Link Sign In</div>'
-        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('forgot');aimixCloseAuthDD()">🔑 Forgot / Reset Email</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Magic Link Sign In</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="forgot">🔑 Forgot / Reset Email</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item danger" onclick="aimixSignOut()">→ Sign Out</div>';
     } else {
       icon.textContent = '?'; txt.textContent = 'Sign In';
       dd.innerHTML =
         '<div style="padding:8px 12px 4px;font-size:12px;color:var(--text2);">Welcome to AIMix</div>'
-        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('magic');aimixCloseAuthDD()">✉️ Sign In with Magic Link</div>'
-        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('forgot');aimixCloseAuthDD()">🔑 Forgot / Reset Email</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Sign In with Magic Link</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="forgot">🔑 Forgot / Reset Email</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Purchase a plan at aimixingmastering.com</div>';
     }
