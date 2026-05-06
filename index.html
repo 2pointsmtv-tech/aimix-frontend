@@ -302,7 +302,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <div style="font-size:11px;color:#888;font-family:'Inter',monospace;display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #222;border-radius:99px;">① Mix <span style="color:#ff2d78;">→</span> ② Master</div>
   </div>
   <div class="auth-wrap" id="authWrap">
-    <button class="auth-btn" id="authBtn" onclick="toggleAuthDD(event)">
+    <button class="auth-btn" id="authBtn" onclick="aimixToggleAuthDD(event)">
       <div class="auth-icon" id="authBtnIcon">?</div>
       <span id="authBtnText">Sign In</span>
       <span class="auth-caret">▼</span>
@@ -314,13 +314,13 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 <!-- AUTH SIGN IN MODAL -->
 <div class="auth-modal-overlay" id="authModal">
   <div class="auth-modal">
-    <button class="auth-modal-close" onclick="closeAuthModal()">×</button>
+    <button class="auth-modal-close" onclick="aimixCloseAuthModal()">×</button>
     <div class="auth-modal-logo">✦ AIMix</div>
 
     <!-- Tabs -->
     <div class="auth-modal-tab-row">
-      <button class="auth-modal-tab active" id="authTab_magic" onclick="switchAuthTab('magic')">Magic Link</button>
-      <button class="auth-modal-tab" id="authTab_forgot" onclick="switchAuthTab('forgot')">Forgot Access</button>
+      <button class="auth-modal-tab active" id="authTab_magic" onclick="aimixSwitchTab('magic')">Magic Link</button>
+      <button class="auth-modal-tab" id="authTab_forgot" onclick="aimixSwitchTab('forgot')">Forgot Access</button>
     </div>
 
     <!-- Success / Error messages -->
@@ -331,8 +331,8 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <div class="auth-modal-panel show" id="authPanel_magic">
       <div class="auth-modal-label">Your email address</div>
       <input class="auth-modal-input" id="authEmailInput" type="email" placeholder="your@email.com"
-        onkeydown="if(event.key==='Enter')sendMagicLink()">
-      <button class="auth-modal-btn" id="authSendBtn" onclick="sendMagicLink()">Send Magic Link ✦</button>
+        onkeydown="if(event.key==='Enter')aimixSendMagicLink()">
+      <button class="auth-modal-btn" id="authSendBtn" onclick="aimixSendMagicLink()">Send Magic Link ✦</button>
       <div class="auth-modal-note">
         We'll email you a one-click sign-in link instantly.<br>
         Use the <strong>same email</strong> you used to purchase.
@@ -343,8 +343,8 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <div class="auth-modal-panel" id="authPanel_forgot">
       <div class="auth-modal-label">Your purchase email</div>
       <input class="auth-modal-input" id="authResetEmail" type="email" placeholder="your@email.com"
-        onkeydown="if(event.key==='Enter')sendResetLink()">
-      <button class="auth-modal-btn" onclick="sendResetLink()">Send Reset Link ✦</button>
+        onkeydown="if(event.key==='Enter')aimixSendResetLink()">
+      <button class="auth-modal-btn" onclick="aimixSendResetLink()">Send Reset Link ✦</button>
       <div class="auth-modal-note">
         Enter the email you used to purchase and we'll send you a sign-in link.<br>
         Not sure? Check your Stripe receipt for the email.
@@ -1139,201 +1139,7 @@ window.addEventListener('DOMContentLoaded', function(){
   var currentUser = null;
 
 
-  // ── AUTH UI ──────────────────────────────────────────────
-  function buildAuthDD(user, sub) {
-    var dd = document.getElementById('authDD');
-    var icon = document.getElementById('authBtnIcon');
-    var txt = document.getElementById('authBtnText');
-    if (!dd) return;
 
-    if (user && user.email) {
-      var plan = (sub && sub.plan) || 'starter';
-      var limit = plan === 'pro' ? 999 : ((sub && sub.limit) || 10);
-      var usage = (sub && sub.usage) || 0;
-      var creditsLeft = plan === 'pro' ? '∞' : Math.max(0, limit - usage);
-      var planLabel = plan === 'pro' ? 'Pro' : 'Starter';
-      var initials = user.email[0].toUpperCase();
-
-      icon.textContent = initials;
-      txt.textContent = user.email.split('@')[0];
-
-      dd.innerHTML =
-        '<div class="auth-user-card">'
-          + '<div class="auth-user-row">'
-            + '<div class="auth-user-avatar">' + initials + '</div>'
-            + '<div class="auth-user-info">'
-              + '<div class="auth-user-name">' + user.email.split('@')[0] + '</div>'
-              + '<div class="auth-user-email">' + user.email + '</div>'
-            + '</div>'
-          + '</div>'
-          + '<div class="auth-plan-row">'
-            + '<span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
-            + '<div class="auth-credits-info">'
-              + '<div class="auth-credits-num">' + creditsLeft + '</div>'
-              + '<div class="auth-credits-label">credits left</div>'
-            + '</div>'
-          + '</div>'
-          + (plan === 'starter' && creditsLeft <= 3 ? '<button class="auth-upgrade-btn" onclick="window.open('https://aimixingmastering.com','_blank')">✦ Upgrade to Pro — Unlimited</button>' : '')
-        + '</div>'
-        + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item" onclick="showAuthModal('magic');closeAuthDD()">✉️ Magic Link Sign In</div>'
-        + '<div class="auth-menu-item" onclick="showAuthModal('forgot');closeAuthDD()">🔑 Forgot / Reset Email</div>'
-        + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item danger" onclick="authSignOut()">→ Sign Out</div>';
-    } else {
-      icon.textContent = '?';
-      txt.textContent = 'Sign In';
-      dd.innerHTML =
-        '<div style="padding:8px 4px 4px;font-size:12px;color:var(--text2);text-align:center;margin-bottom:4px;">Welcome to AIMix</div>'
-        + '<div class="auth-menu-item" onclick="showAuthModal('magic');closeAuthDD()">✉️ Sign In with Magic Link</div>'
-        + '<div class="auth-menu-item" onclick="showAuthModal('forgot');closeAuthDD()">🔑 Forgot / Reset Email</div>'
-        + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.5;">Don't have an account? Purchase a plan at aimixingmastering.com</div>';
-    }
-  }
-
-  function toggleAuthDD(e) {
-    e.stopPropagation();
-    var dd = document.getElementById('authDD');
-    if (!dd) return;
-    dd.classList.toggle('show');
-    if (dd.classList.contains('show')) {
-      setTimeout(function() {
-        document.addEventListener('click', function closeHandler(ev) {
-          var wrap = document.getElementById('authWrap');
-          if (wrap && !wrap.contains(ev.target)) {
-            dd.classList.remove('show');
-            document.removeEventListener('click', closeHandler);
-          }
-        });
-      }, 10);
-    }
-  }
-
-  function closeAuthDD() {
-    var dd = document.getElementById('authDD');
-    if (dd) dd.classList.remove('show');
-  }
-
-  // Show modal with specific tab: 'magic' or 'forgot'
-  function showAuthModal(tab) {
-    document.getElementById('authModal').classList.add('show');
-    document.getElementById('authSuccess').style.display = 'none';
-    document.getElementById('authError').style.display = 'none';
-    switchAuthTab(tab || 'magic');
-    setTimeout(function(){
-      var inp = document.getElementById('authEmailInput');
-      if (inp) inp.focus();
-    }, 100);
-  }
-
-  function openAuthModal() { showAuthModal('magic'); }
-
-  function closeAuthModal() {
-    document.getElementById('authModal').classList.remove('show');
-    document.getElementById('authSuccess').style.display = 'none';
-    document.getElementById('authError').style.display = 'none';
-  }
-
-  function switchAuthTab(tab) {
-    document.querySelectorAll('.auth-modal-tab').forEach(function(t) { t.classList.remove('active'); });
-    document.querySelectorAll('.auth-modal-panel').forEach(function(p) { p.classList.remove('show'); });
-    var tabEl = document.getElementById('authTab_' + tab);
-    var panelEl = document.getElementById('authPanel_' + tab);
-    if (tabEl) tabEl.classList.add('active');
-    if (panelEl) panelEl.classList.add('show');
-    // Reset button
-    var btn = document.getElementById('authSendBtn');
-    if (btn) { btn.disabled = false; btn.textContent = tab === 'magic' ? 'Send Magic Link ✦' : 'Send Reset Link ✦'; }
-  }
-
-  function authSignOut() {
-    localStorage.removeItem('aimix_user');
-    localStorage.removeItem('aimix_sub');
-    if (window._sb) window._sb.auth.signOut();
-    location.reload();
-  }
-
-  function sendMagicLink() {
-    var email = (document.getElementById('authEmailInput').value || '').trim();
-    if (!email || !email.includes('@')) {
-      document.getElementById('authError').style.display = 'block';
-      document.getElementById('authError').textContent = 'Please enter a valid email address.';
-      return;
-    }
-    document.getElementById('authError').style.display = 'none';
-    var btn = document.getElementById('authSendBtn');
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-    if (window._sb) {
-      window._sb.auth.signInWithOtp({
-        email: email,
-        options: { emailRedirectTo: window.location.origin }
-      }).then(function(res) {
-        if (res.error) {
-          btn.disabled = false;
-          btn.textContent = 'Send Magic Link ✦';
-          document.getElementById('authError').style.display = 'block';
-          document.getElementById('authError').textContent = res.error.message;
-        } else {
-          document.getElementById('authSuccess').style.display = 'block';
-          document.getElementById('authSuccess').textContent = '✉️ Magic link sent to ' + email + '! Check your inbox and click the link to sign in instantly.';
-          btn.textContent = '✓ Sent!';
-        }
-      });
-    } else {
-      btn.disabled = false;
-      btn.textContent = 'Send Magic Link ✦';
-    }
-  }
-
-  function sendResetLink() {
-    var email = (document.getElementById('authResetEmail').value || '').trim();
-    if (!email || !email.includes('@')) {
-      document.getElementById('authError').style.display = 'block';
-      document.getElementById('authError').textContent = 'Please enter a valid email address.';
-      return;
-    }
-    document.getElementById('authError').style.display = 'none';
-    var btn = document.getElementById('authSendBtn');
-    btn.disabled = true;
-    btn.textContent = 'Sending...';
-    if (window._sb) {
-      // Use magic link for reset too — simplest approach
-      window._sb.auth.signInWithOtp({
-        email: email,
-        options: { emailRedirectTo: window.location.origin }
-      }).then(function(res) {
-        if (res.error) {
-          btn.disabled = false;
-          btn.textContent = 'Send Reset Link ✦';
-          document.getElementById('authError').style.display = 'block';
-          document.getElementById('authError').textContent = res.error.message;
-        } else {
-          document.getElementById('authSuccess').style.display = 'block';
-          document.getElementById('authSuccess').textContent = '✉️ Sign-in link sent to ' + email + '! Click it in your inbox to access your account.';
-          btn.textContent = '✓ Sent!';
-        }
-      });
-    }
-  }
-
-  // Close modal on overlay click
-  document.getElementById('authModal').addEventListener('click', function(e) {
-    if (e.target === this) closeAuthModal();
-  });
-  // Expose auth functions globally
-  window.buildAuthDD = buildAuthDD;
-  window.toggleAuthDD = toggleAuthDD;
-  window.closeAuthDD = closeAuthDD;
-  window.showAuthModal = showAuthModal;
-  window.openAuthModal = openAuthModal;
-  window.closeAuthModal = closeAuthModal;
-  window.switchAuthTab = switchAuthTab;
-  window.authSignOut = authSignOut;
-  window.sendMagicLink = sendMagicLink;
-  window.sendResetLink = sendResetLink;
-  // ─────────────────────────────────────────────────────────
 
   function initSB() {
     if (!window.supabase) { setTimeout(initSB, 200); return; }
@@ -1435,5 +1241,180 @@ window.addEventListener('DOMContentLoaded', function(){
 })();
 </script>
 
+
+<script>
+// ── AIMIX AUTH UI ─────────────────────────────────────────────
+(function() {
+  function buildAuthDD(user, sub) {
+    var dd = document.getElementById('authDD');
+    var icon = document.getElementById('authBtnIcon');
+    var txt = document.getElementById('authBtnText');
+    if (!dd) return;
+    if (user && user.email) {
+      var plan = (sub && sub.plan) || 'starter';
+      var creditsLeft = plan === 'pro' ? '∞' : Math.max(0, ((sub && sub.limit) || 10) - ((sub && sub.usage) || 0));
+      var planLabel = plan === 'pro' ? 'Pro' : 'Starter';
+      var init = user.email[0].toUpperCase();
+      icon.textContent = init;
+      txt.textContent = user.email.split('@')[0];
+      dd.innerHTML =
+        '<div class="auth-user-card"><div class="auth-user-row">'
+        + '<div class="auth-user-avatar">' + init + '</div>'
+        + '<div class="auth-user-info"><div class="auth-user-name">' + user.email.split('@')[0] + '</div>'
+        + '<div class="auth-user-email">' + user.email + '</div></div></div>'
+        + '<div class="auth-plan-row"><span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
+        + '<div class="auth-credits-info"><div class="auth-credits-num">' + creditsLeft + '</div>'
+        + '<div class="auth-credits-label">credits left</div></div></div>'
+        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<button class="auth-upgrade-btn" onclick="window.open('https://aimixingmastering.com','_blank')">✦ Upgrade to Pro — Unlimited</button>' : '')
+        + '</div>'
+        + '<div class="auth-dd-divider"></div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('magic');aimixCloseAuthDD()">✉️ Magic Link Sign In</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('forgot');aimixCloseAuthDD()">🔑 Forgot / Reset Email</div>'
+        + '<div class="auth-dd-divider"></div>'
+        + '<div class="auth-menu-item danger" onclick="aimixSignOut()">→ Sign Out</div>';
+    } else {
+      icon.textContent = '?'; txt.textContent = 'Sign In';
+      dd.innerHTML =
+        '<div style="padding:8px 12px 4px;font-size:12px;color:var(--text2);">Welcome to AIMix</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('magic');aimixCloseAuthDD()">✉️ Sign In with Magic Link</div>'
+        + '<div class="auth-menu-item" onclick="aimixShowAuthModal('forgot');aimixCloseAuthDD()">🔑 Forgot / Reset Email</div>'
+        + '<div class="auth-dd-divider"></div>'
+        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Purchase a plan at aimixingmastering.com</div>';
+    }
+  }
+
+  window.aimixToggleAuthDD = function(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    var dd = document.getElementById('authDD');
+    if (!dd) return;
+    dd.classList.toggle('show');
+    if (dd.classList.contains('show')) {
+      setTimeout(function() {
+        document.addEventListener('click', function h(ev) {
+          var wrap = document.getElementById('authWrap');
+          if (wrap && !wrap.contains(ev.target)) { dd.classList.remove('show'); document.removeEventListener('click', h); }
+        });
+      }, 10);
+    }
+  };
+
+  window.aimixCloseAuthDD = function() {
+    var dd = document.getElementById('authDD');
+    if (dd) dd.classList.remove('show');
+  };
+
+  window.aimixShowAuthModal = function(tab) {
+    var m = document.getElementById('authModal');
+    if (m) m.classList.add('show');
+    var s = document.getElementById('authSuccess');
+    var err = document.getElementById('authError');
+    if (s) s.style.display = 'none';
+    if (err) err.style.display = 'none';
+    window.aimixSwitchTab(tab || 'magic');
+    setTimeout(function() {
+      var inp = document.getElementById(tab === 'forgot' ? 'authResetEmail' : 'authEmailInput');
+      if (inp) inp.focus();
+    }, 100);
+  };
+
+  window.aimixCloseAuthModal = function() {
+    var m = document.getElementById('authModal');
+    if (m) m.classList.remove('show');
+  };
+
+  window.aimixSwitchTab = function(tab) {
+    document.querySelectorAll('.auth-modal-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.auth-modal-panel').forEach(function(p) { p.classList.remove('show'); });
+    var te = document.getElementById('authTab_' + tab);
+    var pe = document.getElementById('authPanel_' + tab);
+    if (te) te.classList.add('active');
+    if (pe) pe.classList.add('show');
+    var btn = document.getElementById('authSendBtn');
+    if (btn) { btn.disabled = false; btn.textContent = tab === 'magic' ? 'Send Magic Link ✦' : 'Send Reset Link ✦'; }
+  };
+
+  window.aimixSignOut = function() {
+    localStorage.removeItem('aimix_user');
+    localStorage.removeItem('aimix_sub');
+    if (window._sb) window._sb.auth.signOut();
+    location.reload();
+  };
+
+  function sendLink(email, btnEl) {
+    if (!email || !email.includes('@')) {
+      var err = document.getElementById('authError');
+      if (err) { err.style.display = 'block'; err.textContent = 'Please enter a valid email address.'; }
+      return;
+    }
+    var btn = btnEl || document.getElementById('authSendBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+    document.getElementById('authError').style.display = 'none';
+    var sb = window._sb;
+    if (sb) {
+      sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.origin } })
+        .then(function(res) {
+          if (res.error) {
+            if (btn) { btn.disabled = false; btn.textContent = btn.dataset.label || 'Send Link ✦'; }
+            var err = document.getElementById('authError');
+            if (err) { err.style.display = 'block'; err.textContent = res.error.message; }
+          } else {
+            var s = document.getElementById('authSuccess');
+            if (s) { s.style.display = 'block'; s.textContent = '✉️ Link sent to ' + email + '! Check your inbox and click to sign in.'; }
+            if (btn) btn.textContent = '✓ Sent!';
+          }
+        });
+    } else {
+      setTimeout(function() { sendLink(email, btnEl); }, 500);
+    }
+  }
+
+  window.aimixSendMagicLink = function() {
+    var email = (document.getElementById('authEmailInput').value || '').trim();
+    sendLink(email, document.getElementById('authSendBtn'));
+  };
+
+  window.aimixSendResetLink = function() {
+    var email = (document.getElementById('authResetEmail').value || '').trim();
+    sendLink(email, document.getElementById('authSendBtn'));
+  };
+
+  // Close modal on overlay click
+  document.addEventListener('DOMContentLoaded', function() {
+    var overlay = document.getElementById('authModal');
+    if (overlay) {
+      overlay.addEventListener('click', function(e) { if (e.target === this) window.aimixCloseAuthModal(); });
+    }
+  });
+
+  // Init on load
+  function initAuthUI() {
+    var user = null;
+    var sub = {};
+    try { user = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
+    try { sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+    buildAuthDD(user, sub);
+    // Also hook into handleUser if it exists
+    var origHandleUser = window.handleUser;
+    if (origHandleUser) {
+      window.handleUser = function(u) {
+        origHandleUser(u);
+        var s = {};
+        try { s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+        buildAuthDD(u, s);
+      };
+    }
+  }
+
+  // Expose buildAuthDD for external use
+  window.aimixBuildAuthDD = buildAuthDD;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAuthUI);
+  } else {
+    initAuthUI();
+  }
+})();
+// ─────────────────────────────────────────────────────────────
+</script>
 </body>
 </html>
