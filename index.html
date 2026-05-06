@@ -346,7 +346,7 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <!-- Magic Link Panel -->
     <div class="auth-modal-panel show" id="authPanel_magic">
       <div class="auth-modal-label">Your email address</div>
-      <input class="auth-modal-input" id="authEmailInput" type="email" placeholder="your@email.com"
+      <input class="auth-modal-input" id="authModalEmailInput" type="email" placeholder="your@email.com"
         onkeydown="if(event.key==='Enter')aimixSendMagicLink()">
       <button class="auth-modal-btn" id="authSendBtn" onclick="aimixSendMagicLink()">Send Magic Link ✦</button>
       <div class="auth-modal-note">
@@ -1465,7 +1465,7 @@ window.addEventListener('DOMContentLoaded', function(){
     if (err) err.style.display = 'none';
     window.aimixSwitchTab(tab || 'magic');
     setTimeout(function() {
-      var inp = document.getElementById(tab === 'forgot' ? 'authResetEmail' : 'authEmailInput');
+      var inp = document.getElementById(tab === 'forgot' ? 'authResetEmail' : 'authModalEmailInput');
       if (inp) inp.focus();
     }, 100);
   };
@@ -1531,7 +1531,7 @@ window.addEventListener('DOMContentLoaded', function(){
   }
 
   window.aimixSendMagicLink = function() {
-    var email = (document.getElementById('authEmailInput').value || '').trim();
+    var email = (document.getElementById('authModalEmailInput').value || '').trim();
     sendLink(email, document.getElementById('authSendBtn'));
   };
 
