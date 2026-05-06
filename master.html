@@ -823,7 +823,7 @@ function encodeWAV(buf){
   return new Blob([out],{type:'audio/wav'});
 }
 
-async async function downloadMastered(){
+async function downloadMastered(){
   // Check subscription before downloading
   var canDl = await checkCanDownload();
   if(!canDl) return;
@@ -1143,7 +1143,7 @@ var PRICE_IDS = {
 };
 
 // ── LOAD SUBSCRIPTION ─────────────────────────────────────────────
-async async function loadSubscription(){
+async function loadSubscription(){
   var user = window._authUser;
   if(!user || !user.id) return;
   try {
