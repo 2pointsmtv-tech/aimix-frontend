@@ -758,20 +758,8 @@ function animLoop(){
   if(e>=_duration){_playing=false;_offset=0;updateIcon();updateWaveformPlayhead(0);cancelAnimationFrame(_animId);}
 }
 function clearAndGoBack(){
-  // Clear IndexedDB so mixer starts fresh
-  try{
-    var req = indexedDB.open('aimix', 1);
-    req.onsuccess = function(e){
-      var db = e.target.result;
-      try{
-        var tx = db.transaction('mix','readwrite');
-        tx.objectStore('mix').clear();
-        tx.oncomplete = function(){ window.location.href='index.html'; };
-        tx.onerror = function(){ window.location.href='index.html'; };
-      } catch(e){ window.location.href='index.html'; }
-    };
-    req.onerror = function(){ window.location.href='index.html'; };
-  } catch(e){ window.location.href='index.html'; }
+  // Navigate with ?fresh=1 - index.html will clear IndexedDB on load
+  window.location.href = 'index.html?fresh=1';
 }
 
 function fmtT(s){s=Math.max(0,s||0);return Math.floor(s/60)+':'+(Math.floor(s%60)+'').padStart(2,'0');}
@@ -1269,9 +1257,15 @@ async function checkCanDownload(){
     console.log('Using cached sub:', JSON.stringify(cachedSub));
     // Refresh from server in background
     setTimeout(loadSubscription, 1000);
+    // Block cancelled or past_due subscriptions
+    if(cachedSub.status && (cachedSub.status==='canceled' || cachedSub.status==='cancelled' || cachedSub.status==='past_due')){
+      document.getElementById('paywallSub').textContent='Your subscription is inactive. Please renew to continue.';
+      document.getElementById('paywallEl').classList.add('show');
+      return false;
+    }
     // Check usage for starter
     if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
-      document.getElementById('paywallSub').textContent="You've used all 10 masters this month. Upgrade to Pro!";
+      document.getElementById('paywallSub').textContent="You've used all 10 credits this month. Upgrade to Pro!";
       document.getElementById('paywallEl').classList.add('show');
       return false;
     }
