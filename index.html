@@ -1387,14 +1387,36 @@ window.addEventListener('DOMContentLoaded', function(){
     }
   });
 
-  // Init on load
+  // Init on load - also checks Supabase session directly
   function initAuthUI() {
     var user = null;
     var sub = {};
     try { user = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
     try { sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
     buildAuthDD(user, sub);
-    // Also hook into handleUser if it exists
+
+    // Poll for Supabase session - handles magic link redirects
+    function checkSBSession() {
+      var sb = window._sb;
+      if (!sb) { setTimeout(checkSBSession, 300); return; }
+      sb.auth.getSession().then(function(res) {
+        var sbUser = res && res.data && res.data.session && res.data.session.user;
+        if (sbUser && (!user || user.email !== sbUser.email)) {
+          // Session found that UI doesn't know about - update UI
+          var cached = {};
+          try { cached = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+          buildAuthDD(sbUser, cached);
+          // Also save to localStorage so it persists
+          try {
+            var u = { email: sbUser.email, id: sbUser.id, name: '' };
+            localStorage.setItem('aimix_user', JSON.stringify(u));
+          } catch(e) {}
+        }
+      });
+    }
+    setTimeout(checkSBSession, 500);
+
+    // Hook into handleUser if it exists (called by existing auth code)
     var origHandleUser = window.handleUser;
     if (origHandleUser) {
       window.handleUser = function(u) {
@@ -1404,6 +1426,27 @@ window.addEventListener('DOMContentLoaded', function(){
         buildAuthDD(u, s);
       };
     }
+
+    // Also hook onAuthStateChange to catch magic link sign-ins
+    function hookAuthState() {
+      var sb = window._sb;
+      if (!sb) { setTimeout(hookAuthState, 300); return; }
+      sb.auth.onAuthStateChange(function(event, session) {
+        if (session && session.user) {
+          var sbUser = session.user;
+          var s = {};
+          try { s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
+          buildAuthDD(sbUser, s);
+          // Save to localStorage
+          try {
+            localStorage.setItem('aimix_user', JSON.stringify({ email: sbUser.email, id: sbUser.id, name: '' }));
+          } catch(e) {}
+        } else if (event === 'SIGNED_OUT') {
+          buildAuthDD(null, null);
+        }
+      });
+    }
+    setTimeout(hookAuthState, 500);
   }
 
   // Expose buildAuthDD for external use
