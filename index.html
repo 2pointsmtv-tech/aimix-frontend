@@ -854,17 +854,28 @@ function setCookStep(i){
 
 async function processTrack(file){
   if(!file) return;
-  // Check if user has a valid subscription before processing
+  // Check if user is logged in before processing
   var _u = null;
   var _s = {};
   try { _u = JSON.parse(localStorage.getItem('aimix_user') || 'null'); } catch(e) {}
   try { _s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
-  if (!_u || !_u.email || !_s.plan || _s.plan === 'none') {
+
+  // Not logged in at all - show auth wall
+  if (!_u || !_u.email) {
     document.getElementById('authWall').classList.add('show');
     return;
   }
-  // Starter plan - check credits
-  if (_s.plan === 'starter') {
+
+  // Logged in AND subscription data loaded - check plan
+  // Only block if we KNOW they have no plan (plan explicitly 'none' or empty after data loaded)
+  // If _s is empty ({}) it means data hasn't loaded yet - let backend handle it
+  if (_s.plan === 'none') {
+    document.getElementById('authWall').classList.add('show');
+    return;
+  }
+
+  // Starter plan with loaded usage data - check credits
+  if (_s.plan === 'starter' && _s.usage !== undefined) {
     var _used = _s.usage || 0;
     var _limit = _s.limit || 10;
     if (_used >= _limit) {
