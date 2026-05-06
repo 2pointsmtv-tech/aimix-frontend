@@ -1490,6 +1490,37 @@ window.addEventListener('DOMContentLoaded', function(){
     try { sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
     buildAuthDD(user, sub);
 
+    // MOBILE FIX: Detect magic link token in URL hash immediately
+    // On mobile, clicking a magic link opens the app with #access_token=xxx in URL
+    function handleHashToken() {
+      var hash = window.location.hash;
+      if (hash && (hash.includes('access_token') || hash.includes('type=magiclink') || hash.includes('type=recovery'))) {
+        // Token present - wait for Supabase to process it then grab the session
+        function waitForSession(attempts) {
+          if (attempts <= 0) return;
+          var sb = window._sb;
+          if (!sb) { setTimeout(function() { waitForSession(attempts - 1); }, 200); return; }
+          sb.auth.getSession().then(function(res) {
+            var sbUser = res && res.data && res.data.session && res.data.session.user;
+            if (sbUser) {
+              try { localStorage.setItem('aimix_user', JSON.stringify({ email: sbUser.email, id: sbUser.id, name: '' })); } catch(e) {}
+              buildAuthDD(sbUser, {});
+              // Clean hash from URL without reloading
+              history.replaceState(null, '', window.location.pathname + window.location.search);
+            } else {
+              // Session not ready yet, retry
+              setTimeout(function() { waitForSession(attempts - 1); }, 300);
+            }
+          });
+        }
+        waitForSession(15); // Try up to 15 times over ~4.5 seconds
+        return;
+      }
+
+      // No hash token - normal session check
+      checkSBSession();
+    }
+
     // Poll for Supabase session - handles magic link redirects
     function checkSBSession() {
       var sb = window._sb;
@@ -1509,7 +1540,7 @@ window.addEventListener('DOMContentLoaded', function(){
         }
       });
     }
-    setTimeout(checkSBSession, 500);
+    setTimeout(handleHashToken, 100); // Run almost immediately, just after Supabase loads
 
     // Hook into handleUser if it exists (called by existing auth code)
     var origHandleUser = window.handleUser;
