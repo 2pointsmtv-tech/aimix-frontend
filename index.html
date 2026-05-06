@@ -1321,7 +1321,21 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Sign In with Magic Link</div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="forgot">🔑 Forgot / Reset Email</div>'
         + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? <a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="color:var(--pink)">Get a plan here →</a></div>';
+        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Choose a plan to get started:
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <a href="https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m" target="_blank" style="flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--border2);text-decoration:none;text-align:center;transition:all .2s;background:var(--surface2);">
+            <div style="font-size:15px;font-weight:800;color:var(--text);">$9.99</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px;">10 Credits</div>
+            <div style="font-size:10px;color:var(--pink);font-weight:600;margin-top:4px;">Starter</div>
+          </a>
+          <a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--purple);text-decoration:none;text-align:center;background:linear-gradient(135deg,rgba(255,45,120,0.1),rgba(176,96,255,0.15));transition:all .2s;">
+            <div style="font-size:15px;font-weight:800;color:var(--text);">$24.99</div>
+            <div style="font-size:10px;color:var(--text2);margin-top:2px;">Unlimited</div>
+            <div style="font-size:10px;color:var(--purple);font-weight:600;margin-top:4px;">Pro ✦</div>
+          </a>
+        </div>
+        <div style="display:none</div>';
     }
   }
 
