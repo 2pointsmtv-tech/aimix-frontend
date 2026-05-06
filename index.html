@@ -908,7 +908,26 @@ async function processTrack(file){
       document.getElementById('masterTransport').classList.add('show');
     }
   } else {
-    document.getElementById('authWall').classList.add('show');
+    var authWall = document.getElementById('authWall');
+    authWall.classList.add('show');
+    // Check if user is logged in but out of credits
+    try {
+      var u = JSON.parse(localStorage.getItem('aimix_user') || 'null');
+      var s = JSON.parse(localStorage.getItem('aimix_sub') || '{}');
+      if (u && u.email) {
+        var used = s.usage || 0;
+        var limit = s.limit || 10;
+        if (used >= limit) {
+          // Show upgrade prompt, hide sign-in form
+          document.getElementById('upgradePrompt').style.display = 'block';
+          document.getElementById('authEmailSection').style.display = 'none';
+          document.querySelector('.auth-google-btn') && (document.querySelector('.auth-google-btn').style.display = 'none');
+          document.querySelector('.auth-divider') && (document.querySelector('.auth-divider').style.display = 'none');
+          document.querySelector('#authWall .auth-title').textContent = 'You\'re out of credits!';
+          document.querySelector('#authWall .auth-sub').textContent = 'Upgrade to Pro for unlimited AI mixing & mastering.';
+        }
+      }
+    } catch(e) {}
   }
 }
 
@@ -1125,6 +1144,11 @@ window.addEventListener('DOMContentLoaded', function(){
       </div>
     </div>
     <div class="auth-terms">Free forever · No credit card · Cancel anytime</div>
+    <div id="upgradePrompt" style="display:none;margin-top:12px;padding:14px;background:rgba(255,45,120,0.08);border-radius:10px;border:1px solid rgba(255,45,120,0.2);text-align:center;">
+      <div style="font-size:13px;font-weight:600;color:var(--pink);margin-bottom:8px;">✦ You're out of credits!</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Upgrade to Pro for unlimited tracks</div>
+      <a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="display:inline-block;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">Upgrade to Pro — $24.99/mo</a>
+    </div>
   </div>
 </div>
 
@@ -1230,7 +1254,26 @@ window.addEventListener('DOMContentLoaded', function(){
 
   window.showAuthWall = function() {
     if (window._authUser) return;
-    document.getElementById('authWall').classList.add('show');
+    var authWall = document.getElementById('authWall');
+    authWall.classList.add('show');
+    // Check if user is logged in but out of credits
+    try {
+      var u = JSON.parse(localStorage.getItem('aimix_user') || 'null');
+      var s = JSON.parse(localStorage.getItem('aimix_sub') || '{}');
+      if (u && u.email) {
+        var used = s.usage || 0;
+        var limit = s.limit || 10;
+        if (used >= limit) {
+          // Show upgrade prompt, hide sign-in form
+          document.getElementById('upgradePrompt').style.display = 'block';
+          document.getElementById('authEmailSection').style.display = 'none';
+          document.querySelector('.auth-google-btn') && (document.querySelector('.auth-google-btn').style.display = 'none');
+          document.querySelector('.auth-divider') && (document.querySelector('.auth-divider').style.display = 'none');
+          document.querySelector('#authWall .auth-title').textContent = 'You\'re out of credits!';
+          document.querySelector('#authWall .auth-sub').textContent = 'Upgrade to Pro for unlimited AI mixing & mastering.';
+        }
+      }
+    } catch(e) {}
   };
 
   window.isAuthed = function() {
@@ -1264,7 +1307,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-plan-row"><span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
         + '<div class="auth-credits-info"><div class="auth-credits-num">' + creditsLeft + '</div>'
         + '<div class="auth-credits-label">credits left</div></div></div>'
-        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://aimixingmastering.com" target="_blank">✦ Upgrade to Pro — Unlimited</a>' : '')
+        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank">✦ Upgrade to Pro — $24.99/mo</a>' : '')
         + '</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Magic Link Sign In</div>'
@@ -1278,7 +1321,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Sign In with Magic Link</div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="forgot">🔑 Forgot / Reset Email</div>'
         + '<div class="auth-dd-divider"></div>'
-        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Purchase a plan at aimixingmastering.com</div>';
+        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? <a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="color:var(--pink)">Get a plan here →</a></div>';
     }
   }
 
