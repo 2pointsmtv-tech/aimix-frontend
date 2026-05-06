@@ -1322,6 +1322,17 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('authModal').addEventListener('click', function(e) {
     if (e.target === this) closeAuthModal();
   });
+  // Expose auth functions globally
+  window.buildAuthDD = buildAuthDD;
+  window.toggleAuthDD = toggleAuthDD;
+  window.closeAuthDD = closeAuthDD;
+  window.showAuthModal = showAuthModal;
+  window.openAuthModal = openAuthModal;
+  window.closeAuthModal = closeAuthModal;
+  window.switchAuthTab = switchAuthTab;
+  window.authSignOut = authSignOut;
+  window.sendMagicLink = sendMagicLink;
+  window.sendResetLink = sendResetLink;
   // ─────────────────────────────────────────────────────────
 
   function initSB() {
