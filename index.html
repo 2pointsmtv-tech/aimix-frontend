@@ -1295,7 +1295,7 @@ window.addEventListener('DOMContentLoaded', function(){
     var txt = document.getElementById('authBtnText');
     if (!dd) return;
     if (user && user.email) {
-      var planLabel = plan === 'pro' ? 'Pro' : 'Starter';
+      var planLabel = plan === 'pro' ? 'Pro' : plan === 'none' ? 'No Plan' : 'Starter';
       var init = user.email[0].toUpperCase();
       icon.textContent = init;
       txt.textContent = user.email.split('@')[0];
@@ -1347,21 +1347,29 @@ window.addEventListener('DOMContentLoaded', function(){
     // Fetch subscription plan
     sb.from('subscriptions').select('plan,status').eq('user_id', user.id).single()
       .then(function(subRes) {
-        var plan = (subRes.data && subRes.data.plan) || 'starter';
+        // No subscription found = no paid plan, show 0 credits
+        if (!subRes.data || !subRes.data.plan) {
+          renderAuthDD(user, 'none', 0);
+          return;
+        }
+
+        var plan = subRes.data.plan;
+        var status = subRes.data.status;
+
+        // Cancelled or inactive subscription
+        if (status !== 'active') {
+          renderAuthDD(user, plan, 0);
+          return;
+        }
 
         if (plan === 'pro') {
-          // Fetch usage count for pro too (for display)
-          sb.from('usage').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
-            .then(function(usageRes) {
-              renderAuthDD(user, 'pro', '∞');
-            });
+          renderAuthDD(user, 'pro', '∞');
         } else {
           // Fetch real usage count for starter
           sb.from('usage').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
             .then(function(usageRes) {
               var used = usageRes.count || 0;
               var remaining = Math.max(0, 10 - used);
-              // Update localStorage too
               try { localStorage.setItem('aimix_sub', JSON.stringify({plan: plan, limit: 10, usage: used})); } catch(e) {}
               renderAuthDD(user, plan, remaining);
             });
