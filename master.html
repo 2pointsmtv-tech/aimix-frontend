@@ -326,7 +326,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
     <div class="songs-bar-track">
       <div class="songs-bar-fill" id="songsBarFill"></div>
     </div>
-    <button class="songs-upgrade-btn" id="songsUpgradeBtn" onclick="startCheckout('pro')">
+    <button class="songs-upgrade-btn" id="songsUpgradeBtn" onclick="window.open('https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l','_blank')">
       ⚡ Upgrade to Pro — Unlimited Masters →
     </button>
   </div>
@@ -1072,7 +1072,7 @@ loadMix();
     <div class="paywall-title">Unlock Your Master</div>
     <div class="paywall-sub" id="paywallSub">Download your mastered track with a simple monthly plan. Cancel anytime.</div>
     <div class="plan-cards">
-      <div class="plan-card" onclick="startCheckout('starter')">
+      <div class="plan-card" onclick="window.open('https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m','_blank')">
         <div class="plan-name">Starter</div>
         <div class="plan-price">$9.99</div>
         <div class="plan-period">per month</div>
@@ -1084,7 +1084,7 @@ loadMix();
         </ul>
         <button class="plan-btn plan-btn-starter">Get Starter →</button>
       </div>
-      <div class="plan-card featured" onclick="startCheckout('pro')">
+      <div class="plan-card featured" onclick="window.open('https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l','_blank')">
         <div class="plan-badge">MOST POPULAR</div>
         <div class="plan-name">Pro</div>
         <div class="plan-price">$24.99</div>
@@ -1147,20 +1147,31 @@ async function loadSubscription(){
   var user = window._authUser;
   if(!user || !user.id) return;
   try {
-    var resp = await fetch(API + '/stripe/subscription/' + user.id);
-    var data = await resp.json();
-    console.log('Server sub:', JSON.stringify(data));
-    if(data && data.plan && data.plan !== 'free'){
-      // Server confirms paid — update cache
+    // Fetch directly from Supabase - no backend needed
+    var subResp = await fetch(
+      'https://bhuduafakmaywnxklfyk.supabase.co/rest/v1/subscriptions?user_id=eq.' + user.id + '&select=plan,status',
+      {headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4'}}
+    );
+    var subs = await subResp.json();
+    var usageResp = await fetch(
+      'https://bhuduafakmaywnxklfyk.supabase.co/rest/v1/usage?user_id=eq.' + user.id + '&select=id',
+      {headers: {'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4', 'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4'}}
+    );
+    var usageRows = await usageResp.json();
+    var used = Array.isArray(usageRows) ? usageRows.length : 0;
+    
+    if(subs && subs.length > 0){
+      var sub = subs[0];
+      var data = {plan: sub.plan, status: sub.status, usage: used, limit: 10};
       _subData = data;
       try{ localStorage.setItem('aimix_sub', JSON.stringify(data)); }catch(e){}
-    } else if(!_subData || _subData.plan === 'free'){
-      // Server says free and no paid cache — use it
-      _subData = data;
+      console.log('[MASTER] Sub loaded:', JSON.stringify(data));
+    } else {
+      _subData = {plan: 'none', status: 'none', usage: used, limit: 10};
+      console.log('[MASTER] No subscription found');
     }
-    // If server says free but we have paid cache — KEEP CACHE
     updateUsageBar();
-  } catch(e){ console.log('loadSub error:', e); }
+  } catch(e){ console.log('[MASTER] loadSub error:', e); }
 }
 
 // ── USAGE BAR + SONGS COUNTER ────────────────────────────────────
@@ -1259,13 +1270,13 @@ async function checkCanDownload(){
     setTimeout(loadSubscription, 1000);
     // Block cancelled or past_due subscriptions
     if(cachedSub.status && (cachedSub.status==='canceled' || cachedSub.status==='cancelled' || cachedSub.status==='past_due')){
-      document.getElementById('paywallSub').textContent='Your subscription is inactive. Please renew to continue.';
+      document.getElementById('paywallSub').textContent='Your subscription is inactive — renew below to download your master!';
       document.getElementById('paywallEl').classList.add('show');
       return false;
     }
     // Check usage for starter
     if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
-      document.getElementById('paywallSub').textContent="You've used all 10 credits this month. Upgrade to Pro!";
+      document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below to keep going!";
       document.getElementById('paywallEl').classList.add('show');
       return false;
     }
@@ -1273,14 +1284,24 @@ async function checkCanDownload(){
     return true;
   }
 
-  // 3. No paid cache — try server
+  // 3. No paid cache — fetch fresh from Supabase
   await loadSubscription();
-  if(!_subData || _subData.plan==='free'){
+
+  // No plan at all
+  if(!_subData || _subData.plan==='free' || _subData.plan==='none'){
+    document.getElementById('paywallSub').textContent='Get a plan below to download your master!';
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
+  // Cancelled or past_due
+  if(_subData.status==='canceled' || _subData.status==='cancelled' || _subData.status==='past_due'){
+    document.getElementById('paywallSub').textContent='Your subscription is inactive — renew below to download your master!';
+    document.getElementById('paywallEl').classList.add('show');
+    return false;
+  }
+  // Out of credits (starter)
   if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
-    document.getElementById('paywallSub').textContent="You've used all 10 masters this month. Upgrade to Pro!";
+    document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below to keep going!";
     document.getElementById('paywallEl').classList.add('show');
     return false;
   }
