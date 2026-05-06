@@ -1287,14 +1287,22 @@ window.addEventListener('DOMContentLoaded', function(){
     if (e && e.stopPropagation) e.stopPropagation();
     var dd = document.getElementById('authDD');
     if (!dd) return;
-    dd.classList.toggle('show');
-    if (dd.classList.contains('show')) {
-      setTimeout(function() {
-        document.addEventListener('click', function h(ev) {
-          var wrap = document.getElementById('authWrap');
-          if (wrap && !wrap.contains(ev.target)) { dd.classList.remove('show'); document.removeEventListener('click', h); }
-        });
-      }, 10);
+    var isOpen = dd.classList.contains('show');
+    // Close all first
+    dd.classList.remove('show');
+    // If it was closed, open it
+    if (!isOpen) {
+      dd.classList.add('show');
+      // Use a flag to skip the first document click (which is this same click)
+      var skipNext = true;
+      document.addEventListener('click', function h(ev) {
+        if (skipNext) { skipNext = false; return; }
+        var wrap = document.getElementById('authWrap');
+        if (!wrap || !wrap.contains(ev.target)) {
+          dd.classList.remove('show');
+          document.removeEventListener('click', h);
+        }
+      });
     }
   };
 
