@@ -1245,14 +1245,13 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 // ── AIMIX AUTH UI ─────────────────────────────────────────────
 (function() {
-  function buildAuthDD(user, sub) {
+  // Render the dropdown with known data
+  function renderAuthDD(user, plan, creditsLeft) {
     var dd = document.getElementById('authDD');
     var icon = document.getElementById('authBtnIcon');
     var txt = document.getElementById('authBtnText');
     if (!dd) return;
     if (user && user.email) {
-      var plan = (sub && sub.plan) || 'starter';
-      var creditsLeft = plan === 'pro' ? '∞' : Math.max(0, ((sub && sub.limit) || 10) - ((sub && sub.usage) || 0));
       var planLabel = plan === 'pro' ? 'Pro' : 'Starter';
       var init = user.email[0].toUpperCase();
       icon.textContent = init;
@@ -1265,7 +1264,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-plan-row"><span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
         + '<div class="auth-credits-info"><div class="auth-credits-num">' + creditsLeft + '</div>'
         + '<div class="auth-credits-label">credits left</div></div></div>'
-        + (plan === 'starter' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://aimixingmastering.com" target="_blank">✦ Upgrade to Pro — Unlimited</a>' : '')
+        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://aimixingmastering.com" target="_blank">✦ Upgrade to Pro — Unlimited</a>' : '')
         + '</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Magic Link Sign In</div>'
@@ -1281,6 +1280,46 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Purchase a plan at aimixingmastering.com</div>';
     }
+  }
+
+  // Fetch live credits from Supabase usage table then render
+  function buildAuthDD(user, sub) {
+    if (!user || !user.email) {
+      renderAuthDD(null, 'starter', 0);
+      return;
+    }
+    // Show cached data immediately while fetching
+    var cachedPlan = (sub && sub.plan) || 'starter';
+    var cachedCredits = cachedPlan === 'pro' ? '∞' : Math.max(0, ((sub && sub.limit) || 10) - ((sub && sub.usage) || 0));
+    renderAuthDD(user, cachedPlan, cachedCredits);
+
+    // Then fetch real data from Supabase
+    var sb = window._sb;
+    if (!sb || !user.id) return;
+
+    // Fetch subscription plan
+    sb.from('subscriptions').select('plan,status').eq('user_id', user.id).single()
+      .then(function(subRes) {
+        var plan = (subRes.data && subRes.data.plan) || 'starter';
+
+        if (plan === 'pro') {
+          // Fetch usage count for pro too (for display)
+          sb.from('usage').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+            .then(function(usageRes) {
+              renderAuthDD(user, 'pro', '∞');
+            });
+        } else {
+          // Fetch real usage count for starter
+          sb.from('usage').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+            .then(function(usageRes) {
+              var used = usageRes.count || 0;
+              var remaining = Math.max(0, 10 - used);
+              // Update localStorage too
+              try { localStorage.setItem('aimix_sub', JSON.stringify({plan: plan, limit: 10, usage: used})); } catch(e) {}
+              renderAuthDD(user, plan, remaining);
+            });
+        }
+      });
   }
 
   window.aimixToggleAuthDD = function(e) {
