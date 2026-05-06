@@ -228,6 +228,44 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
 .user-pill.show{display:flex;}
 .user-pill-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#b026ff,#ff2d78);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;}
 
+
+/* ── AUTH USER ICON ── */
+.auth-wrap{position:relative;z-index:9999;}
+.auth-btn{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:100px;border:1px solid var(--border2);background:var(--surface);cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:all .2s;}
+.auth-btn:hover{border-color:var(--purple);background:var(--surface2);}
+.auth-icon{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--pink),var(--purple));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+.auth-caret{font-size:9px;opacity:0.5;}
+.auth-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:8px;width:250px;box-shadow:0 20px 60px rgba(0,0,0,0.6);display:none;z-index:99999;}
+.auth-dropdown.show{display:block;animation:authDropIn .15s ease;}
+@keyframes authDropIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+.auth-email-badge{padding:10px 12px;background:var(--surface2);border-radius:10px;margin-bottom:8px;}
+.auth-email-label{font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px;}
+.auth-email-val{font-size:12px;font-weight:600;color:var(--text);word-break:break-all;}
+.auth-credits-badge{padding:8px 12px;border-radius:10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);}
+.auth-credits-label{font-size:12px;color:var(--text2);}
+.auth-credits-val{font-size:13px;font-weight:700;color:var(--pink);}
+.auth-menu-item{padding:10px 12px;border-radius:10px;cursor:pointer;font-size:13px;color:var(--text);transition:all .15s;display:flex;align-items:center;gap:10px;}
+.auth-menu-item:hover{background:var(--surface2);}
+.auth-menu-item.danger{color:#ff6b6b;}
+.auth-menu-item.danger:hover{background:rgba(255,107,107,0.1);}
+.auth-dd-divider{height:1px;background:var(--border);margin:6px 0;}
+.auth-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);z-index:999999;display:none;align-items:center;justify-content:center;}
+.auth-modal-overlay.show{display:flex;}
+.auth-modal{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:36px 32px;width:380px;max-width:calc(100vw - 32px);box-shadow:0 40px 100px rgba(0,0,0,0.6);animation:authDropIn .2s ease;position:relative;}
+.auth-modal-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;letter-spacing:-.01em;margin-bottom:6px;background:linear-gradient(90deg,var(--pink),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.auth-modal-title{font-size:20px;font-weight:700;margin-bottom:6px;color:var(--text);}
+.auth-modal-sub{font-size:14px;color:var(--text2);margin-bottom:24px;line-height:1.5;}
+.auth-modal-input{width:100%;padding:13px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:14px;outline:none;margin-bottom:12px;box-sizing:border-box;transition:border .2s;font-family:'Inter',sans-serif;}
+.auth-modal-input:focus{border-color:var(--purple);}
+.auth-modal-input::placeholder{color:var(--text3);}
+.auth-modal-btn{width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-bottom:12px;font-family:'Inter',sans-serif;}
+.auth-modal-btn:hover{opacity:0.9;}
+.auth-modal-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.auth-modal-note{font-size:12px;color:var(--text2);text-align:center;line-height:1.5;}
+.auth-modal-success{text-align:center;padding:12px;background:rgba(255,45,120,0.1);border-radius:10px;color:var(--pink);font-size:13px;font-weight:600;display:none;margin-bottom:12px;}
+.auth-modal-close{position:absolute;top:14px;right:18px;background:none;border:none;color:var(--text2);font-size:24px;cursor:pointer;line-height:1;padding:0;}
+.auth-modal-close:hover{color:var(--text);}
+
 </style>
 </head>
 <body>
@@ -238,7 +276,29 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
     <button class="nav-pill active" onclick="showSection('mixer')">AI Mixer</button>
     <div style="font-size:11px;color:#888;font-family:'Inter',monospace;display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid #222;border-radius:99px;">① Mix <span style="color:#ff2d78;">→</span> ② Master</div>
   </div>
+  <div class="auth-wrap" id="authWrap">
+    <button class="auth-btn" id="authBtn" onclick="toggleAuthDD(event)">
+      <div class="auth-icon" id="authBtnIcon">?</div>
+      <span id="authBtnText">Sign In</span>
+      <span class="auth-caret">▼</span>
+    </button>
+    <div class="auth-dropdown" id="authDD" id="authDropdown"></div>
+  </div>
 </nav>
+
+<!-- AUTH SIGN IN MODAL -->
+<div class="auth-modal-overlay" id="authModal">
+  <div class="auth-modal">
+    <button class="auth-modal-close" onclick="closeAuthModal()">×</button>
+    <div class="auth-modal-logo">✦ AIMix</div>
+    <div class="auth-modal-title">Sign in to your account</div>
+    <div class="auth-modal-sub">Enter your email and we'll send you a magic link — no password needed! Use the same email you used to purchase.</div>
+    <div class="auth-modal-success" id="authSuccess">✉️ Magic link sent! Check your inbox and click the link to sign in.</div>
+    <input class="auth-modal-input" id="authEmailInput" type="email" placeholder="your@email.com" onkeydown="if(event.key==='Enter')sendMagicLink()">
+    <button class="auth-modal-btn" id="authSendBtn" onclick="sendMagicLink()">Send Magic Link ✦</button>
+    <div class="auth-modal-note">A secure sign-in link will be emailed to you instantly. No password required.</div>
+  </div>
+</div>
 
 <div class="hero">
   <div class="hero-tag"><div class="hero-tag-dot"></div>New — AI Studio Suite</div>
@@ -1025,9 +1085,106 @@ window.addEventListener('DOMContentLoaded', function(){
   var sb = null;
   var currentUser = null;
 
+
+  // ── AUTH UI ──────────────────────────────────────────────
+  function buildAuthDD(user, sub) {
+    var dd = document.getElementById('authDD');
+    var icon = document.getElementById('authBtnIcon');
+    var txt = document.getElementById('authBtnText');
+    if (!dd) return;
+    if (user && user.email) {
+      var creditsLeft = sub && sub.plan === 'pro' ? '∞' : Math.max(0, ((sub && sub.limit) || 10) - ((sub && sub.usage) || 0));
+      icon.textContent = user.email[0].toUpperCase();
+      txt.textContent = user.email.split('@')[0];
+      dd.innerHTML = '<div class="auth-email-badge"><div class="auth-email-label">Signed in as</div><div class="auth-email-val">' + user.email + '</div></div>'
+        + '<div class="auth-credits-badge"><span class="auth-credits-label">Credits remaining</span><span class="auth-credits-val">' + creditsLeft + '</span></div>'
+        + '<div class="auth-dd-divider"></div>'
+        + '<div class="auth-menu-item" onclick="openAuthModal();closeAuthDD()">🔄 Switch Account</div>'
+        + '<div class="auth-menu-item danger" onclick="authSignOut()">→ Sign Out</div>';
+    } else {
+      icon.textContent = '?';
+      txt.textContent = 'Sign In';
+      dd.innerHTML = '<div class="auth-menu-item" onclick="openAuthModal();closeAuthDD()">✉️ Sign In with Email</div>'
+        + '<div class="auth-menu-item" style="color:var(--text2);font-size:11px;cursor:default;line-height:1.4;">New? Purchase a plan on aimixingmastering.com to get started</div>';
+    }
+  }
+
+  function toggleAuthDD(e) {
+    e.stopPropagation();
+    var dd = document.getElementById('authDD');
+    if (!dd) return;
+    dd.classList.toggle('show');
+    if (dd.classList.contains('show')) {
+      setTimeout(function() {
+        document.addEventListener('click', function closeHandler(ev) {
+          if (!document.getElementById('authWrap').contains(ev.target)) {
+            dd.classList.remove('show');
+            document.removeEventListener('click', closeHandler);
+          }
+        });
+      }, 10);
+    }
+  }
+
+  function closeAuthDD() {
+    var dd = document.getElementById('authDD');
+    if (dd) dd.classList.remove('show');
+  }
+
+  function openAuthModal() {
+    document.getElementById('authModal').classList.add('show');
+    document.getElementById('authSuccess').style.display = 'none';
+    document.getElementById('authSendBtn').disabled = false;
+    document.getElementById('authSendBtn').textContent = 'Send Magic Link ✦';
+    setTimeout(function(){ document.getElementById('authEmailInput').focus(); }, 100);
+  }
+
+  function closeAuthModal() {
+    document.getElementById('authModal').classList.remove('show');
+  }
+
+  function authSignOut() {
+    localStorage.removeItem('aimix_user');
+    localStorage.removeItem('aimix_sub');
+    if (window._sb) window._sb.auth.signOut();
+    location.reload();
+  }
+
+  function sendMagicLink() {
+    var email = (document.getElementById('authEmailInput').value || '').trim();
+    if (!email || !email.includes('@')) { alert('Please enter a valid email address'); return; }
+    var btn = document.getElementById('authSendBtn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    if (window._sb) {
+      window._sb.auth.signInWithOtp({ email: email, options: { emailRedirectTo: window.location.origin } })
+        .then(function(res) {
+          if (res.error) {
+            btn.disabled = false;
+            btn.textContent = 'Send Magic Link ✦';
+            alert('Error: ' + res.error.message);
+          } else {
+            document.getElementById('authSuccess').style.display = 'block';
+            btn.textContent = '✓ Sent!';
+          }
+        });
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Send Magic Link ✦';
+      alert('Auth not loaded yet, please try again in a moment');
+    }
+  }
+
+  // Close modal on overlay click
+  document.getElementById('authModal').addEventListener('click', function(e) {
+    if (e.target === this) closeAuthModal();
+  });
+  // ─────────────────────────────────────────────────────────
+
   function initSB() {
     if (!window.supabase) { setTimeout(initSB, 200); return; }
     sb = window.supabase.createClient(SURL, SKEY);
+    window._sb = sb;
     
     // Check existing session
     sb.auth.getSession().then(function(res) {
@@ -1064,6 +1221,9 @@ window.addEventListener('DOMContentLoaded', function(){
     if (avatar) avatar.textContent = initial;
     if (display) display.textContent = email.split('@')[0];
     addToSysteme(email, user.user_metadata && user.user_metadata.full_name || '');
+    // Update auth UI
+    var sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}');
+    buildAuthDD(user, sub);
   }
 
   function addToSysteme(email, name) {
