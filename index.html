@@ -890,7 +890,10 @@ async function processTrack(file){
   const fd=new FormData();fd.append('file',file);
   let data;
   try{
-    const res=await fetch(API+'/separate',{method:'POST',body:fd});
+    const _authU = JSON.parse(localStorage.getItem('aimix_user')||'null');
+    const _sepHeaders = {};
+    if(_authU){_sepHeaders['x-user-id']=_authU.id||'';_sepHeaders['x-user-email']=_authU.email||'';}
+    const res=await fetch(API+'/separate',{method:'POST',body:fd,headers:_sepHeaders});
     if(!res.ok)throw new Error('Server error '+res.status);
     setCookStep(2);await new Promise(r=>setTimeout(r,1000));
     setCookStep(3);await new Promise(r=>setTimeout(r,800));
