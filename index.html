@@ -300,7 +300,6 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
   try {
     var u = JSON.parse(localStorage.getItem('aimix_user') || 'null');
     if (u && u.email) {
-      // User is logged in - inject CSS to keep authWall hidden until explicitly shown
       var s = document.createElement('style');
       s.textContent = '#authWall { display: none !important; }';
       s.id = 'authHideStyle';
@@ -308,6 +307,8 @@ input[type=range].sl:hover::-webkit-slider-thumb{transform:scale(1.2);}
       window._authUser = u;
     }
   } catch(e) {}
+  // ── DETECT STRIPE REDIRECT ──
+  window._justPaid = window.location.search.includes('paid=true') || window.location.search.includes('checkout=success');
 })();
 </script>
 
@@ -1690,6 +1691,23 @@ window.addEventListener('DOMContentLoaded', function(){
     document.addEventListener('DOMContentLoaded', initAuthUI);
   } else {
     initAuthUI();
+
+  // ── SHOW SIGN-IN PROMPT AFTER STRIPE PAYMENT ──
+  if (window._justPaid) {
+    // Remove paid param from URL without reload
+    try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
+    // Wait a moment then show auth modal with success message
+    setTimeout(function() {
+      // Show a success banner
+      var banner = document.createElement('div');
+      banner.id = 'paidBanner';
+      banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:linear-gradient(135deg,#00c853,#1de9b6);color:#fff;text-align:center;padding:14px 20px;font-size:15px;font-weight:700;letter-spacing:0.5px;';
+      banner.innerHTML = "🎉 Payment confirmed! Sign in to access your account → <button onclick=\"aimixShowAuthModal();document.getElementById('paidBanner').remove();\" style=\"background:rgba(255,255,255,0.25);border:none;color:#fff;padding:6px 14px;border-radius:20px;cursor:pointer;font-weight:700;margin-left:10px;\">Sign In Now</button>";
+      document.body.appendChild(banner);
+      // Auto-open sign in modal after 1 second
+      setTimeout(function() { aimixShowAuthModal(); }, 1000);
+    }, 800);
+  }
   }
 })();
 // ─────────────────────────────────────────────────────────────
