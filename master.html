@@ -1146,6 +1146,9 @@ var PRICE_IDS = {
 async function loadSubscription(){
   var user = window._authUser;
   if(!user || !user.id) return;
+  // Clear stale cache to ensure fresh data
+  _subData = null;
+  try { localStorage.removeItem('aimix_sub'); } catch(e) {}
   try {
     // Fetch directly from Supabase - no backend needed
     var subResp = await fetch(
