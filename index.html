@@ -1628,7 +1628,7 @@ window.addEventListener('DOMContentLoaded', function(){
           if (typeof window.handleUser === 'function') window.handleUser(sbUser);
           // ── CLAIM PENDING SUBSCRIPTION ── 
           // If user paid before signing in, claim their subscription now
-          fetch(window.API_BASE + '/claim-subscription', {
+          fetch('https://aimix-backend-production.up.railway.app/claim-subscription', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({user_id: sbUser.id, email: sbUser.email})
