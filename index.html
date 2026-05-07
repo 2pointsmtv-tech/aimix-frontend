@@ -1201,7 +1201,7 @@ window.addEventListener('DOMContentLoaded', function(){
     <div id="upgradePrompt" style="display:none;margin-top:12px;padding:14px;background:rgba(255,45,120,0.08);border-radius:10px;border:1px solid rgba(255,45,120,0.2);text-align:center;">
       <div style="font-size:13px;font-weight:600;color:var(--pink);margin-bottom:8px;">✦ You're out of credits!</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Upgrade to Pro for unlimited tracks</div>
-      <a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="display:inline-block;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">Upgrade to Pro — $24.99/mo</a>
+      <a href="#" onclick="goStripe(&quot;pro&quot;);return false;" target="_blank" style="display:inline-block;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">Upgrade to Pro — $24.99/mo</a>
     </div>
   </div>
 </div>
@@ -1306,6 +1306,15 @@ window.addEventListener('DOMContentLoaded', function(){
     });
   };
 
+  // Stripe checkout with email prefill
+  window.goStripe = function(plan) {
+    plan = (plan + '').replace(/&quot;/g, '').replace(/"/g, '');
+    var em = '';
+    try { em = JSON.parse(localStorage.getItem('aimix_user') || '{}').email || ''; } catch(e) {}
+    var url = plan === 'pro' ? 'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l' : 'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m';
+    window.open(url + (em ? '?prefilled_email=' + encodeURIComponent(em) : ''), '_blank');
+  };
+
   window.showAuthWall = function() {
     if (window._authUser) return;
     // Remove the instant-hide style if present
@@ -1364,7 +1373,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-plan-row"><span class="auth-plan-badge ' + plan + '">' + planLabel + ' Plan</span>'
         + '<div class="auth-credits-info"><div class="auth-credits-num">' + creditsLeft + '</div>'
         + '<div class="auth-credits-label">credits left</div></div></div>'
-        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank">✦ Upgrade to Pro — $24.99/mo</a>' : '')
+        + (plan === 'starter' && creditsLeft !== '∞' && creditsLeft <= 3 ? '<a class="auth-upgrade-btn" href="#" onclick="goStripe(&quot;pro&quot;);return false;" target="_blank">✦ Upgrade to Pro — $24.99/mo</a>' : '')
         + '</div>'
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Magic Link Sign In</div>'
@@ -1380,8 +1389,8 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-dd-divider"></div>'
         + '<div style="padding:8px 12px;font-size:11px;color:var(--text2);">New? Choose a plan:</div>'
         + '<div style="display:flex;gap:6px;padding:0 8px 8px;">'
-        + '<a href="https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);text-decoration:none;text-align:center;background:var(--surface2);"><div style="font-size:14px;font-weight:800;color:var(--text);">$9.99</div><div style="font-size:10px;color:var(--text2);">10 Credits</div><div style="font-size:10px;color:var(--pink);font-weight:700;">Starter</div></a>'
-        + '<a href="https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--purple);text-decoration:none;text-align:center;background:rgba(176,96,255,0.1);"><div style="font-size:14px;font-weight:800;color:var(--text);">$24.99</div><div style="font-size:10px;color:var(--text2);">Unlimited</div><div style="font-size:10px;color:var(--purple);font-weight:700;">Pro ✦</div></a>'
+        + '<a href="#" onclick="goStripe(&quot;starter&quot;);return false;" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);text-decoration:none;text-align:center;background:var(--surface2);"><div style="font-size:14px;font-weight:800;color:var(--text);">$9.99</div><div style="font-size:10px;color:var(--text2);">10 Credits</div><div style="font-size:10px;color:var(--pink);font-weight:700;">Starter</div></a>'
+        + '<a href="#" onclick="goStripe(&quot;pro&quot;);return false;" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--purple);text-decoration:none;text-align:center;background:rgba(176,96,255,0.1);"><div style="font-size:14px;font-weight:800;color:var(--text);">$24.99</div><div style="font-size:10px;color:var(--text2);">Unlimited</div><div style="font-size:10px;color:var(--purple);font-weight:700;">Pro ✦</div></a>'
         + '</div>'
     }
   }
@@ -1616,6 +1625,19 @@ window.addEventListener('DOMContentLoaded', function(){
           if (aw) aw.classList.remove('show');
           // Also call existing handleUser to sync old system
           if (typeof window.handleUser === 'function') window.handleUser(sbUser);
+          // ── CLAIM PENDING SUBSCRIPTION ── 
+          // If user paid before signing in, claim their subscription now
+          fetch(window.API_BASE + '/claim-subscription', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({user_id: sbUser.id, email: sbUser.email})
+          }).then(function(r){ return r.json(); }).then(function(d){
+            if(d.claimed) {
+              console.log('[AIMIX] ✅ Claimed pending subscription!');
+              // Refresh the auth dropdown to show new plan
+              checkSBSession();
+            }
+          }).catch(function(e){ console.log('[AIMIX] Claim check error:', e); });
         }
       });
     }
