@@ -1077,8 +1077,8 @@ loadMix();
         <button type="button" id="mBillYearly" onclick="setMasterBilling('yearly')" style="border:none;cursor:pointer;padding:7px 18px;border-radius:999px;font-size:13px;font-weight:700;background:transparent;color:rgba(255,255,255,0.55);font-family:inherit;">Yearly <span style="color:var(--teal);font-weight:800;">· 3mo free</span></button>
       </div>
     </div>
-    <div class="plan-cards">
-      <div class="plan-card" onclick="masterStripe('starter')">
+    <div class="plan-cards" id="planCards">
+      <div class="plan-card" id="starterPlanCard" onclick="masterStripe('starter')">
         <div class="plan-name">Starter</div>
         <div class="plan-price">$9.99</div>
         <div class="plan-period">per month</div>
@@ -1306,18 +1306,23 @@ window.setMasterBilling=function(mode){
   window._mBilling=mode;
   var m=document.getElementById('mBillMonthly'),y=document.getElementById('mBillYearly');
   var price=document.getElementById('proPlanPrice'),period=document.getElementById('proPlanPeriod'),save=document.getElementById('proPlanSave');
+  var starter=document.getElementById('starterPlanCard'),cards=document.getElementById('planCards');
   if(mode==='yearly'){
     if(y){y.style.background='var(--purple)';y.style.color='#fff';}
     if(m){m.style.background='transparent';m.style.color='rgba(255,255,255,0.55)';}
     if(price)price.textContent='$224.99';
     if(period)period.textContent='per year';
     if(save)save.style.display='block';
+    if(starter)starter.style.display='none';
+    if(cards){cards.style.gridTemplateColumns='minmax(0,280px)';cards.style.justifyContent='center';}
   }else{
     if(m){m.style.background='var(--purple)';m.style.color='#fff';}
     if(y){y.style.background='transparent';y.style.color='rgba(255,255,255,0.55)';}
     if(price)price.textContent='$24.99';
     if(period)period.textContent='per month';
     if(save)save.style.display='none';
+    if(starter)starter.style.display='';
+    if(cards){cards.style.gridTemplateColumns='1fr 1fr';cards.style.justifyContent='';}
   }
 };
 
