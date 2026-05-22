@@ -1201,8 +1201,12 @@ window.addEventListener('DOMContentLoaded', function(){
     <div class="auth-terms">Free forever · No credit card · Cancel anytime</div>
     <div id="upgradePrompt" style="display:none;margin-top:12px;padding:14px;background:rgba(255,45,120,0.08);border-radius:10px;border:1px solid rgba(255,45,120,0.2);text-align:center;">
       <div style="font-size:13px;font-weight:600;color:var(--pink);margin-bottom:8px;">✦ You're out of credits!</div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Upgrade to Pro for unlimited tracks</div>
-      <a href="#" onclick="goStripe(&quot;pro&quot;);return false;" target="_blank" style="display:inline-block;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">Upgrade to Pro — $24.99/mo</a>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Upgrade to Pro for unlimited tracks</div>
+      <div style="display:inline-flex;background:var(--surface2);border:1px solid var(--border2);border-radius:999px;padding:3px;margin-bottom:12px;">
+        <button type="button" id="billMonthlyBtn" onclick="setBilling(&quot;monthly&quot;)" style="border:none;cursor:pointer;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;background:var(--purple);color:#fff;">Monthly</button>
+        <button type="button" id="billYearlyBtn" onclick="setBilling(&quot;yearly&quot;)" style="border:none;cursor:pointer;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;background:transparent;color:var(--text2);">Yearly <span style="color:#1de9b6;">· 3mo free</span></button>
+      </div>
+      <a id="upgradeProBtn" href="#" onclick="goPro();return false;" target="_blank" style="display:block;background:linear-gradient(135deg,var(--pink),var(--purple));color:white;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;">Upgrade to Pro — $24.99/mo</a>
     </div>
   </div>
 </div>
@@ -1312,8 +1316,29 @@ window.addEventListener('DOMContentLoaded', function(){
     plan = (plan + '').replace(/&quot;/g, '').replace(/"/g, '');
     var em = '';
     try { em = JSON.parse(localStorage.getItem('aimix_user') || '{}').email || ''; } catch(e) {}
-    var url = plan === 'pro' ? 'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l' : 'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m';
+    var urls = { pro: 'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l', pro_yearly: 'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n', starter: 'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m' };
+    var url = urls[plan] || urls.starter;
     window.open(url + (em ? '?prefilled_email=' + encodeURIComponent(em) : ''), '_blank');
+  };
+
+  // ── Billing toggle (monthly / yearly) ──
+  window._billing = 'monthly';
+  window.goPro = function() { goStripe(window._billing === 'yearly' ? 'pro_yearly' : 'pro'); };
+  window.setBilling = function(mode) {
+    window._billing = mode;
+    var mBtn = document.getElementById('billMonthlyBtn');
+    var yBtn = document.getElementById('billYearlyBtn');
+    var btn = document.getElementById('upgradeProBtn');
+    if (!mBtn || !yBtn) return;
+    if (mode === 'yearly') {
+      yBtn.style.background = 'var(--purple)'; yBtn.style.color = '#fff';
+      mBtn.style.background = 'transparent'; mBtn.style.color = 'var(--text2)';
+      if (btn) btn.textContent = 'Upgrade to Pro — $224.99/yr';
+    } else {
+      mBtn.style.background = 'var(--purple)'; mBtn.style.color = '#fff';
+      yBtn.style.background = 'transparent'; yBtn.style.color = 'var(--text2)';
+      if (btn) btn.textContent = 'Upgrade to Pro — $24.99/mo';
+    }
   };
 
   window.showAuthWall = function() {
@@ -1393,6 +1418,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<a href="#" onclick="goStripe(&quot;starter&quot;);return false;" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);text-decoration:none;text-align:center;background:var(--surface2);"><div style="font-size:14px;font-weight:800;color:var(--text);">$9.99</div><div style="font-size:10px;color:var(--text2);">10 Credits</div><div style="font-size:10px;color:var(--pink);font-weight:700;">Starter</div></a>'
         + '<a href="#" onclick="goStripe(&quot;pro&quot;);return false;" target="_blank" style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--purple);text-decoration:none;text-align:center;background:rgba(176,96,255,0.1);"><div style="font-size:14px;font-weight:800;color:var(--text);">$24.99</div><div style="font-size:10px;color:var(--text2);">Unlimited</div><div style="font-size:10px;color:var(--purple);font-weight:700;">Pro ✦</div></a>'
         + '</div>'
+        + '<a href="#" onclick="goStripe(&quot;pro_yearly&quot;);return false;" target="_blank" style="display:block;margin:0 8px 8px;padding:8px;border-radius:8px;border:1px solid rgba(29,233,182,0.4);text-decoration:none;text-align:center;background:rgba(29,233,182,0.08);"><span style="font-size:12px;font-weight:800;color:var(--text);">Pro Yearly — $224.99/yr</span> <span style="font-size:10px;color:#1de9b6;font-weight:700;">3 MONTHS FREE</span></a>'
     }
   }
 
