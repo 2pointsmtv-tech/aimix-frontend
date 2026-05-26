@@ -1313,17 +1313,17 @@ window._mBilling='monthly';
 function masterStripe(plan){
   // === STRIPE PAYMENT LINKS — swap these placeholders with your real links ===
   var urls={
-    pluto_starter:        'REPLACE_PLUTO_STARTER_MONTHLY',
+    pluto_starter:        'https://buy.stripe.com/eVq7sK4cS4KKfOu5qnd3i0o',
     pluto_starter_yearly: 'REPLACE_PLUTO_STARTER_YEARLY',
-    pluto_unlimited:        'REPLACE_PLUTO_UNLIMITED_MONTHLY',
+    pluto_unlimited:        'https://buy.stripe.com/28E5kC7p4elk45M4mjd3i0p',
     pluto_unlimited_yearly: 'REPLACE_PLUTO_UNLIMITED_YEARLY',
-    copilot:        'REPLACE_COPILOT_MONTHLY',
+    copilot:        'https://buy.stripe.com/cNibJ024K1yy59Q2ebd3i0q',
     copilot_yearly: 'REPLACE_COPILOT_YEARLY'
   };
   if(window._mBilling==='yearly'){
-    if(plan==='pluto_starter')plan='pluto_starter_yearly';
-    else if(plan==='pluto_unlimited')plan='pluto_unlimited_yearly';
-    else if(plan==='copilot')plan='copilot_yearly';
+    var ykey=plan+'_yearly';
+    // use yearly link if it exists & is set, otherwise fall back to monthly
+    if(urls[ykey] && urls[ykey].indexOf('REPLACE_')!==0) plan=ykey;
   }
   var link=urls[plan];
   if(!link||link.indexOf('REPLACE_')===0){alert('Checkout link coming soon for this plan!');return;}
