@@ -1218,7 +1218,7 @@ function updateUsageBar(){
     text.style.color='#ff6b35';
     if(songsEl) songsEl.classList.remove('show');
 
-  } else if(_subData.plan==='starter'){
+  } else if(planIsLimited(_subData.plan)){
     // Usage bar
     bar.classList.add('show');
     var used=_subData.usage||0;
@@ -1248,7 +1248,7 @@ function updateUsageBar(){
       }
     }
 
-  } else if(_subData.plan==='pro'){
+  } else if(planIsUnlimited(_subData.plan)){
     bar.classList.add('show');
     fill.style.width='100%';
     text.textContent='∞ Unlimited — Pro plan active';
@@ -1258,6 +1258,20 @@ function updateUsageBar(){
 }
 
 // ── CHECK CAN DOWNLOAD ────────────────────────────────────────────
+
+// ── PLAN CLASSIFICATION (old + new tiers) ──
+function planIsUnlimited(p){
+  p=(p||'').toLowerCase();
+  // Unlimited download access: new copilot + pluto_unlimited, and grandfathered 'pro'
+  return ['copilot','pluto_unlimited','pro','suite','unlimited_all'].indexOf(p)>=0;
+}
+function planIsLimited(p){
+  p=(p||'').toLowerCase();
+  // Credit-capped tiers: new pluto_starter + grandfathered 'starter'
+  return ['pluto_starter','starter'].indexOf(p)>=0;
+}
+function planHasAccess(p){ return planIsUnlimited(p)||planIsLimited(p); }
+
 async function checkCanDownload(){
   // 1. Get auth user
   if(!window._authUser){
@@ -1297,7 +1311,7 @@ async function checkCanDownload(){
     return false;
   }
   // Out of credits (starter)
-  if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
+  if(planIsLimited(_subData.plan) && _subData.usage>=_subData.limit){
     document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below!";
     document.getElementById('paywallEl').classList.add('show');
     return false;
