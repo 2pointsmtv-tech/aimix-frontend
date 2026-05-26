@@ -104,12 +104,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 /* PAYWALL */
 .paywall{display:none;position:fixed;inset:0;background:rgba(8,8,8,.96);z-index:2000;flex-direction:column;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(16px);}
 .paywall.show{display:flex!important;}
-.paywall-box{background:#111;border:1px solid #222;border-radius:24px;padding:36px 32px;max-width:680px;width:100%;text-align:center;}
+.paywall-box{background:#111;border:1px solid #222;border-radius:24px;padding:36px 32px;max-width:440px;width:100%;text-align:center;}
 .paywall-icon{font-size:40px;margin-bottom:12px;}
 .paywall-title{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:8px;}
 .paywall-sub{font-size:13px;color:#555;margin-bottom:28px;line-height:1.5;}
-.plan-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;}
-@media(max-width:560px){.plan-cards{grid-template-columns:1fr;}}
+.plan-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
 .plan-card{background:#0f0f16;border:1px solid #2a2a3a;border-radius:16px;padding:20px 16px;cursor:pointer;transition:all .2s;position:relative;}
 .plan-card:hover{border-color:#b026ff;transform:translateY(-2px);}
 .plan-card.featured{border-color:#b026ff;background:#140a20;}
@@ -1079,44 +1078,31 @@ loadMix();
       </div>
     </div>
     <div class="plan-cards" id="planCards">
-      <div class="plan-card" id="starterPlanCard" onclick="masterStripe('pluto_starter')">
-        <div class="plan-name">Pluto Starter</div>
+      <div class="plan-card" id="starterPlanCard" onclick="masterStripe('starter')">
+        <div class="plan-name">Starter</div>
         <div class="plan-price">$9.99</div>
         <div class="plan-period">per month</div>
         <ul class="plan-features">
-          <li>10 finished mixes / mo</li>
-          <li>Auto-tune + artist chains</li>
-          <li>WALLY AI co-pilot</li>
+          <li>10 mix & masters</li>
+          <li>All 3 mastering knobs</li>
           <li>WAV downloads</li>
+          <li>Email support</li>
         </ul>
         <button class="plan-btn plan-btn-starter">Get Starter →</button>
       </div>
-      <div class="plan-card featured" onclick="masterStripe('pluto_unlimited')">
+      <div class="plan-card featured" onclick="masterStripe('pro')">
         <div class="plan-badge">MOST POPULAR</div>
-        <div class="plan-name">Pluto Unlimited</div>
-        <div class="plan-price" id="unlimPlanPrice">$19.99</div>
-        <div class="plan-period" id="unlimPlanPeriod">per month</div>
-        <div id="unlimPlanSave" style="display:none;font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.05em;margin-bottom:10px;">✓ 2 MONTHS FREE</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" id="proPlanPrice">$24.99</div>
+        <div class="plan-period" id="proPlanPeriod">per month</div>
+        <div id="proPlanSave" style="display:none;font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.05em;margin-bottom:10px;">✓ 3 MONTHS FREE</div>
         <ul class="plan-features">
-          <li>Unlimited mixes & exports</li>
-          <li>Everything in Starter</li>
-          <li>Priority processing</li>
+          <li>Unlimited masters</li>
+          <li>All 3 mastering knobs</li>
           <li>WAV downloads</li>
+          <li>Priority support</li>
         </ul>
-        <button class="plan-btn plan-btn-pro">Go Unlimited →</button>
-      </div>
-      <div class="plan-card" id="copilotPlanCard" onclick="masterStripe('copilot')" style="border-color:rgba(21,230,205,0.4);">
-        <div class="plan-name" style="color:#15e6cd;">Copilot</div>
-        <div class="plan-price" id="copilotPlanPrice">$29.99</div>
-        <div class="plan-period" id="copilotPlanPeriod">per month</div>
-        <div id="copilotPlanSave" style="display:none;font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.05em;margin-bottom:10px;">✓ 2 MONTHS FREE</div>
-        <ul class="plan-features">
-          <li>Everything unlimited</li>
-          <li>Full multi-stem mixing</li>
-          <li>Planets reference-match</li>
-          <li>Pro mastering + Pluto</li>
-        </ul>
-        <button class="plan-btn plan-btn-pro" style="background:linear-gradient(135deg,#15e6cd,#00B4D8);color:#04060d;">Get Copilot →</button>
+        <button class="plan-btn plan-btn-pro">Get Pro →</button>
       </div>
     </div>
     <button class="paywall-close" onclick="document.getElementById('paywallEl').classList.remove('show')">✕ Maybe later</button>
@@ -1218,7 +1204,7 @@ function updateUsageBar(){
     text.style.color='#ff6b35';
     if(songsEl) songsEl.classList.remove('show');
 
-  } else if(planIsLimited(_subData.plan)){
+  } else if(_subData.plan==='starter'){
     // Usage bar
     bar.classList.add('show');
     var used=_subData.usage||0;
@@ -1248,7 +1234,7 @@ function updateUsageBar(){
       }
     }
 
-  } else if(planIsUnlimited(_subData.plan)){
+  } else if(_subData.plan==='pro'){
     bar.classList.add('show');
     fill.style.width='100%';
     text.textContent='∞ Unlimited — Pro plan active';
@@ -1258,20 +1244,6 @@ function updateUsageBar(){
 }
 
 // ── CHECK CAN DOWNLOAD ────────────────────────────────────────────
-
-// ── PLAN CLASSIFICATION (old + new tiers) ──
-function planIsUnlimited(p){
-  p=(p||'').toLowerCase();
-  // Unlimited download access: new copilot + pluto_unlimited, and grandfathered 'pro'
-  return ['copilot','pluto_unlimited','pro','suite','unlimited_all'].indexOf(p)>=0;
-}
-function planIsLimited(p){
-  p=(p||'').toLowerCase();
-  // Credit-capped tiers: new pluto_starter + grandfathered 'starter'
-  return ['pluto_starter','starter'].indexOf(p)>=0;
-}
-function planHasAccess(p){ return planIsUnlimited(p)||planIsLimited(p); }
-
 async function checkCanDownload(){
   // 1. Get auth user
   if(!window._authUser){
@@ -1311,7 +1283,7 @@ async function checkCanDownload(){
     return false;
   }
   // Out of credits (starter)
-  if(planIsLimited(_subData.plan) && _subData.usage>=_subData.limit){
+  if(_subData.plan==='starter' && _subData.usage>=_subData.limit){
     document.getElementById('paywallSub').textContent="You've used all 10 credits this month — upgrade below!";
     document.getElementById('paywallEl').classList.add('show');
     return false;
@@ -1325,47 +1297,33 @@ async function checkCanDownload(){
 // Paywall billing toggle (monthly / yearly) + direct Stripe checkout
 window._mBilling='monthly';
 function masterStripe(plan){
-  // === STRIPE PAYMENT LINKS — swap these placeholders with your real links ===
-  var urls={
-    pluto_starter:        'https://buy.stripe.com/eVq7sK4cS4KKfOu5qnd3i0o',
-    pluto_starter_yearly: 'https://buy.stripe.com/8x23cubFk6SS0TAg51d3i0r',
-    pluto_unlimited:        'https://buy.stripe.com/28E5kC7p4elk45M4mjd3i0p',
-    pluto_unlimited_yearly: 'https://buy.stripe.com/00wdR8gZE2CCgSydWTd3i0s',
-    copilot:        'https://buy.stripe.com/cNibJ024K1yy59Q2ebd3i0q',
-    copilot_yearly: 'https://buy.stripe.com/3cI7sK24K7WWdGm7yvd3i0t'
-  };
-  if(window._mBilling==='yearly'){
-    var ykey=plan+'_yearly';
-    // use yearly link if it exists & is set, otherwise fall back to monthly
-    if(urls[ykey] && urls[ykey].indexOf('REPLACE_')!==0) plan=ykey;
-  }
-  var link=urls[plan];
-  if(!link||link.indexOf('REPLACE_')===0){alert('Checkout link coming soon for this plan!');return;}
+  var urls={starter:'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m',pro:'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l',pro_yearly:'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n'};
+  if(plan==='pro'&&window._mBilling==='yearly')plan='pro_yearly';
   var em='';try{em=JSON.parse(localStorage.getItem('aimix_user')||'{}').email||'';}catch(e){}
-  window.open(link+(em?'?prefilled_email='+encodeURIComponent(em):''),'_blank');
+  window.open(urls[plan]+(em?'?prefilled_email='+encodeURIComponent(em):''),'_blank');
 }
 window.setMasterBilling=function(mode){
   window._mBilling=mode;
   var m=document.getElementById('mBillMonthly'),y=document.getElementById('mBillYearly');
-  function setCard(priceId,periodId,saveId,monthly,yearly){
-    var p=document.getElementById(priceId),pe=document.getElementById(periodId),sv=document.getElementById(saveId);
-    if(p)p.textContent=(mode==='yearly'?yearly:monthly);
-    if(pe)pe.textContent=(mode==='yearly'?'per year':'per month');
-    if(sv)sv.style.display=(mode==='yearly'?'block':'none');
-  }
+  var price=document.getElementById('proPlanPrice'),period=document.getElementById('proPlanPeriod'),save=document.getElementById('proPlanSave');
+  var starter=document.getElementById('starterPlanCard'),cards=document.getElementById('planCards');
   if(mode==='yearly'){
     if(y){y.style.background='var(--purple)';y.style.color='#fff';}
     if(m){m.style.background='transparent';m.style.color='rgba(255,255,255,0.55)';}
+    if(price)price.textContent='$224.99';
+    if(period)period.textContent='per year';
+    if(save)save.style.display='block';
+    if(starter)starter.style.display='none';
+    if(cards){cards.style.gridTemplateColumns='minmax(0,280px)';cards.style.justifyContent='center';}
   }else{
     if(m){m.style.background='var(--purple)';m.style.color='#fff';}
     if(y){y.style.background='transparent';y.style.color='rgba(255,255,255,0.55)';}
+    if(price)price.textContent='$24.99';
+    if(period)period.textContent='per month';
+    if(save)save.style.display='none';
+    if(starter)starter.style.display='';
+    if(cards){cards.style.gridTemplateColumns='1fr 1fr';cards.style.justifyContent='';}
   }
-  // Pluto Starter $9.99 -> $99/yr ; Unlimited $19.99 -> $199 ; Copilot $29.99 -> $299
-  var starterCard=document.getElementById('starterPlanCard');
-  if(starterCard){var sp=starterCard.querySelector('.plan-price'),spe=starterCard.querySelector('.plan-period');
-    if(sp)sp.textContent=(mode==='yearly'?'$99':'$9.99');if(spe)spe.textContent=(mode==='yearly'?'per year':'per month');}
-  setCard('unlimPlanPrice','unlimPlanPeriod','unlimPlanSave','$19.99','$199');
-  setCard('copilotPlanPrice','copilotPlanPeriod','copilotPlanSave','$29.99','$299');
 };
 
 async function startCheckout(plan){
