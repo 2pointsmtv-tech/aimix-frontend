@@ -1738,5 +1738,107 @@ window.addEventListener('DOMContentLoaded', function(){
 })();
 // ─────────────────────────────────────────────────────────────
 </script>
+
+<!-- ═══ CANCEL SUBSCRIPTION MODAL (added 2026-05-31) ═══ -->
+<!-- Self-contained: HTML + script, no dependencies on existing AIM UI besides window._sb -->
+<div id="cancelBackdrop" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);backdrop-filter:blur(3px);z-index:99999;align-items:center;justify-content:center;padding:20px;font-family:'Inter',sans-serif;">
+  <div id="cancelModal" style="background:linear-gradient(165deg,#1e1e25,#141418);border:1px solid rgba(255,90,172,0.35);border-radius:14px;max-width:440px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 30px 80px -20px rgba(0,0,0,0.8);">
+    <div style="padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:900;letter-spacing:2px;color:#fff;">CANCEL <span style="color:#FF5AAC;">SUBSCRIPTION</span></div>
+      <button onclick="aimixCloseCancelModal()" style="margin-left:auto;width:24px;height:24px;border-radius:6px;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.6);cursor:pointer;font-size:14px;line-height:1;">&times;</button>
+    </div>
+    <div style="padding:20px;">
+      <div id="cancelStep1">
+        <div style="font-size:13px;color:#eceef1;line-height:1.5;margin-bottom:14px;">You're about to cancel <b style="color:#b060ff;" id="cancelPlanName">your subscription</b>.</div>
+        <div style="padding:12px 14px;background:rgba(29,233,182,0.06);border:1px solid rgba(29,233,182,0.25);border-radius:8px;font-size:12px;color:#a0a4ab;line-height:1.6;margin-bottom:16px;">
+          ✓ <b style="color:#1de9b6;">You'll keep full access</b> until the end of your current billing period.<br>
+          ✓ <b style="color:#1de9b6;">No more charges</b> after that date.<br>
+          ✓ You can <b style="color:#1de9b6;">resubscribe anytime</b> from this same email.
+        </div>
+        <div style="font-size:11px;letter-spacing:1.5px;color:#8a8f98;margin-bottom:8px;">QUICK QUESTION — WHY ARE YOU CANCELLING?</div>
+        <select id="cancelReason" style="width:100%;background:#16171a;border:1px solid rgba(255,255,255,0.12);color:#eceef1;font-family:inherit;font-size:13px;padding:9px 11px;border-radius:8px;margin-bottom:8px;">
+          <option value="">— Select a reason (optional) —</option>
+          <option value="too_expensive">Too expensive</option>
+          <option value="not_using">Not using it enough</option>
+          <option value="missing_features">Missing features I need</option>
+          <option value="sound_quality">Sound quality didn't meet expectations</option>
+          <option value="found_alternative">Found a different tool</option>
+          <option value="temporary">Just pausing — will be back</option>
+          <option value="other">Other</option>
+        </select>
+        <textarea id="cancelReasonOther" placeholder="Anything else you want me to know? (totally optional, I read all of these)" style="width:100%;background:#16171a;border:1px solid rgba(255,255,255,0.12);color:#eceef1;font-family:inherit;font-size:12px;padding:9px 11px;border-radius:8px;min-height:60px;resize:vertical;margin-bottom:18px;"></textarea>
+        <div style="display:flex;gap:10px;">
+          <button onclick="aimixCloseCancelModal()" style="flex:1;padding:11px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-family:inherit;font-size:12px;font-weight:600;letter-spacing:1px;border-radius:8px;cursor:pointer;">KEEP IT</button>
+          <button onclick="aimixConfirmCancel()" id="cancelConfirmBtn" style="flex:1;padding:11px;background:rgba(255,90,172,0.1);border:1px solid #FF5AAC;color:#FF5AAC;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:8px;cursor:pointer;">CANCEL SUBSCRIPTION</button>
+        </div>
+      </div>
+      <div id="cancelStep2" style="display:none;text-align:center;padding:18px 8px;">
+        <div style="font-size:32px;margin-bottom:8px;">✓</div>
+        <div style="font-family:'Syne',sans-serif;font-size:14px;color:#1de9b6;font-weight:900;letter-spacing:1.5px;margin-bottom:12px;">CANCELLED</div>
+        <div id="cancelStep2Msg" style="font-size:13px;color:#a0a4ab;line-height:1.55;margin-bottom:18px;">Your subscription will end on the date shown on your account.</div>
+        <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:14px;line-height:1.5;">Thanks for using AIMix. If anything brought you back later, just resubscribe from the same email — your account stays.</div>
+        <button onclick="aimixCloseCancelModal()" style="width:100%;padding:11px;background:rgba(176,96,255,0.12);border:1px solid #b060ff;color:#b060ff;font-family:inherit;font-size:12px;font-weight:700;letter-spacing:1px;border-radius:8px;cursor:pointer;">DONE</button>
+      </div>
+      <div id="cancelStep3" style="display:none;padding:14px 8px;">
+        <div style="color:#FF5AAC;font-size:13px;font-weight:600;margin-bottom:10px;">Something went wrong</div>
+        <div id="cancelStep3Msg" style="font-size:12px;color:#a0a4ab;line-height:1.5;margin-bottom:16px;">We couldn't cancel automatically. Email <a href="mailto:support@2pointsmusic.com" style="color:#1de9b6;">support@2pointsmusic.com</a> and we'll handle it directly.</div>
+        <button onclick="aimixCloseCancelModal()" style="width:100%;padding:11px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:#fff;font-family:inherit;font-size:12px;font-weight:600;border-radius:8px;cursor:pointer;">CLOSE</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// AIM-prefixed function names to avoid any naming clashes with the existing code
+window.aimixOpenCancelModal = function(planLabel){
+  var ne = document.getElementById('cancelPlanName');
+  if(ne) ne.textContent = planLabel || 'your subscription';
+  var s1 = document.getElementById('cancelStep1'); if(s1) s1.style.display='block';
+  var s2 = document.getElementById('cancelStep2'); if(s2) s2.style.display='none';
+  var s3 = document.getElementById('cancelStep3'); if(s3) s3.style.display='none';
+  var r = document.getElementById('cancelReason'); if(r) r.value='';
+  var ro = document.getElementById('cancelReasonOther'); if(ro) ro.value='';
+  var btn = document.getElementById('cancelConfirmBtn');
+  if(btn){ btn.disabled=false; btn.textContent='CANCEL SUBSCRIPTION'; }
+  var bd = document.getElementById('cancelBackdrop'); if(bd) bd.style.display='flex';
+  // Close the AIM dropdown if open (it has its own close function)
+  if(typeof aimixCloseAuthDD === 'function'){ try{ aimixCloseAuthDD(); }catch(e){} }
+};
+window.aimixCloseCancelModal = function(){
+  var bd = document.getElementById('cancelBackdrop'); if(bd) bd.style.display='none';
+};
+window.aimixConfirmCancel = async function(){
+  var btn = document.getElementById('cancelConfirmBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Cancelling...'; }
+  try {
+    if(!window._sb) throw new Error('Auth not loaded — refresh and try again');
+    var sess = await window._sb.auth.getSession();
+    var token = sess && sess.data && sess.data.session ? sess.data.session.access_token : null;
+    var user_id = sess && sess.data && sess.data.session && sess.data.session.user ? sess.data.session.user.id : null;
+    if(!token || !user_id) throw new Error('Not signed in');
+    var reason = document.getElementById('cancelReason').value || '';
+    var reason_other = document.getElementById('cancelReasonOther').value || '';
+    var resp = await fetch('https://aimix-backend-production.up.railway.app/cancel-subscription', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({user_id:user_id, access_token:token, reason:reason, reason_other:reason_other})
+    });
+    var data = await resp.json();
+    if(!resp.ok || !data.ok) throw new Error(data.error || 'Cancellation failed');
+    var endDate = data.current_period_end ? new Date(data.current_period_end*1000) : null;
+    var dateStr = endDate ? endDate.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}) : 'the end of your current billing period';
+    var msg = document.getElementById('cancelStep2Msg');
+    if(msg) msg.innerHTML = 'Your subscription will end on <b style="color:#1de9b6;">' + dateStr + '</b>. You\u2019ll keep full access until then.';
+    document.getElementById('cancelStep1').style.display='none';
+    document.getElementById('cancelStep2').style.display='block';
+  } catch(e){
+    console.warn('aimix cancel error', e);
+    var m = e.message || 'Unexpected error';
+    var msgEl = document.getElementById('cancelStep3Msg');
+    if(msgEl) msgEl.innerHTML = m + '<br><br>Email <a href="mailto:support@2pointsmusic.com" style="color:#1de9b6;">support@2pointsmusic.com</a> and we\u2019ll cancel it manually within 24 hours.';
+    document.getElementById('cancelStep1').style.display='none';
+    document.getElementById('cancelStep3').style.display='block';
+  }
+};
+</script>
 </body>
 </html>
