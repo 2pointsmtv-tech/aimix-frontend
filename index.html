@@ -1404,6 +1404,7 @@ window.addEventListener('DOMContentLoaded', function(){
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="magic">✉️ Magic Link Sign In</div>'
         + '<div class="auth-menu-item" onclick="aimixShowAuthModal(this.dataset.tab);aimixCloseAuthDD()" data-tab="forgot">🔑 Forgot / Reset Email</div>'
+        + ((plan === 'starter' || plan === 'pro') ? '<div class="auth-menu-item" style="color:#ff5aac;" onclick="aimixOpenCancelModal(&quot;' + planLabel + ' Plan&quot;);aimixCloseAuthDD()">✕ Cancel Subscription</div>' : '')
         + '<div class="auth-dd-divider"></div>'
         + '<div class="auth-menu-item danger" onclick="aimixSignOut()">→ Sign Out</div>';
     } else {
