@@ -4,6 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2 Points Sound — AI Studio</title>
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','524092666589747');
+fbq('track','PageView');
+// helper: mfb('Lead') or mfb('Purchase',{value:24.99,currency:'USD',content_name:'pro'})
+window.mfb=function(ev,data){try{if(window.fbq)fbq('track',ev,data||{});}catch(e){}};
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=524092666589747&ev=PageView&noscript=1"/></noscript>
+<!-- /Meta Pixel -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 <style>
@@ -1297,6 +1307,7 @@ window.addEventListener('DOMContentLoaded', function(){
     btn.textContent = 'Sending...';
     btn.disabled = true;
     addToSysteme(email, '');
+    try { if (window.mfb) mfb('Lead', { content_name: 'magic_link_request', content_category: 'aimix' }); } catch(e) {}
     sb.auth.signInWithOtp({
       email: email,
       options: {emailRedirectTo: window.location.href}
@@ -1317,7 +1328,10 @@ window.addEventListener('DOMContentLoaded', function(){
     var em = '';
     try { em = JSON.parse(localStorage.getItem('aimix_user') || '{}').email || ''; } catch(e) {}
     var urls = { pro: 'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l', pro_yearly: 'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n', starter: 'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m' };
+    var prices = { pro: 24.99, pro_yearly: 224.99, starter: 9.99 };
     var url = urls[plan] || urls.starter;
+    // ── Meta pixel: InitiateCheckout fires when user clicks an upgrade button before Stripe ──
+    try { if (window.mfb) mfb('InitiateCheckout', { content_name: plan, content_category: 'aimix', value: prices[plan] || 0, currency: 'USD' }); } catch(e) {}
     window.open(url + (em ? '?prefilled_email=' + encodeURIComponent(em) : ''), '_blank');
   };
 
@@ -1721,6 +1735,35 @@ window.addEventListener('DOMContentLoaded', function(){
 
   // ── SHOW SIGN-IN PROMPT AFTER STRIPE PAYMENT ──
   if (window._justPaid) {
+    // ── Meta pixel: Purchase fires when user is redirected back from Stripe checkout success ──
+    // We dynamically read the actual plan from localStorage (set by auth flow) to send the
+    // correct purchase value. Falls back to averaged value if sub data hasn't loaded yet.
+    // Plan prices: starter=$9.99, pro=$24.99 monthly, pro_yearly=$224.99
+    function _firePurchase() {
+      var planValue = 14.99; // weighted-average fallback if we can't read the plan
+      var planName = 'aimix_post_checkout';
+      try {
+        var sub = JSON.parse(localStorage.getItem('aimix_sub') || '{}');
+        if (sub && sub.plan) {
+          var prices = { starter: 9.99, pro: 24.99, pro_yearly: 224.99 };
+          if (prices[sub.plan]) { planValue = prices[sub.plan]; }
+          planName = 'aimix_' + sub.plan;
+        }
+      } catch(e) {}
+      try { if (window.mfb) mfb('Purchase', { content_name: planName, content_category: 'aimix', value: planValue, currency: 'USD' }); } catch(e) {}
+    }
+    // Wait up to 4 seconds for auth/subscription to load before firing Purchase.
+    // This catches the actual plan instead of hardcoding $24.99 for everyone.
+    var _attempts = 0;
+    var _checkSub = setInterval(function() {
+      _attempts++;
+      var hasSub = false;
+      try { hasSub = !!(JSON.parse(localStorage.getItem('aimix_sub') || '{}').plan); } catch(e) {}
+      if (hasSub || _attempts >= 8) {
+        clearInterval(_checkSub);
+        _firePurchase();
+      }
+    }, 500);
     // Remove paid param from URL without reload
     try { window.history.replaceState({}, '', window.location.pathname); } catch(e) {}
     // Wait a moment then show auth modal with success message
