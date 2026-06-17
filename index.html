@@ -752,8 +752,24 @@ function startAllStems(offset){
 function stopAllStems(){
   const c=getCtx();
   masterOffset=masterPlaying?Math.max(0,c.currentTime-masterStartTime):masterOffset;
-  Object.keys(stems).forEach(id=>{const s=stems[id];if(s.src){try{s.src.stop();}catch(e){}}s.src=null;});
-  masterPlaying=false;cancelAnimationFrame(animId);updateMasterIcon();
+  // ── iOS Safari pause fix ──
+  // Set masterPlaying=false BEFORE calling .stop() and clear onended
+  // handlers FIRST. iOS Safari (and IG/TikTok in-app browsers) fires
+  // onended SYNCHRONOUSLY during stop(), while desktop Chrome fires it
+  // asynchronously. The onended handler resets masterOffset to 0 when
+  // it sees masterPlaying still true, which on iOS meant every pause
+  // would restart the track from the beginning. Two defenses below
+  // make the order timing-independent.
+  masterPlaying=false;
+  Object.keys(stems).forEach(id=>{
+    const s=stems[id];
+    if(s.src){
+      try{ s.src.onended=null; }catch(e){}  // defense 1: kill handler
+      try{ s.src.stop(); }catch(e){}        // safe to fire now even if it sneaks through
+      s.src=null;
+    }
+  });
+  cancelAnimationFrame(animId);updateMasterIcon();
   document.getElementById('masterStatus').textContent='PAUSED';
 }
 
