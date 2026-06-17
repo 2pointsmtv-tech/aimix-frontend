@@ -975,10 +975,10 @@ function mapUploadError(err){
       msg: 'Our AI engine is catching up. Try again in 30 seconds.',
     };
   }
-  if (/network|fetch|failed to fetch|aborted/i.test(errStr)) {
+  if (/network|fetch|failed to fetch|load failed|aborted|networkerror|cancelled/i.test(errStr)) {
     return {
-      title: 'Connection issue',
-      msg: 'Check your internet and try again. Big files need stable connections.',
+      title: 'Connection dropped',
+      msg: 'Your browser dropped the connection while we were processing. This often happens on iOS Safari with longer songs — try Chrome, or use a shorter file.',
     };
   }
   // Fallback — at least tell them what we know
