@@ -1021,16 +1021,57 @@ async function processTrack(file){
     const _authU = JSON.parse(localStorage.getItem('aimix_user')||'null');
     const _sepHeaders = {};
     if(_authU){_sepHeaders['x-user-id']=_authU.id||'';_sepHeaders['x-user-email']=_authU.email||'';}
-    // ── LAYER 1: Start rotating messages BEFORE the long fetch wait ──
-    // setCookStep(2) shows "Cooking" - the actual wait happens here.
+    // ── LAYER 1: Start rotating messages BEFORE the long wait ──
+    // setCookStep(2) shows "Cooking" - the actual wait happens during polling.
     setCookStep(2);
     startCookRotation(_estimate.sec);
-    const res=await fetch(API+'/separate',{method:'POST',body:fd,headers:_sepHeaders});
-    // Stop rotation as soon as we get a response (success or error)
+
+    // ── LAYER 3: Use async job pattern instead of one long fetch ──
+    // iOS Safari (incl. IG/TikTok/Twitter in-app browsers) kills fetches
+    // that run longer than ~60 sec. The old /separate endpoint waited for
+    // Replicate to finish (30-300 sec) in a single request → Safari killed
+    // it before completion → users saw "Load failed". New pattern:
+    //   1. POST /separate-start returns prediction_id quickly (5-30 sec)
+    //   2. GET /separate-status/{id} polls Replicate, returns in <1 sec
+    //   3. We poll every 5 sec until status is succeeded or failed
+    // Each request is short → Safari can't kill them.
+    const startRes = await fetch(API+'/separate-start',{method:'POST',body:fd,headers:_sepHeaders});
+    if(!startRes.ok) throw new Error('Server error '+startRes.status);
+    const startData = await startRes.json();
+    const predictionId = startData.prediction_id;
+    if(!predictionId) throw new Error('No prediction_id returned from server');
+
+    // Poll status every 5 sec. Max 120 polls = 10 min ceiling (matches old behavior).
+    data = null;
+    for(let i = 0; i < 120; i++){
+      await new Promise(r => setTimeout(r, 5000));
+      let statusRes;
+      try {
+        statusRes = await fetch(API+'/separate-status/'+encodeURIComponent(predictionId), {headers: _sepHeaders});
+      } catch (pollErr) {
+        // Network blip mid-poll - skip this poll, try again in 5 sec.
+        // Don't fail the whole upload just because one poll was flaky.
+        console.warn('[AIMIX] Poll '+i+' failed, retrying:', pollErr);
+        continue;
+      }
+      if(!statusRes.ok){
+        // If status endpoint itself returns error, surface it
+        throw new Error('Server error '+statusRes.status);
+      }
+      const statusData = await statusRes.json();
+
+      if(statusData.status === 'succeeded'){
+        data = statusData;
+        break;
+      } else if(statusData.status === 'failed'){
+        throw new Error(statusData.error || 'Processing failed');
+      }
+      // Otherwise still queued/starting/processing - keep polling
+    }
     stopCookRotation();
-    if(!res.ok)throw new Error('Server error '+res.status);
+    if(!data) throw new Error('Processing took too long (10 min ceiling). Try a shorter file.');
+
     setCookStep(3);await new Promise(r=>setTimeout(r,800));
-    data=await res.json();
   }catch(err){
     // ── LAYER 1: Always stop rotation on error so timer doesn't keep running ──
     stopCookRotation();
