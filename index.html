@@ -879,6 +879,115 @@ function setCookStep(i){
   }
 }
 
+// ── LAYER 1 UX HELPERS ──
+// Estimate processing time based on file size. Real benchmarks from Replicate Demucs:
+// ~5-8 seconds of processing per MB of audio (varies with model + queue load).
+function estimateProcessingTime(fileSizeBytes){
+  const mb = fileSizeBytes / (1024 * 1024);
+  if (mb < 5)  return {sec: 30,  display: '20-40 seconds'};
+  if (mb < 15) return {sec: 60,  display: '45-75 seconds'};
+  if (mb < 30) return {sec: 90,  display: '1-2 minutes'};
+  if (mb < 50) return {sec: 150, display: '2-3 minutes'};
+  return {sec: 240, display: '3-5 minutes'};
+}
+
+// Rotating status messages shown during the long Replicate wait (step 2 "Cooking")
+// so the user knows we're still working instead of staring at a frozen screen.
+const COOK_ROTATING_MSGS = [
+  'Detecting drums and percussion...',
+  'Isolating bass frequencies...',
+  'Cleaning up the vocal layers...',
+  'Mapping the instrument stems...',
+  'Polishing the separated tracks...',
+  'Almost there — the AI is finishing up...',
+  'Still working on your track — large files take longer...',
+  'Hang tight, quality takes a moment...',
+];
+
+let _cookRotateTimer = null;
+let _cookStartTime = null;
+
+function startCookRotation(estimateSec){
+  _cookStartTime = Date.now();
+  let idx = 0;
+  _cookRotateTimer = setInterval(function(){
+    const elapsed = Math.floor((Date.now() - _cookStartTime) / 1000);
+    const remaining = Math.max(0, estimateSec - elapsed);
+    const msgEl = document.getElementById('cookMsg');
+    if (msgEl) {
+      const baseMsg = COOK_ROTATING_MSGS[idx % COOK_ROTATING_MSGS.length];
+      const timeStr = remaining > 0
+        ? ` (~${remaining}s remaining)`
+        : ` (${elapsed}s elapsed — almost done)`;
+      msgEl.textContent = baseMsg + timeStr;
+    }
+    idx++;
+  }, 8000); // every 8 seconds — feels alive without being spammy
+}
+
+function stopCookRotation(){
+  if (_cookRotateTimer) {
+    clearInterval(_cookRotateTimer);
+    _cookRotateTimer = null;
+  }
+  _cookStartTime = null;
+}
+
+// Map technical errors to honest, customer-friendly messages.
+// Returns {title, msg, action} so the catch block can render properly.
+function mapUploadError(err){
+  const errStr = (err && err.message) ? String(err.message) : '';
+  const status = (errStr.match(/Server error (\d+)/) || [])[1];
+
+  if (status === '413' || /too large|payload/i.test(errStr)) {
+    return {
+      title: 'File too large',
+      msg: 'Try a file under 100MB, or trim down to a shorter section.',
+    };
+  }
+  if (status === '415' || /unsupported|format/i.test(errStr)) {
+    return {
+      title: 'Unsupported file format',
+      msg: 'Use MP3, WAV, FLAC, or M4A and try again.',
+    };
+  }
+  if (status === '402' || /credit|subscription/i.test(errStr)) {
+    return {
+      title: 'Out of credits',
+      msg: 'Upgrade your plan or wait for next month\'s reset.',
+    };
+  }
+  if (status === '401' || status === '403') {
+    return {
+      title: 'Sign-in needed',
+      msg: 'Please sign in again to keep mixing.',
+    };
+  }
+  if (status === '504' || /timeout|timed out/i.test(errStr)) {
+    return {
+      title: 'Processing took too long',
+      msg: 'Large files take longer. Try again, or use a shorter section.',
+    };
+  }
+  if (status === '502' || status === '503') {
+    return {
+      title: 'Server is busy',
+      msg: 'Our AI engine is catching up. Try again in 30 seconds.',
+    };
+  }
+  if (/network|fetch|failed to fetch|aborted/i.test(errStr)) {
+    return {
+      title: 'Connection issue',
+      msg: 'Check your internet and try again. Big files need stable connections.',
+    };
+  }
+  // Fallback — at least tell them what we know
+  return {
+    title: 'Something went wrong',
+    msg: errStr || 'An unexpected error occurred. Try again, or message us if it keeps happening.',
+  };
+}
+
 async function processTrack(file){
   if(!file) return;
   // Only block if user is not logged in at all
@@ -897,6 +1006,14 @@ async function processTrack(file){
   ct.removeAttribute('style');
   ct.classList.add('show');
   setTimeout(function(){ct.scrollIntoView({behavior:'smooth',block:'center'});},50);
+
+  // ── LAYER 1: Show file-size-based time estimate upfront so user knows what to expect ──
+  var _estimate = estimateProcessingTime(file.size);
+  try {
+    var subEl = document.getElementById('cookSub');
+    if (subEl) subEl.textContent = 'Estimated time: ' + _estimate.display;
+  } catch(e) {}
+
   setCookStep(0);await new Promise(r=>setTimeout(r,800));setCookStep(1);
   const fd=new FormData();fd.append('file',file);
   let data;
@@ -904,20 +1021,30 @@ async function processTrack(file){
     const _authU = JSON.parse(localStorage.getItem('aimix_user')||'null');
     const _sepHeaders = {};
     if(_authU){_sepHeaders['x-user-id']=_authU.id||'';_sepHeaders['x-user-email']=_authU.email||'';}
+    // ── LAYER 1: Start rotating messages BEFORE the long fetch wait ──
+    // setCookStep(2) shows "Cooking" - the actual wait happens here.
+    setCookStep(2);
+    startCookRotation(_estimate.sec);
     const res=await fetch(API+'/separate',{method:'POST',body:fd,headers:_sepHeaders});
+    // Stop rotation as soon as we get a response (success or error)
+    stopCookRotation();
     if(!res.ok)throw new Error('Server error '+res.status);
-    setCookStep(2);await new Promise(r=>setTimeout(r,1000));
     setCookStep(3);await new Promise(r=>setTimeout(r,800));
     data=await res.json();
   }catch(err){
+    // ── LAYER 1: Always stop rotation on error so timer doesn't keep running ──
+    stopCookRotation();
+    // ── LAYER 1: Use friendly error messages instead of raw err.message ──
+    var _friendly = mapUploadError(err);
     document.getElementById('cookEmoji').textContent='❌';
-    document.getElementById('cookTitle').textContent='Something went wrong';
-    document.getElementById('cookMsg').textContent=err.message;
+    document.getElementById('cookTitle').textContent=_friendly.title;
+    document.getElementById('cookSub').textContent='Try again or message us if this keeps happening';
+    document.getElementById('cookMsg').textContent=_friendly.msg;
     setTimeout(()=>{
       document.getElementById('cookingTracker').classList.remove('show');
       document.getElementById('cookingTracker').style.display='none';
       document.getElementById('dz').style.display='';
-    },3000);
+    },5000);  // 5 sec instead of 3 — give user time to read the actual error
     return;
   }
   setCookStep(4);await new Promise(r=>setTimeout(r,600));
