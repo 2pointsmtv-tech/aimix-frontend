@@ -7,8 +7,28 @@
 <!-- Meta Pixel -->
 <script>
 !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init','524092666589747');
+// ── Meta Pixel Advanced Matching ──
+// Reads email from aimix_user localStorage (if user is signed in) and passes
+// it to fbq init. Meta auto-hashes via SHA-256. Improves match rate from
+// ~50% to ~85% by linking anonymous browser sessions to known Meta users.
+// On first visit before sign-in, _advMatch is empty {} - fbq init still works.
+// After sign-in, call window.fbRefreshMatching() to update for subsequent events.
+var _advMatch = {};
+try {
+  var _u = JSON.parse(localStorage.getItem('aimix_user') || 'null');
+  if (_u && _u.email) _advMatch.em = String(_u.email).toLowerCase().trim();
+} catch(e) {}
+fbq('init','524092666589747', _advMatch);
 fbq('track','PageView');
+// Refresh advanced matching after user signs in or session loads
+window.fbRefreshMatching = function() {
+  try {
+    var u = JSON.parse(localStorage.getItem('aimix_user') || 'null');
+    if (u && u.email && window.fbq) {
+      fbq('set','userData', { em: String(u.email).toLowerCase().trim() });
+    }
+  } catch(e) {}
+};
 // helper: mfb('Lead') or mfb('Purchase',{value:24.99,currency:'USD',content_name:'pro'})
 window.mfb=function(ev,data){try{if(window.fbq)fbq('track',ev,data||{});}catch(e){}};
 </script>
@@ -1811,6 +1831,7 @@ window.addEventListener('DOMContentLoaded', function(){
             var sbUser = res && res.data && res.data.session && res.data.session.user;
             if (sbUser) {
               try { localStorage.setItem('aimix_user', JSON.stringify({ email: sbUser.email, id: sbUser.id, name: '' })); } catch(e) {}
+              try { if (window.fbRefreshMatching) window.fbRefreshMatching(); } catch(e) {}
               buildAuthDD(sbUser, {});
               // Clean hash from URL without reloading
               history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -1846,6 +1867,7 @@ window.addEventListener('DOMContentLoaded', function(){
             var u = { email: sbUser.email, id: sbUser.id, name: '' };
             localStorage.setItem('aimix_user', JSON.stringify(u));
           } catch(e) {}
+          try { if (window.fbRefreshMatching) window.fbRefreshMatching(); } catch(e) {}
           // Hide authWall if showing (user was already logged in)
           var aw = document.getElementById('authWall');
           if (aw) aw.classList.remove('show');
@@ -1896,6 +1918,7 @@ window.addEventListener('DOMContentLoaded', function(){
           try {
             localStorage.setItem('aimix_user', JSON.stringify({ email: sbUser.email, id: sbUser.id, name: '' }));
           } catch(e) {}
+          try { if (window.fbRefreshMatching) window.fbRefreshMatching(); } catch(e) {}
           // Hide authWall if showing
           var aw = document.getElementById('authWall');
           if (aw) aw.classList.remove('show');
