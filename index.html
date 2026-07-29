@@ -1026,6 +1026,13 @@ function mapUploadError(err){
 
 async function processTrack(file){
   if(!file) return;
+  // Remember the uploaded song's file name (extension stripped) so master.html
+  // can show it instead of "Untitled Mix" and use it for the download filename.
+  // Cleared on ?fresh=1; overwritten on every upload so it never goes stale.
+  try{
+    var _tn=(file.name||'').replace(/\.[^/.]+$/,'').trim();
+    if(_tn) localStorage.setItem('aimix_trackname',_tn); else localStorage.removeItem('aimix_trackname');
+  }catch(e){}
   // Only block if user is not logged in at all
   // Backend /separate handles all credit/subscription enforcement
   var _u = null;
