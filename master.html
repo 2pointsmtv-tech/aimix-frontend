@@ -832,6 +832,27 @@ async function downloadMastered(){
   if(!_rawBuf){alert('No mix!');return;}
   const btn=document.getElementById('dlBtn');
   btn.textContent='⏳ Rendering...';btn.disabled=true;
+  // ── FIX: ensure the mastering graph exists before reading its node values ──
+  // The offline render below copies params from the live node bag N (N.loShelf.gain,
+  // etc.). N is only populated by buildGraph(), which normally runs on first playback.
+  // If the user clicks Download WITHOUT pressing Play first, every N.* is null and
+  // reading N.loShelf.gain threw a TypeError, leaving the button stuck on "Rendering...".
+  // Build the graph on demand here (buildGraph applies the current knob positions) so
+  // Download works whether or not the user has played. No audio plays — no source is
+  // connected to the live context — we only need the node .value's for the offline copy.
+  try{
+    if(!N.loShelf){
+      if(!_actx)_actx=new(window.AudioContext||window.webkitAudioContext)();
+      buildGraph();
+    }
+  }catch(gErr){
+    console.error('downloadMastered: graph init failed',gErr);
+    alert('Could not prepare your master. Tap Play once, then try Download again.');
+    btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
+    return;
+  }
+  // Wrap the render so any failure resets the button instead of hanging on "Rendering..."
+  try{
   // Render offline using current node params
   const offCtx=new OfflineAudioContext(2,_rawBuf.length,_rawBuf.sampleRate);
   const lo=offCtx.createBiquadFilter();lo.type='lowshelf';lo.frequency.value=150;lo.gain.value=N.loShelf.gain.value;
@@ -890,6 +911,11 @@ async function downloadMastered(){
     setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
   }
   btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
+  }catch(rErr){
+    console.error('downloadMastered: render failed',rErr);
+    alert('Something went wrong while rendering your master. Please try again.');
+    btn.textContent='↓ Download Mastered WAV';btn.disabled=false;
+  }
 }
 
 // ── LOAD ─────────────────────────────────────────────────────────
