@@ -1536,14 +1536,19 @@ window.addEventListener('DOMContentLoaded', function(){
   // Stripe checkout with email prefill
   window.goStripe = function(plan) {
     plan = (plan + '').replace(/&quot;/g, '').replace(/"/g, '');
-    var em = '';
-    try { em = JSON.parse(localStorage.getItem('aimix_user') || '{}').email || ''; } catch(e) {}
+    var em = '', uid = '';
+    try { var _u = JSON.parse(localStorage.getItem('aimix_user') || '{}'); em = _u.email || ''; uid = _u.id || ''; } catch(e) {}
     var urls = { pro: 'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l', pro_yearly: 'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n', starter: 'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m' };
     var prices = { pro: 24.99, pro_yearly: 224.99, starter: 9.99 };
     var url = urls[plan] || urls.starter;
     // ── Meta pixel: InitiateCheckout fires when user clicks an upgrade button before Stripe ──
     try { if (window.mfb) mfb('InitiateCheckout', { content_name: plan, content_category: 'aimix', value: prices[plan] || 0, currency: 'USD' }); } catch(e) {}
-    window.open(url + (em ? '?prefilled_email=' + encodeURIComponent(em) : ''), '_blank');
+    // Stamp the account user_id onto the checkout (client_reference_id) so the subscription
+    // attaches to THIS account no matter what email they pay with (Apple Pay, different email, etc.).
+    var _p = [];
+    if (em) _p.push('prefilled_email=' + encodeURIComponent(em));
+    if (uid) _p.push('client_reference_id=' + encodeURIComponent(uid));
+    window.open(url + (_p.length ? '?' + _p.join('&') : ''), '_blank');
   };
 
   // ── Billing toggle (monthly / yearly) ──
