@@ -326,7 +326,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
     <div class="songs-bar-track">
       <div class="songs-bar-fill" id="songsBarFill"></div>
     </div>
-    <button class="songs-upgrade-btn" id="songsUpgradeBtn" onclick="(function(){var em='';try{em=JSON.parse(localStorage.getItem('aimix_user')||'{}').email||'';}catch(e){}window.open('https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l'+(em?'?prefilled_email='+encodeURIComponent(em):''),'_blank');})()">
+    <button class="songs-upgrade-btn" id="songsUpgradeBtn" onclick="masterStripe('pro')">
       ⚡ Upgrade to Pro — Unlimited Masters →
     </button>
   </div>
@@ -1362,8 +1362,18 @@ window._mBilling='monthly';
 function masterStripe(plan){
   var urls={starter:'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m',pro:'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l',pro_yearly:'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n'};
   if(plan==='pro'&&window._mBilling==='yearly')plan='pro_yearly';
-  var em='';try{em=JSON.parse(localStorage.getItem('aimix_user')||'{}').email||'';}catch(e){}
-  window.open(urls[plan]+(em?'?prefilled_email='+encodeURIComponent(em):''),'_blank');
+  window.open(urls[plan]+aimixCheckoutParams(),'_blank');
+}
+// Build the checkout query string: prefill email AND stamp the account user_id as
+// client_reference_id, so the subscription attaches to THIS account regardless of the
+// email used to pay (Apple Pay, a different address, etc.).
+function aimixCheckoutParams(){
+  var p=[];
+  try{ var u=JSON.parse(localStorage.getItem('aimix_user')||'{}');
+    if(u.email) p.push('prefilled_email='+encodeURIComponent(u.email));
+    if(u.id) p.push('client_reference_id='+encodeURIComponent(u.id));
+  }catch(e){}
+  return p.length?'?'+p.join('&'):'';
 }
 window.setMasterBilling=function(mode){
   window._mBilling=mode;
