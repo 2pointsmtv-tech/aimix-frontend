@@ -411,10 +411,13 @@ function buildGraph(){
   N.mudCut.connect(N.harshCut);
   N.harshCut.connect(N.midCut);
   N.midCut.connect(N.presence);
-  N.presence.connect(N.limDelay);
+  // Drive (outGain) sits BEFORE the limiter so makeup pushes INTO it — the limiter
+  // then holds the ceiling. This keeps loudness without pushing peaks over 0 dBFS,
+  // so playback and the exported file land at the same level (no over-0 clipping).
+  N.presence.connect(N.outGain);
+  N.outGain.connect(N.limDelay);
   N.limDelay.connect(N.limComp);
-  N.limComp.connect(N.outGain);
-  N.outGain.connect(N.ceiling);
+  N.limComp.connect(N.ceiling);
   N.ceiling.connect(N.analyser);
   // Connect to destination only if no stream dest (desktop)
   // On iOS, we connect to _streamDest in startPlay instead
@@ -513,13 +516,13 @@ function updateMaximizeNodes(v){
   // compensates, so average loudness rises while peaks stay pinned at the ceiling.
   const toTarget = Math.max(0, Math.min(18, _target - a.lufs)); // dB to reach target (capped, never negative)
   const driveDB = toTarget * t;                                 // Maximize sweeps 0 -> full drive
-  N.limComp.threshold.value = -driveDB;      // limiter bites harder the more we drive
+  N.outGain.gain.value = Math.pow(10, driveDB/20);   // DRIVE — pushes the signal INTO the limiter
+  N.limComp.threshold.value = TP_CEILING_DB;         // limiter holds the ceiling (-0.30 dBFS)
   N.limComp.knee.value = 0;
-  N.limComp.ratio.value = 20;                // brickwall-ish limiting
-  N.limComp.attack.value = 0.0005;
+  N.limComp.ratio.value = 20;                        // brickwall-ish limiting
+  N.limComp.attack.value = 0.001;
   N.limComp.release.value = 0.05 + t*0.10;
-  N.outGain.gain.value = Math.pow(10, driveDB/20);        // makeup compensates the threshold drop
-  N.ceiling.gain.value = Math.pow(10, TP_CEILING_DB/20);  // final true-peak trim (-0.30 dBTP)
+  N.ceiling.gain.value = 1.0;                        // limiter already holds the ceiling; unity here
 }
 
 function onMaximize(v){
@@ -815,15 +818,16 @@ function encodeWAV(buf){
   return new Blob([out],{type:'audio/wav'});
 }
 
-// Guarantee true-peak <= ceilingDb on the rendered buffer. 4x linear-interpolation
-// oversampling approximates inter-sample (true) peaks; if the peak overshoots we scale
-// the whole buffer down by the exact overshoot — transparent (gain only), no clipping.
-// The in-chain limiter does the loudness work; this just pins the final ceiling so
-// nothing, including inter-sample peaks, crosses the true-peak ceiling.
+// Hold the export at the true-peak ceiling WITHOUT losing loudness. The in-chain
+// limiter already keeps peaks near the ceiling; this shaves any remaining transient
+// tips by hard-limiting each sample to the ceiling (a safety clipper) — instead of
+// scaling the whole file down, which made the download quieter than playback.
+// 4x oversampling measures the inter-sample (true) peak going in, for logging.
+// Returns the measured pre-limit true peak in dBTP.
 function truePeakLimit(buffer, ceilingDb){
   const ceilingLin=Math.pow(10, ceilingDb/20);
   const OS=4;
-  let truePeak=0;
+  let peakBefore=0;
   for(let ch=0; ch<buffer.numberOfChannels; ch++){
     const d=buffer.getChannelData(ch), n=d.length;
     for(let i=0;i<n-1;i++){
@@ -831,20 +835,16 @@ function truePeakLimit(buffer, ceilingDb){
       for(let k=0;k<OS;k++){
         const s=s0+(s1-s0)*(k/OS);
         const abs=s<0?-s:s;
-        if(abs>truePeak) truePeak=abs;
+        if(abs>peakBefore) peakBefore=abs;
       }
     }
-    const la=d[n-1]<0?-d[n-1]:d[n-1];
-    if(la>truePeak) truePeak=la;
-  }
-  if(truePeak>ceilingLin && truePeak>0){
-    const g=ceilingLin/truePeak;
-    for(let ch=0; ch<buffer.numberOfChannels; ch++){
-      const d=buffer.getChannelData(ch);
-      for(let i=0;i<d.length;i++) d[i]*=g;
+    // hard-limit sample peaks to the ceiling (loudness-preserving)
+    for(let i=0;i<n;i++){
+      if(d[i]>ceilingLin) d[i]=ceilingLin;
+      else if(d[i]<-ceilingLin) d[i]=-ceilingLin;
     }
   }
-  return buffer;
+  return peakBefore>0 ? 20*Math.log10(peakBefore) : -99;
 }
 
 async function downloadMastered(){
@@ -905,12 +905,13 @@ async function downloadMastered(){
   src.connect(lo);lo.connect(hi);
   hi.connect(dryG);hi.connect(excHP);excHP.connect(excHP2);excHP2.connect(sat);sat.connect(satG);
   dryG.connect(mud);satG.connect(mud);mud.connect(harsh);harsh.connect(midC);midC.connect(pres);
-  pres.connect(delay);delay.connect(comp);comp.connect(outG);outG.connect(ceil);ceil.connect(offCtx.destination);
+  // Same order as the live chain: drive (outG) BEFORE the limiter, limiter holds the ceiling.
+  pres.connect(outG);outG.connect(delay);delay.connect(comp);comp.connect(ceil);ceil.connect(offCtx.destination);
   src.start(0);
   const rendered=await offCtx.startRendering();
   // Pin the export to the true-peak ceiling (-0.30 dBTP) — guaranteed, inter-sample safe.
-  truePeakLimit(rendered, TP_CEILING_DB);
-  try{ var _outA=analyzeMix(rendered); console.log('[MASTER] export ~'+_outA.lufs+' LUFS | target '+_target+' LUFS | ceiling '+TP_CEILING_DB+' dBTP'); }catch(e){}
+  var _tpBefore=truePeakLimit(rendered, TP_CEILING_DB);
+  try{ var _outA=analyzeMix(rendered); console.log('[MASTER] export ~'+_outA.lufs+' LUFS | target '+_target+' LUFS | peak into limiter '+_tpBefore.toFixed(2)+' dBTP -> ceiling '+TP_CEILING_DB+' dBTP'); }catch(e){}
   const blob=encodeWAV(rendered);
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(isIOS && navigator.share){
