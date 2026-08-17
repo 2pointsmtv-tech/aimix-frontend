@@ -646,7 +646,8 @@ function stopPlay(){
   }
   _playing=false;  // Set BEFORE stop() to prevent onended from resetting _offset
   cancelAnimationFrame(_animId);
-  if(_src){try{_src.stop();}catch(e){}}_src=null;
+  // Clear onended + disconnect so the source is fully torn down (reliable stop).
+  if(_src){ try{_src.onended=null;}catch(e){} try{_src.stop();}catch(e){} try{_src.disconnect();}catch(e){} _src=null; }
   updateIcon();
 }
 function listenNow(){
@@ -715,13 +716,8 @@ function togglePlay(){
   }
   
   if(_playing){
-    // PAUSE: save position, set playing false BEFORE stop to prevent onended reset
-    _offset = Math.max(0, _actx.currentTime - _startTime);
-    _playing = false;
-    cancelAnimationFrame(_animId);
-    updateIcon();
-    // Stop source cleanly — no more looping glitch
-    if(_src){ try{ _src.stop(); }catch(e){} _src=null; }
+    // PAUSE — single robust stop path (saves position, clears onended, stops, disconnects)
+    stopPlay();
   } else {
     // PLAY: resume AudioContext then start from saved offset
     if(_actx.state === 'suspended'){
@@ -1021,26 +1017,39 @@ function initWaveformEvents(){
   var wrap = document.getElementById('waveformWrap');
   if(!wrap) return;
 
+  var _wasPlaying=false;
   function getPct(e){
     var rect=wrap.getBoundingClientRect();
-    var clientX=e.touches?e.touches[0].clientX:e.clientX;
+    var clientX=(e.touches&&e.touches[0])?e.touches[0].clientX:e.clientX;
     return Math.max(0,Math.min(1,(clientX-rect.left)/rect.width));
   }
-  function doSeek(pct){
+  // While dragging, ONLY move the playhead + position — do not restart audio on every
+  // move (that spawned a new audio source per mouse event and made scrubbing stutter).
+  function updateScrub(e){
+    var pct=getPct(e);
     _offset=pct*_duration;
     updateWaveformPlayhead(pct);
     document.getElementById('curTime').textContent=fmtT(_offset);
-    if(_playing){
-      stopPlay();
-      startPlay(_offset);
-    }
   }
-  wrap.addEventListener('mousedown',function(e){_isDragging=true;doSeek(getPct(e));e.preventDefault();});
-  document.addEventListener('mousemove',function(e){if(_isDragging)doSeek(getPct(e));});
-  document.addEventListener('mouseup',function(){_isDragging=false;});
-  wrap.addEventListener('touchstart',function(e){_isDragging=true;doSeek(getPct(e));e.preventDefault();},{passive:false});
-  wrap.addEventListener('touchmove',function(e){if(_isDragging){doSeek(getPct(e));e.preventDefault();}},{passive:false});
-  wrap.addEventListener('touchend',function(){_isDragging=false;});
+  function beginScrub(e){
+    _isDragging=true;
+    _wasPlaying=_playing;
+    if(_playing) stopPlay();   // pause cleanly for the duration of the drag
+    updateScrub(e);
+  }
+  function endScrub(){
+    if(!_isDragging) return;
+    _isDragging=false;
+    if(_wasPlaying) startPlay(_offset);  // resume from the new spot exactly once
+    _wasPlaying=false;
+  }
+  wrap.addEventListener('mousedown',function(e){beginScrub(e);e.preventDefault();});
+  document.addEventListener('mousemove',function(e){if(_isDragging)updateScrub(e);});
+  document.addEventListener('mouseup',function(){endScrub();});
+  wrap.addEventListener('touchstart',function(e){beginScrub(e);e.preventDefault();},{passive:false});
+  wrap.addEventListener('touchmove',function(e){if(_isDragging){updateScrub(e);e.preventDefault();}},{passive:false});
+  wrap.addEventListener('touchend',function(){endScrub();});
+  wrap.addEventListener('touchcancel',function(){endScrub();});
 }
 
 function loadMix(){
