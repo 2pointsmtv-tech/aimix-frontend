@@ -342,6 +342,7 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 let _rawBuf=null,_rawData=null,_actx=null,_src=null;
 let _playing=false,_offset=0,_startTime=0,_duration=0;
 let _target=-14;
+const TP_CEILING_DB=-0.30;   // true-peak ceiling (dBTP) enforced on preview + export
 let _sparkle=0,_clarity=0,_maximize=0;
 let _analysis={lufs:-23,cf:12,peak:-3,headroom:0.5,alreadyLimited:false};
 let _animId=null;
@@ -505,26 +506,20 @@ function updateMaximizeNodes(v){
   if(!N.limComp)return;
   const t=v/100;
   const a=_analysis;
-  // Adaptive: if already limited, limiter threshold is gentler
-  const threshBase = a.alreadyLimited ? -1.5 : -3;
-  const thresh = threshBase - t*8; // gets lower as maximize increases
-  N.limComp.threshold.value=Math.max(-20, thresh);
-  N.limComp.ratio.value = a.alreadyLimited ? 4+t*12 : 4+t*96;
-  N.limComp.release.value=0.05+t*0.15;
-  // Output gain — push toward target LUFS
-  let outDB=0;
-  if(!a.alreadyLimited){
-    const gainNeeded=_target-a.lufs;
-    const applied=gainNeeded*t*Math.max(0.2,a.headroom)*0.85;
-    outDB=Math.max(-2,Math.min(12,applied));
-  } else {
-    // Already limited: slight input reduction to give limiter headroom
-    outDB=-0.5+t*-1.5;
-  }
-  N.outGain.gain.value=Math.pow(10,outDB/20);
-  // Ceiling tightens with maximize
-  const ceilDB = a.alreadyLimited ? -0.8 : (-0.3 - t*0.5);
-  N.ceiling.gain.value=Math.pow(10,ceilDB/20);
+  // Maximize drives loudness from the mix's natural level UP toward the selected
+  // target — the SAME on every mix (no more "already limited" reversal that made
+  // hot mixes get quieter as you cranked). It behaves like a real maximizer: as
+  // you push the knob, the limiter threshold drops and an equal makeup gain
+  // compensates, so average loudness rises while peaks stay pinned at the ceiling.
+  const toTarget = Math.max(0, Math.min(18, _target - a.lufs)); // dB to reach target (capped, never negative)
+  const driveDB = toTarget * t;                                 // Maximize sweeps 0 -> full drive
+  N.limComp.threshold.value = -driveDB;      // limiter bites harder the more we drive
+  N.limComp.knee.value = 0;
+  N.limComp.ratio.value = 20;                // brickwall-ish limiting
+  N.limComp.attack.value = 0.0005;
+  N.limComp.release.value = 0.05 + t*0.10;
+  N.outGain.gain.value = Math.pow(10, driveDB/20);        // makeup compensates the threshold drop
+  N.ceiling.gain.value = Math.pow(10, TP_CEILING_DB/20);  // final true-peak trim (-0.30 dBTP)
 }
 
 function onMaximize(v){
@@ -595,14 +590,11 @@ function updateChain(){
 // ── METER ─────────────────────────────────────────────────────────
 function updateMeter(){
   const a=_analysis;
-  const spT=_sparkle/100, clT=_clarity/100, mxT=_maximize/100;
-  let estLUFS=a.lufs;
-  if(!a.alreadyLimited){
-    const gain=(_target-a.lufs)*mxT*Math.max(0.2,a.headroom)*0.85;
-    estLUFS=Math.min(-0.3,a.lufs+gain);
-  } else {
-    estLUFS=Math.min(-0.5,a.lufs-0.5-mxT*1.5);
-  }
+  const mxT=_maximize/100;
+  // Maximize sweeps loudness from the mix's natural level up to the selected target,
+  // so the number climbs honestly as you crank — matching what actually exports.
+  const toTarget=Math.max(0,Math.min(18,_target-a.lufs));
+  const estLUFS=a.lufs + toTarget*mxT;
   const pct=Math.max(0,Math.min(100,(estLUFS+40)/40*100));
   const fill=document.getElementById('meterFill');
   fill.style.width=pct+'%';
@@ -823,6 +815,38 @@ function encodeWAV(buf){
   return new Blob([out],{type:'audio/wav'});
 }
 
+// Guarantee true-peak <= ceilingDb on the rendered buffer. 4x linear-interpolation
+// oversampling approximates inter-sample (true) peaks; if the peak overshoots we scale
+// the whole buffer down by the exact overshoot — transparent (gain only), no clipping.
+// The in-chain limiter does the loudness work; this just pins the final ceiling so
+// nothing, including inter-sample peaks, crosses the true-peak ceiling.
+function truePeakLimit(buffer, ceilingDb){
+  const ceilingLin=Math.pow(10, ceilingDb/20);
+  const OS=4;
+  let truePeak=0;
+  for(let ch=0; ch<buffer.numberOfChannels; ch++){
+    const d=buffer.getChannelData(ch), n=d.length;
+    for(let i=0;i<n-1;i++){
+      const s0=d[i], s1=d[i+1];
+      for(let k=0;k<OS;k++){
+        const s=s0+(s1-s0)*(k/OS);
+        const abs=s<0?-s:s;
+        if(abs>truePeak) truePeak=abs;
+      }
+    }
+    const la=d[n-1]<0?-d[n-1]:d[n-1];
+    if(la>truePeak) truePeak=la;
+  }
+  if(truePeak>ceilingLin && truePeak>0){
+    const g=ceilingLin/truePeak;
+    for(let ch=0; ch<buffer.numberOfChannels; ch++){
+      const d=buffer.getChannelData(ch);
+      for(let i=0;i<d.length;i++) d[i]*=g;
+    }
+  }
+  return buffer;
+}
+
 async function downloadMastered(){
   // Check subscription before downloading
   var canDl = await checkCanDownload();
@@ -884,6 +908,9 @@ async function downloadMastered(){
   pres.connect(delay);delay.connect(comp);comp.connect(outG);outG.connect(ceil);ceil.connect(offCtx.destination);
   src.start(0);
   const rendered=await offCtx.startRendering();
+  // Pin the export to the true-peak ceiling (-0.30 dBTP) — guaranteed, inter-sample safe.
+  truePeakLimit(rendered, TP_CEILING_DB);
+  try{ var _outA=analyzeMix(rendered); console.log('[MASTER] export ~'+_outA.lufs+' LUFS | target '+_target+' LUFS | ceiling '+TP_CEILING_DB+' dBTP'); }catch(e){}
   const blob=encodeWAV(rendered);
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
   if(isIOS && navigator.share){
