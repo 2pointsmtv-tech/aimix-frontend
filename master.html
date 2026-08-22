@@ -1168,6 +1168,13 @@ loadMix();
         <button class="plan-btn plan-btn-pro">Get Pro →</button>
       </div>
     </div>
+    <!-- Lifetime one-time offer — same unlimited Pro access, paid once -->
+    <div class="lifetime-card" onclick="masterStripe('lifetime')" style="margin:2px 0 14px;padding:14px 16px;border:1px solid var(--teal);border-radius:14px;background:linear-gradient(135deg,#0a1a18,#0f0f16);cursor:pointer;text-align:center;transition:transform .15s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+      <div style="font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--teal);text-transform:uppercase;margin-bottom:4px;">🔥 Best value · Pay once, own it</div>
+      <div style="font-size:16px;font-weight:800;color:#fff;">AI Mixing Lifetime — <span style="color:var(--teal);">$119</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:3px;">Unlimited Pro access forever. One payment, no subscription.</div>
+      <button class="plan-btn plan-btn-pro" style="margin-top:10px;">Get Lifetime Access →</button>
+    </div>
     <button class="paywall-close" onclick="document.getElementById('paywallEl').classList.remove('show')">✕ Maybe later</button>
   </div>
 </div>
@@ -1360,7 +1367,7 @@ async function checkCanDownload(){
 // Paywall billing toggle (monthly / yearly) + direct Stripe checkout
 window._mBilling='monthly';
 function masterStripe(plan){
-  var urls={starter:'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m',pro:'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l',pro_yearly:'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n'};
+  var urls={starter:'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m',pro:'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l',pro_yearly:'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n',lifetime:'https://buy.stripe.com/bJeaEWdNs0uu0TA2ebd3i0v'};
   if(plan==='pro'&&window._mBilling==='yearly')plan='pro_yearly';
   window.open(urls[plan]+aimixCheckoutParams(),'_blank');
 }
