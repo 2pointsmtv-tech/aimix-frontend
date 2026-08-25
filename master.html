@@ -156,6 +156,11 @@ nav{display:flex;align-items:center;justify-content:space-between;padding:16px 3
 
 </style>
 <style id="dynStyle"></style>
+<!-- Microsoft Clarity (session recordings — see where users drop off) -->
+<script>
+(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","wy0x8li8xe");
+</script>
+<!-- /Microsoft Clarity -->
 </head>
 <body>
 <nav>
@@ -944,8 +949,11 @@ async function downloadMastered(){
 
 // ── LOAD ─────────────────────────────────────────────────────────
 function animLoad(){
-  setTimeout(()=>{document.getElementById('step1').className='loading-step done';document.getElementById('step2').className='loading-step active';},400);
-  setTimeout(()=>{document.getElementById('step2').className='loading-step done';document.getElementById('step3').className='loading-step active';},900);
+  // Steps UI was removed; guard so this never throws if elements are absent
+  var s1=document.getElementById('step1'),s2=document.getElementById('step2'),s3=document.getElementById('step3');
+  if(!s1&&!s2&&!s3) return;
+  setTimeout(()=>{if(s1)s1.className='loading-step done';if(s2)s2.className='loading-step active';},400);
+  setTimeout(()=>{if(s2)s2.className='loading-step done';if(s3)s3.className='loading-step active';},900);
 }
 
 // ── WAVEFORM ──────────────────────────────────────────────────────
