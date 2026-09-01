@@ -1523,5 +1523,29 @@ window.addEventListener('load', function(){
 });
 </script>
 
+
+<script>
+/* ── past-due banner: last payment failed → one-click card update ── */
+(function(){
+  var API='https://aimix-backend-production.up.railway.app';
+  function uid(){try{var r=localStorage.getItem('aimix_user')||sessionStorage.getItem('aimix_user')||'{}';return (JSON.parse(r)||{}).id||'';}catch(e){return'';}}
+  function show(d){
+    if(!d||!d.past_due||!d.update_url)return;
+    try{if(sessionStorage.getItem('dunbar_hide'))return;}catch(e){}
+    if(document.getElementById('dunbar'))return;
+    var b=document.createElement('div');b.id='dunbar';
+    b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#2a1500;color:#ffd9a0;border-bottom:1px solid #7a4a00;font:600 13px/1.5 system-ui,-apple-system,sans-serif;padding:10px 44px 10px 14px;text-align:center;box-shadow:0 2px 14px rgba(0,0,0,.45);';
+    b.innerHTML='Your last payment didn\u2019t go through \u2014 update your card to keep your '+(d.plan_label?d.plan_label+' ':'')+'access. '+
+      '<a href="'+d.update_url+'" style="color:#ffb84d;text-decoration:underline;font-weight:700;white-space:nowrap;">Update card \u2192</a>'+
+      '<button aria-label="Dismiss" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:#ffd9a0;font-size:18px;cursor:pointer;padding:4px 10px;">\u00d7</button>';
+    b.querySelector('button').onclick=function(){try{sessionStorage.setItem('dunbar_hide','1');}catch(e){}b.remove();};
+    document.body.appendChild(b);
+  }
+  function check(){var u=uid();if(!u)return;
+    fetch(API+'/billing/status?uid='+encodeURIComponent(u)).then(function(r){return r.json();}).then(show).catch(function(){});}
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){setTimeout(check,1200);});
+  else setTimeout(check,1200);
+})();
+</script>
 </body>
 </html>
