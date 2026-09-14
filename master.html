@@ -5,6 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AIMix — AI Mastering</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<!-- Meta Pixel -->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+// Advanced matching: pass the signed-in email (Meta hashes it) like index.html does
+var _advMatch = {};
+try {
+  var _u = JSON.parse(localStorage.getItem('aimix_user') || sessionStorage.getItem('aimix_user') || 'null');
+  if (_u && _u.email) _advMatch.em = String(_u.email).toLowerCase().trim();
+} catch(e) {}
+fbq('init','524092666589747', _advMatch);
+fbq('track','PageView');
+// helper: mfb('Purchase',{value:24.99,currency:'USD'},eventID) — eventID (the Stripe
+// session id) lets Meta dedupe this against the server-side CAPI Purchase
+window.mfb=function(ev,data,eid){try{if(window.fbq)fbq('track',ev,data||{},eid?{eventID:eid}:undefined);}catch(e){}};
+</script>
+<noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=524092666589747&ev=PageView&noscript=1"/></noscript>
+<!-- /Meta Pixel -->
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 :root{--bg:#080808;--surface:#111;--s2:#161616;--border:#1e1e1e;--purple:#b026ff;--pink:#ff2d78;--teal:#00e5cc;
@@ -1377,6 +1395,8 @@ window._mBilling='monthly';
 function masterStripe(plan){
   var urls={starter:'https://buy.stripe.com/4gMaEWfVAelk8m2g51d3i0m',pro:'https://buy.stripe.com/cNiaEW6l09100TA8Czd3i0l',pro_yearly:'https://buy.stripe.com/fZu4gy7p49101XE8Czd3i0n',lifetime:'https://buy.stripe.com/bJeaEWdNs0uu0TA2ebd3i0v'};
   if(plan==='pro'&&window._mBilling==='yearly')plan='pro_yearly';
+  try{var _v={starter:9.99,pro:24.99,pro_yearly:224.99,lifetime:119}[plan]||0;
+    if(window.mfb)mfb('InitiateCheckout',{content_name:plan,content_category:'aimix',value:_v,currency:'USD'});}catch(e){}
   window.open(urls[plan]+aimixCheckoutParams(),'_blank');
 }
 // Build the checkout query string: prefill email AND stamp the account user_id as
@@ -1453,6 +1473,10 @@ async function logUsage(){
 
 // ── HANDLE SUCCESS RETURN FROM STRIPE ────────────────────────────
 if(window.location.search.includes('success=1')){
+  // fire before the URL is cleared; eventID = Stripe session id so Meta merges
+  // this with the server-side CAPI Purchase instead of counting it twice
+  try{var _msid=new URLSearchParams(window.location.search).get('session_id')||'';
+    if(window.mfb)mfb('Purchase',{content_category:'aimix',content_name:'master_checkout',currency:'USD'},_msid);}catch(e){}
   window.history.replaceState({},'',window.location.pathname);
   
   async function handleSuccess(){
