@@ -1210,11 +1210,11 @@ loadMix();
 <script>
 // ── SUPABASE AUTH ON MASTER PAGE ─────────────────────────────────
 (function(){
-  var SURL='https://bhuduafakmaywnxklfyk.supabase.co';
+  var SURL='https://auth.2pointsmusic.com';
   var SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
   function initAuth(){
     if(!window.supabase){setTimeout(initAuth,200);return;}
-    var sb=window.supabase.createClient(SURL,SKEY);
+    var sb=window.supabase.createClient(SURL,SKEY,{auth:{storageKey:'sb-bhuduafakmaywnxklfyk-auth-token'}});
     sb.auth.getSession().then(function(res){
       if(res.data&&res.data.session&&res.data.session.user){
         window._authUser=res.data.session.user;
