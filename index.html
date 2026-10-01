@@ -1441,7 +1441,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <script>
 // ── SUPABASE AUTH (loads after main script) ─────────────────────
 (function() {
-  var SURL = 'https://bhuduafakmaywnxklfyk.supabase.co';
+  var SURL = 'https://auth.2pointsmusic.com';
   var SKEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
   var SYSTEME = 'rnzkipes8urrxnsxo3ca70qr49f6gu7pt1f6bt54cwxbc2114bkfrwomu1onfuhn';
   var sb = null;
@@ -1452,7 +1452,7 @@ window.addEventListener('DOMContentLoaded', function(){
 
   function initSB() {
     if (!window.supabase) { setTimeout(initSB, 200); return; }
-    sb = window.supabase.createClient(SURL, SKEY);
+    sb = window.supabase.createClient(SURL, SKEY, {auth:{storageKey:'sb-bhuduafakmaywnxklfyk-auth-token'}});
     window._sb = sb;
     
     // Check existing session
