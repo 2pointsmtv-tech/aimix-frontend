@@ -952,6 +952,25 @@ async function downloadMastered(){
         if(e && e.name==='AbortError') saved=true;
       }
     }
+    if(!saved && navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      // The share sheet must open within seconds of the user's tap, and long
+      // renders outlive that window — so offer a fresh tap. Sharing from a
+      // real click succeeds where the post-render attempt expired.
+      saved=await new Promise(function(res){
+        var ov=document.createElement('div');
+        ov.style.cssText='position:fixed;inset:0;background:rgba(5,5,8,0.93);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center;';
+        ov.innerHTML='<div style="color:#fff;font-size:17px;font-weight:700;margin-bottom:6px;">Your master is ready</div>'+
+          '<div style="color:#9aa3b2;font-size:13.5px;line-height:1.6;max-width:300px;margin-bottom:18px;">Tap below, then choose <b style="color:#fff">Save to Files</b> \u2014 or AirDrop it straight to your laptop.</div>'+
+          '<button id="iosSaveBtn" style="background:#fff;color:#000;border:none;border-radius:9999px;padding:16px 34px;font-size:15px;font-weight:700;cursor:pointer;">\ud83d\udcbe Save my track</button>'+
+          '<button id="iosSaveAlt" style="background:none;border:none;color:#8798c1;font-size:12.5px;margin-top:14px;text-decoration:underline;cursor:pointer;">Open as audio instead</button>';
+        document.body.appendChild(ov);
+        ov.querySelector('#iosSaveBtn').onclick=async function(){
+          try{ await navigator.share({files:[file],title:'AIMix Master',text:'Your mastered track'}); ov.remove(); res(true); }
+          catch(e){ ov.remove(); res(!!(e&&e.name==='AbortError')); }
+        };
+        ov.querySelector('#iosSaveAlt').onclick=function(){ ov.remove(); res(false); };
+      });
+    }
     if(!saved){
       alert("This browser can't save files directly. Your mastered track will open in a new tab \u2014 tap the Share icon there, then 'Save to Files'.\n\nTip: downloads work best in Safari at aimixingmastering.com.");
       const url=URL.createObjectURL(blob);
