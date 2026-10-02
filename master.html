@@ -933,19 +933,30 @@ async function downloadMastered(){
   try{ var _outA=analyzeMix(rendered); console.log('[MASTER] export ~'+_outA.lufs+' LUFS | target '+_target+' LUFS | peak into limiter '+_tpBefore.toFixed(2)+' dBTP -> ceiling '+TP_CEILING_DB+' dBTP'); }catch(e){}
   const blob=encodeWAV(rendered);
   const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent);
-  if(isIOS && navigator.share){
-    // iOS: Use Web Share API for reliable file saving
+  if(isIOS){
+    // iOS: the Web Share sheet is the only reliable "save a file" path.
     var trackName2='';
     try{trackName2=localStorage.getItem('aimix_trackname')||'';}catch(e){}
     var fileName2=(trackName2?trackName2+' - ':'')+'Mastered by AIMixingMastering.com.wav';
     const file=new File([blob],fileName2,{type:'audio/wav'});
-    try{
-      await navigator.share({files:[file],title:'AIMix Master',text:'Your mastered track'});
-    }catch(e){
-      // Fallback: open in new tab
+    let saved=false;
+    // Check file-sharing support first — Chrome/in-app browsers on iOS often
+    // lack it, and an unchecked share() throws straight into the fallback.
+    if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+      try{
+        await navigator.share({files:[file],title:'AIMix Master',text:'Your mastered track'});
+        saved=true;
+      }catch(e){
+        // AbortError = the user closed the sheet on purpose; don't dump them
+        // into the fallback player for cancelling.
+        if(e && e.name==='AbortError') saved=true;
+      }
+    }
+    if(!saved){
+      alert("This browser can't save files directly. Your mastered track will open in a new tab \u2014 tap the Share icon there, then 'Save to Files'.\n\nTip: downloads work best in Safari at aimixingmastering.com.");
       const url=URL.createObjectURL(blob);
       window.open(url,'_blank');
-      setTimeout(()=>URL.revokeObjectURL(url),10000);
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
     }
   } else {
     // Desktop: standard download
