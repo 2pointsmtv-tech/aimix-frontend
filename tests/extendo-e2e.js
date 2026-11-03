@@ -113,6 +113,13 @@ const {chromium}=require('playwright');
   const br=await page.evaluate(()=>({n:result.tl.bedRegions.length,bars:result.tl.bedRegions[0].bars,phrase:result.tl.bedRegions[0].phrase,s:song.samp.out.start}));
   ok(br.n===1&&br.bars===4&&Math.abs(br.phrase-br.s)<1e-9,'build used the sampled phrase (4 bars from the box)');
   await page.evaluate(()=>{setView('src');removeSample(null);opt.bed.inOn=true;});
+  // Pro gate: free uses exhausted + not Pro → the sampler opens the upgrade modal; Pro → no modal, PRO badge, no groove tags
+  const pg=await page.evaluate(()=>{auth.pro=null;auth.user.user_metadata.extendo_pro_used=5;song.proTried=false;renderAuth();opt.groove.house=3;renderStyles();const tags=document.querySelectorAll('#styleGrid .protag').length;createSample('out');return {modal:document.getElementById('proModal').classList.contains('show'),box:!!(song.samp&&song.samp.out),tags,menu:document.getElementById('umenuPro').textContent};});
+  ok(pg.modal&&!pg.box&&pg.tags>0&&/0 free/.test(pg.menu),'no Pro + 0 free uses: sampler opens the upgrade modal, Pro groove tagged ('+pg.tags+' tags, menu: '+pg.menu+')');
+  const pr=await page.evaluate(()=>{closeModal('proModal');auth.pro={pro:true,kind:'lifetime'};renderAuth();renderStyles();createSample('out');const r={modal:document.getElementById('proModal').classList.contains('show'),box:!!(song.samp&&song.samp.out),tags:document.querySelectorAll('#styleGrid .protag').length,pill:document.getElementById('authArea').textContent};removeSample(null);player.stop();return r;});
+  ok(!pr.modal&&pr.box&&pr.tags===0&&/PRO/.test(pr.pill),'Pro: sampler works, no PRO tags, pill shows PRO');
+  await page.evaluate(()=>buildAll());const ba=await page.evaluate(()=>document.getElementById('dlAllBtn').style.display!=='none');ok(ba,'Build all (Pro) with every track built shows Download all');
+  await page.evaluate(()=>{auth.pro=null;auth.user.user_metadata.extendo_pro_used=0;renderAuth();renderStyles();});
   await page.evaluate(()=>{if(!gridEdit)toggleGridEdit();});
   await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>{seekTo(song.firstDB+2*song.bar);window.scrollTo(0,0);});await page.screenshot({path:path.join(TMP,'shot_gridedit.png')});
   await page.evaluate(()=>{toggleGridEdit();setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});

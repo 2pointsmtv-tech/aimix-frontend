@@ -127,6 +127,25 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .sampbox .sb.on{background:var(--green);border-color:var(--green);color:#03150a;}
 .sampbox .x{width:26px;height:26px;border-radius:6px;border:1px solid var(--line2);background:var(--s2);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .sampbox .x svg{width:12px;height:12px;}
+.protag{display:inline-flex;align-items:center;font-size:9px;font-weight:800;letter-spacing:.1em;color:#fff;background:linear-gradient(135deg,#f59e0b,#ef4444);padding:2px 5px;border-radius:4px;margin-left:6px;vertical-align:middle;}
+.upill .av.pro{background:linear-gradient(135deg,#f59e0b,#ef4444);}
+.plans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 12px;}
+.plan{border:1px solid var(--line2);border-radius:12px;padding:16px 14px;background:var(--s2);text-align:center;cursor:pointer;position:relative;}
+.plan:hover{border-color:var(--t3);}
+.plan.best{border-color:#f59e0b;background:linear-gradient(180deg,#2a1a0f,#1a1630);box-shadow:0 0 24px rgba(245,158,11,.25);}
+.plan .tag{position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:9px;font-weight:800;letter-spacing:.1em;color:#000;background:#f59e0b;padding:3px 8px;border-radius:6px;white-space:nowrap;}
+.plan .pr{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:4px;}
+.plan .pr small{font-size:12px;font-weight:500;color:var(--t2);}
+.plan .nm{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--t2);}
+.plan .sub{font-size:11px;color:var(--t2);margin:6px 0 10px;line-height:1.4;}
+.plan .btn{width:100%;justify-content:center;}
+.plan.best .btn{background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;box-shadow:none;}
+.feat{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;font-size:12px;color:var(--t2);margin-bottom:4px;}
+.feat div{display:flex;align-items:center;gap:7px;}
+.feat svg{width:14px;height:14px;color:var(--green);flex-shrink:0;}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--s2);border:1px solid var(--line2);color:var(--t1);font-size:12px;font-weight:500;padding:10px 16px;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transition:all .25s;z-index:300;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+@media (max-width:520px){.plans,.feat{grid-template-columns:1fr;}}
 .gehint{position:absolute;right:10px;top:24px;z-index:2;font-size:11px;color:#000;background:var(--cC);padding:5px 10px;border-radius:6px;display:none;font-weight:600;}
 .dbar{display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap;}
 .dbar .lab{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--t3);margin-right:4px;}
@@ -301,7 +320,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <span id="authArea"></span>
     <button class="ibtn" title="Fullscreen" onclick="toggleFull()"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
   </div>
-  <div class="umenu" id="umenu"><div id="umenuEmail"></div><div id="umenuPlan"></div><button onclick="openUnlock(false)">Unlock unlimited</button><button onclick="authSignOut()">Sign out</button></div>
+  <div class="umenu" id="umenu"><div id="umenuEmail"></div><div id="umenuPlan"></div><button onclick="openUnlock(false)">Unlock unlimited</button><button id="umenuPro" onclick="managePro()">Go Pro</button><button onclick="authSignOut()">Sign out</button></div>
 </div>
 
 <!-- MASTER STRIP -->
@@ -350,7 +369,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
       <div class="seg"><button onclick="nudgeMs(-10)">−10 ms</button><button onclick="nudgeMs(10)">+10 ms</button></div>
       <button class="sb" onclick="setDownbeatHere()">Beat 1 here</button>
       <button class="sb" id="bar1Auto" onclick="setBar1(null)">Bar 1 auto</button><button class="sb" onclick="setBar1(player.pos())">Bar 1 here</button>
-      <div class="sep"></div><span class="lab">SAMPLE</span><button class="sb" onclick="createSample('in')">Intro here</button><button class="sb" onclick="createSample('out')">Outro here</button>
+      <div class="sep"></div><span class="lab">SAMPLE</span><button class="sb" onclick="createSample('in')">Intro here</button><button class="sb" onclick="createSample('out')">Outro here</button><span class="protag" id="sampProTag">PRO</span>
       <label class="sw" id="clickTog"><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
       <div class="right"><span class="hint" id="trHint"></span><div class="seg" id="wfMode" title="Waveform colour"><button class="on" data-m="loud" onclick="setWfMode('loud')">Loudness</button><button data-m="freq" onclick="setWfMode('freq')">Frequency</button></div></div>
     </div>
@@ -432,12 +451,12 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
         <button class="btn btn-ghost" id="shuffleBtn" onclick="shuffleGrooves(false)" disabled title="Try other grooves and rebuild"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button>
         <button class="btn btn-primary" id="buildBtn" onclick="build()" disabled>Build extended mix</button>
         <button class="btn btn-ghost" id="dlBtn" onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
-        <button class="btn btn-pro" onclick="proWaitlist()" title="PRO: build and export every track in the library at once">Build all · PRO</button>
+        <button class="btn btn-pro" id="buildAllBtn" onclick="buildAll()" title="Pro: build every track in the library">Build all · PRO</button><button class="btn btn-ghost" id="dlAllBtn" onclick="downloadAll()" style="display:none">Download all</button>
       </div>
     </div>
     <div class="progress" id="buildProg"><div id="buildBar"></div></div>
     <div id="libWrap"><div class="lempty" id="libEmpty">No tracks yet. Drop songs on the deck or click Add tracks.<br>Each track is analysed on this device: tempo, beat grid, key.</div><table class="lt" id="libTable" style="display:none"><thead><tr><th>#</th><th>Preview</th><th>Title</th><th>Artist</th><th>BPM</th><th>Key</th><th>Length</th><th>Status</th><th></th></tr></thead><tbody id="libBody"></tbody></table></div>
-    <div class="pro" style="margin-top:auto"><b>PRO</b><span>Build and export every track in your library at once: whole playlists, intros and outros, one click.</span><button class="sb" id="proBtn" onclick="proWaitlist()">Join the waitlist</button></div>
+    <div class="pro" style="margin-top:auto"><b>PRO</b><span id="proBanner">Sampler, all 32 grooves and Build all for your whole library. $49.99 to own it forever, or $9.99 a month. 5 free Pro uses to try first.</span><button class="sb" id="proBtn" onclick="openUpgrade([])">Go Pro</button></div>
     <div class="meta" id="dlNote" style="padding:0 14px 10px"></div>
   </section>
 </div>
@@ -461,6 +480,24 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <button class="btn btn-ghost" onclick="$('authStep1').style.display='';$('authStep2').style.display='none'">Use a different email</button>
   </div>
 </div></div>
+
+<!-- GO PRO -->
+<div class="modal" id="proModal"><div class="mbox" style="max-width:480px"><button class="x" onclick="closeModal('proModal')"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  <h3 id="proTitle">Go Pro</h3>
+  <p id="proText">You've used your 5 free Pro uses. Own Extend The Mix for good, or go month to month.</p>
+  <div class="plans">
+    <div class="plan best" onclick="startCheckout('lifetime')"><span class="tag">BEST VALUE · OWN IT</span><div class="nm">LIFETIME</div><div class="pr">$49.99</div><div class="sub">One payment. Every Pro feature, forever. No renewals, ever.</div><button class="btn btn-primary" id="buyLife">Own it forever</button></div>
+    <div class="plan" onclick="startCheckout('monthly')"><div class="nm">MONTHLY</div><div class="pr">$9.99<small> / mo</small></div><div class="sub">Cancel any time from your account menu.</div><button class="btn btn-ghost" id="buyMonth">Go monthly</button></div>
+  </div>
+  <div class="feat">
+    <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Sampler: loop any phrase, 1 to 32 bars</div>
+    <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>All 32 drum grooves, 16 are free</div>
+    <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Build all: your whole library in one go</div>
+    <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Every Pro feature we add next</div>
+  </div>
+  <p class="fine" id="proFine">Secure checkout by Stripe. Lifetime is a single charge of $49.99.</p>
+</div></div>
+<div class="toast" id="toast"></div>
 
 <!-- FOLLOW TO UNLOCK -->
 <div class="modal" id="unlockModal"><div class="mbox"><button class="x" onclick="closeModal('unlockModal')"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
@@ -869,7 +906,7 @@ function clickBuffer(){if(song.click)return song.click;var c=player.ctxGet(),sr=
   for(var k=0,t=song.firstBeat;t<song.buf.duration;t+=beat,k++){var acc=((k-song.downbeat)%4+4)%4===0,f=acc?1600:1050,len=Math.floor(sr*(acc?0.04:0.025)),s0=Math.floor(t*sr),amp=acc?0.6:0.4;
     for(var i=0;i<len&&s0+i<n;i++)d[s0+i]+=amp*Math.sin(2*Math.PI*f*i/sr)*Math.exp(-i/(sr*0.008));}
   return song.click=b;}
-document.addEventListener('keydown',function(e){if(e.code==='Escape'){closeModal('authModal');closeModal('unlockModal');}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;var c=cur();if(!c)return;
+document.addEventListener('keydown',function(e){if(e.code==='Escape'){closeModal('authModal');closeModal('unlockModal');closeModal('proModal');}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;var c=cur();if(!c)return;
   if(e.code==='Space'){e.preventDefault();togglePlay();}else if(e.code==='ArrowLeft'){stepBars(-1);}else if(e.code==='ArrowRight'){stepBars(1);}});
 // level meter: 12 LEDs (8 green, 3 yellow, 1 red) driven by the analyser
 (function(){var m=$('meter'),h='';for(var i=0;i<12;i++)h+='<i class="'+(i>=11?'r':i>=8?'y':'')+'"></i>';m.innerHTML=h;})();
@@ -1060,7 +1097,7 @@ function pickPhrase(tr,which){var sp=tr.samp&&tr.samp[which];if(sp)return {start
 var sampSel=null,sampLoop=false,sampMel=false,sampMelBuf=null,SAMP_BARS=[1,2,4,8,16,32];
 function sampKey(w){var sp=song&&song.samp&&song.samp[w];return sp?song.id+'/'+w+'/'+sp.start.toFixed(4)+'/'+sp.bars:'';}
 function sampLabel(w){return (w==='in'?'INTRO':'OUTRO')+' SAMPLE';}
-function createSample(which){if(!song)return;if(view!=='src')setView('src');song.samp=song.samp||{};var cur0=song.samp[which],bars=cur0?cur0.bars:opt.bed.len,maxStart=song.lastDB-bars*song.bar;
+function createSample(which){if(!song)return;if(GATE&&!isPro()&&!song.proTried&&triesLeft()<=0){openUpgrade(['sampler']);return;}if(view!=='src')setView('src');song.samp=song.samp||{};var cur0=song.samp[which],bars=cur0?cur0.bars:opt.bed.len,maxStart=song.lastDB-bars*song.bar;
   var start=Math.max(song.firstDB,Math.min(maxStart,snapBar(song,deckPos())));song.samp[which]={start:start,bars:bars};if(which==='in')opt.bed.inOn=true;else opt.bed.outOn=true;$('bedIn').checked=opt.bed.inOn;$('bedOut').checked=opt.bed.outOn;
   sampSel=which;sampLoop=true;sampMel=false;renderSampBox();seekTo(start);playAt(start);bedInfoText();}
 function removeSample(which){if(!song)return;song.samp=song.samp||{};if(which==null){song.samp={};}else delete song.samp[which];if(sampSel&&!song.samp[sampSel]){sampSel=null;sampLoop=false;if(player.playing){var p=deckPos();player.stop();playAt(p);}}renderSampBox();draw();bedInfoText();}
@@ -1097,7 +1134,7 @@ function shuffleGrooves(all){(all?STYLE_ORDER:opt.styles).forEach(function(id){v
 function grooveChanged(){if(result&&!busy)build();}
 function renderStyles(){var g=$('styleGrid');g.innerHTML='';STYLE_ORDER.forEach(function(id){var s=STYLES[id],d=document.createElement('div'),i=opt.styles.indexOf(id),gr=s.grooves[grooveOf(id)];d.className='style-card'+(i>=0?' on':'');
   d.innerHTML='<div class="ck"></div><div class="style-name">'+s.name+(i>=0&&opt.styles.length>1?'<i>'+(i+1)+'</i>':'')+'</div>'+
-    '<div class="groove"><button class="gbtn" data-g="-1" title="Previous groove">'+ICON.prev+'</button><span class="gname">'+gr.name+'<small>'+(grooveOf(id)+1)+'/'+s.grooves.length+'</small></span><button class="gbtn" data-g="1" title="Next groove">'+ICON.next+'</button><button class="gbtn" data-g="rnd" title="Random groove">'+ICON.dice+'</button><button class="style-prev" title="Preview">'+ICON.tri+'</button></div>';
+    '<div class="groove"><button class="gbtn" data-g="-1" title="Previous groove">'+ICON.prev+'</button><span class="gname">'+gr.name+(isProGroove(id,grooveOf(id))&&!isPro()?'<span class="protag">PRO</span>':'')+'<small>'+(grooveOf(id)+1)+'/'+s.grooves.length+'</small></span><button class="gbtn" data-g="1" title="Next groove">'+ICON.next+'</button><button class="gbtn" data-g="rnd" title="Random groove">'+ICON.dice+'</button><button class="style-prev" title="Preview">'+ICON.tri+'</button></div>';
   d.onclick=function(e){var t=e.target.closest('button');if(t){e.stopPropagation();if(t.classList.contains('style-prev')){previewStyle(id);return;}var dg=t.getAttribute('data-g');if(dg==='rnd'){var n=s.grooves.length,c=grooveOf(id),nx=c;if(n>1)while(nx===c)nx=Math.floor(Math.random()*n);setGroove(id,nx);}else setGroove(id,grooveOf(id)+(+dg));return;}
     var j=opt.styles.indexOf(id);if(j>=0){if(opt.styles.length>1)opt.styles.splice(j,1);}else opt.styles.push(id);renderStyles();};g.appendChild(d);});
   $('cycleRow').style.display=opt.styles.length>1?'':'none';}
@@ -1111,7 +1148,42 @@ async function previewStyle(id){var bpm=song?song.bpm:124,sr=player.ctxGet().sam
 var SOCIAL={spotify:'https://open.spotify.com/artist/14yQ0oXuMJ4Fp00AfTqjmw',instagram:'https://www.instagram.com/2points_tv/'};
 var GATE=true,FREE_BUILDS=3,API='https://aimix-backend-production.up.railway.app';
 var SURL='https://auth.2pointsmusic.com',SKEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJodWR1YWZha21heXdueGtsZnlrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNTQzNTMsImV4cCI6MjA5MjgzMDM1M30.TqBGHI6vXAj5WczqIfgc6irrsiCSt1d124mSuxDFjx4';
-var auth={sb:null,user:null,pending:null,followed:{spotify:false,insta:false}};
+var auth={sb:null,user:null,pending:null,followed:{spotify:false,insta:false},pro:null};
+var PRO_TRIES=5,PRO_PRICE={lifetime:49.99,monthly:9.99},FREE_GROOVES=2;   // grooves 1–2 of each style are free, 3–4 are Pro
+function isPro(){return !!(auth.pro&&auth.pro.pro);}
+function proUsed(){return +(meta().extendo_pro_used||0);}
+function triesLeft(){return Math.max(0,PRO_TRIES-proUsed());}
+function isProGroove(id,i){return i>=FREE_GROOVES;}
+// which Pro features the current settings would use in a build
+function proFeaturesInUse(){var f=[];if(song&&song.samp&&((opt.bed.outOn&&song.samp.out)||(opt.bed.inOn&&song.samp.in)))f.push('sampler');if(opt.styles.some(function(s){return isProGroove(s,grooveOf(s));}))f.push('grooves');return f;}
+var PRO_LABEL={sampler:'the sampler',grooves:'Pro drum grooves',batch:'Build all'};
+function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(function(){t.classList.remove('show');},2600);}
+async function sessionToken(){if(!auth.sb)return '';try{var r=await auth.sb.auth.getSession();return r.data&&r.data.session?r.data.session.access_token:'';}catch(e){return '';}}
+async function fetchPro(){if(!GATE||!auth.user)return;var tok=await sessionToken();if(!tok)return;try{var r=await fetch(API+'/extendo/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});auth.pro=await r.json();}catch(e){}renderAuth();renderStyles();renderSampBox();}
+function openUpgrade(features){var used=triesLeft()<=0,f=(features||[]).map(function(k){return PRO_LABEL[k]||k;});
+  $('proTitle').textContent=f.length?'Go Pro to keep using '+f.join(' and '):'Go Pro';
+  $('proText').textContent=used?'You have used your '+PRO_TRIES+' free Pro uses. Own Extend The Mix for good, or go month to month.':'Try Pro features free '+PRO_TRIES+' times, then own it for good or go month to month.';
+  if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}$('proModal').classList.add('show');mfb('ViewContent',{content_name:'extendo_pro_modal',content_category:'extendo'});}
+async function startCheckout(kind){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}var b=$(kind==='lifetime'?'buyLife':'buyMonth');b.disabled=true;b.textContent='Opening checkout…';
+  mfb('InitiateCheckout',{value:PRO_PRICE[kind],currency:'USD',content_name:'extendo_'+kind,content_category:'extendo'});
+  try{var r=await fetch(API+'/extendo/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:kind,user_id:auth.user.id,user_email:auth.user.email,success_url:location.origin+location.pathname+'?pro=success&kind='+kind+'&session_id={CHECKOUT_SESSION_ID}',cancel_url:location.origin+location.pathname})});
+    var d=await r.json();if(d.url){location.href=d.url;return;}alert(d.error||'Checkout unavailable right now.');}catch(e){alert('Checkout unavailable right now.');}
+  b.disabled=false;b.textContent=kind==='lifetime'?'Own it forever':'Go monthly';}
+// back from Stripe: the webhook provisions asynchronously, so poll the entitlement for a few seconds
+async function afterCheckoutReturn(){var q=new URLSearchParams(location.search);if(q.get('pro')!=='success')return;var sid=q.get('session_id')||'',kind=q.get('kind')||'lifetime';history.replaceState(null,'',location.pathname);
+  for(var i=0;i<12;i++){await fetchPro();if(isPro())break;await new Promise(function(r){setTimeout(r,2000);});}
+  if(isPro()){try{if(window.fbq)fbq('track','Purchase',{value:PRO_PRICE[kind],currency:'USD',content_name:'extendo_'+kind,content_category:'extendo'},{eventID:sid});}catch(e){}toast(kind==='lifetime'?'You own Extend The Mix. Every Pro feature is yours, forever.':'Welcome to Pro.');}
+  else toast('Payment received. Pro unlocks as soon as Stripe confirms, usually within a minute.');}
+async function managePro(){$('umenu').classList.remove('show');if(!isPro()){openUpgrade([]);return;}if(auth.pro.kind==='lifetime'){toast('Lifetime Pro: nothing to manage, it never expires.');return;}
+  if(!confirm('Cancel your monthly Pro at the end of the current period?'))return;var tok=await sessionToken();try{var r=await fetch(API+'/extendo/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});var d=await r.json();toast(d.ok?'Pro stays active until the end of your billing period.':(d.error||'Could not cancel, email support.'));}catch(e){toast('Could not cancel, email support.');}}
+// charge one free Pro use per song (rebuilds and shuffles of the same track are free); false = blocked
+function spendProTry(features){if(isPro()||!features.length||!GATE)return true;if(song.proTried)return true;if(triesLeft()<=0){openUpgrade(features);return false;}
+  song.proTried=true;saveMeta({extendo_pro_used:proUsed()+1});toast('Pro feature used. '+triesLeft()+' free Pro use'+(triesLeft()===1?'':'s')+' left.');return true;}
+// Build all (Pro): every ready track in the library, one after another, then Download all
+async function buildAll(){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}if(!isPro()){openUpgrade(['batch']);return;}var list=lib.filter(function(t){return t.status==='ready'&&!t.result;});if(!list.length){toast('Every track in the library is already built.');$('dlAllBtn').style.display='';return;}
+  var b=$('buildAllBtn');b.disabled=true;for(var i=0;i<list.length;i++){b.textContent='Building '+(i+1)+' / '+list.length+'…';selectTrack(list[i]);await build();player.stop();}
+  b.disabled=false;b.textContent='Build all · PRO';$('dlAllBtn').style.display='';toast(list.length+' track'+(list.length>1?'s':'')+' built. Download all is ready.');}
+async function downloadAll(){var done=lib.filter(function(t){return t.result;});for(var i=0;i<done.length;i++){selectTrack(done[i]);download();await new Promise(function(r){setTimeout(r,900);});}}
 function meta(){return (auth.user&&auth.user.user_metadata)||{};}
 function builds(){return +(meta().extendo_builds||0);}
 function unlocked(){return !!meta().extendo_unlocked;}
@@ -1127,15 +1199,16 @@ function initAuth(){
 }
 function onUser(u){var first=!auth.user||auth.user.id!==u.id;auth.user=u;
   try{localStorage.setItem('aimix_user',JSON.stringify({id:u.id,email:u.email,name:(u.user_metadata&&u.user_metadata.full_name)||''}));}catch(e){}
-  if(first){addLead(u.email,(u.user_metadata&&u.user_metadata.full_name)||'','extendo-lead');closeModal('authModal');}
+  if(first){addLead(u.email,(u.user_metadata&&u.user_metadata.full_name)||'','extendo-lead');closeModal('authModal');fetchPro().then(afterCheckoutReturn);}
   renderAuth();
   if(auth.pending==='build'){auth.pending=null;if(song)build();}
-  if(auth.pending==='pro'){auth.pending=null;proWaitlist();}
+  if(auth.pending==='pro'){auth.pending=null;openUpgrade([]);}
 }
 function renderAuth(){var a=$('authArea');if(!GATE)return;
   if(!auth.user){a.innerHTML='<button class="authbtn" onclick="openAuth()">Sign in</button>';return;}
-  var e=auth.user.email||'',lbl=unlocked()?'<b>Unlimited</b>':'<b>'+freeLeft()+'</b> free mix'+(freeLeft()===1?'':'es')+' left';
-  a.innerHTML='<div class="upill" onclick="$(\'umenu\').classList.toggle(\'show\')"><span class="av">'+(e[0]||'?').toUpperCase()+'</span><span class="ul">'+lbl+'</span></div>';
+  var e=auth.user.email||'',lbl=isPro()?'<b>PRO</b>'+(auth.pro.kind==='lifetime'?' · lifetime':''):unlocked()?'<b>Unlimited</b>':'<b>'+freeLeft()+'</b> free mix'+(freeLeft()===1?'':'es')+' left';
+  a.innerHTML='<div class="upill" onclick="$(\'umenu\').classList.toggle(\'show\')"><span class="av'+(isPro()?' pro':'')+'">'+(e[0]||'?').toUpperCase()+'</span><span class="ul">'+lbl+'</span></div>';
+  $('umenuPro').textContent=isPro()?(auth.pro.kind==='lifetime'?'Lifetime Pro':'Manage Pro'):'Go Pro · '+triesLeft()+' free use'+(triesLeft()===1?'':'s')+' left';$('sampProTag').style.display=isPro()?'none':'';
   $('umenuEmail').textContent=e;$('umenuPlan').textContent=unlocked()?'Unlimited. Thank you for the follows.':freeLeft()+' of '+FREE_BUILDS+' free mixes left';}
 document.addEventListener('click',function(e){if(!e.target.closest('.upill')&&!e.target.closest('#umenu'))$('umenu').classList.remove('show');});
 function addLead(email,name,tag){if(!email)return;fetch(API+'/systeme/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,name:name||'',tag:tag})}).catch(function(){});}
@@ -1160,7 +1233,7 @@ function followClick(k){auth.followed[k]=true;var el=$(k==='spotify'?'stepSpotif
 async function confirmUnlock(){$('unlockBtn').disabled=true;$('unlockBtn').textContent='Unlocking…';await saveMeta({extendo_unlocked:true});
   addLead(auth.user.email,'','extendo-unlocked');mfb('Lead',{content_name:'extendo_unlock',content_category:'extendo'});
   $('unlockBtn').textContent='Unlocked';setTimeout(function(){closeModal('unlockModal');$('unlockBtn').textContent='I followed both — unlock';if(auth.pending==='build'){auth.pending=null;if(song)build();}},600);}
-function proWaitlist(){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}var b=$('proBtn');b.textContent='You’re on the list';b.disabled=true;if(auth.user)addLead(auth.user.email,'','extendo-pro-waitlist');mfb('Lead',{content_name:'extendo_pro_waitlist',content_category:'extendo'});}
+function proWaitlist(){openUpgrade([]);return;if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}var b=$('proBtn');b.textContent='You’re on the list';b.disabled=true;if(auth.user)addLead(auth.user.email,'','extendo-pro-waitlist');mfb('Lead',{content_name:'extendo_pro_waitlist',content_category:'extendo'});}
 initAuth();uiStopped();
 
 /* ── build ── */
@@ -1168,6 +1241,7 @@ async function build(){
   if(!song||busy)return;
   if(GATE&&!auth.user){auth.pending='build';openAuth();return;}
   if(!canBuild()){auth.pending='build';openUnlock(true);return;}
+  if(!spendProTry(proFeaturesInUse()))return;
   busy=true;player.stop();cpu(85);var btn=$('buildBtn');btn.disabled=true;btn.textContent='Rendering…';$('buildProg').classList.add('show');$('buildBar').style.width='10%';
   try{
     var sr=song.sr,fx=opt.fx,tl=ExtendoDSP.plan(gridArgs(),opt);
