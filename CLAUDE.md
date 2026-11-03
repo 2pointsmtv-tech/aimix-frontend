@@ -398,9 +398,13 @@ for the account gate.
    harmonic/percussive separation, 2048/512 STFT, 17×17 medians, in-place
    insertion-sort median) strips the drums from a 4/8-bar phrase of the song;
    `bedLoop()` builds a seam-crossfaded loop per channel (cached per track +
-   phrase), `pickPhrase()` chooses the last/first *loud* phrase (slides by 4
-   bars while rms < 50 % of the track's loudness) unless the user set one
-   (`song.bedOutT` / `song.bedInT`), and `placeBed()` loops it from the last
+   phrase), `pickPhrase()` uses the user's **sample box** (`song.samp.in/out =
+   {start,bars}`, set with "Intro here / Outro here", drawn green on Deck A,
+   draggable by whole bars, toolbar `#sampBox`: 1…32 bars, ÷2/×2, Loop =
+   sample-accurate `BufferSource.loop` via `player.play(...,loop)`, Melody
+   only = previews the HPSS loop buffer with `player.view0` offsetting the
+   deck time) or otherwise auto-picks the last/first *loud* phrase (slides by
+   4 bars while rms < 50 % of the track's loudness); `placeBed()` loops it from the last
    bar line to the end of the outro (2-bar fade-out) and/or from 0 to the drop
    (1-bar fade-in). Mixed in `build()` as `bedL/bedR`; `tl.bedRegions` draws
    the green "MELODY LOOP" bands. ~2 s per 8-bar stereo phrase.
