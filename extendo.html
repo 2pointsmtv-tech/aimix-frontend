@@ -469,13 +469,13 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
         <button class="btn btn-ghost" data-tip-title="Add tracks" data-tip="Load one song or a whole set. Each is analysed in turn and waits in the library. Nothing is uploaded." onclick="$('fileInput').click()"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Add tracks</button>
         <button class="btn btn-ghost" id="shuffleBtn" data-tip-title="Shuffle" data-tip="New grooves for the selected styles, rebuilt on the spot." onclick="shuffleGrooves(false)" disabled title="Try other grooves and rebuild"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button>
         <button class="btn btn-primary" id="buildBtn" data-tip-title="Build" data-tip="Renders the extended mix with the current settings, about a second per track, and switches to Deck B so you can listen." onclick="build()" disabled>Build extended mix</button>
-        <button class="btn btn-ghost" id="dlBtn" data-tip-title="Download" data-tip="Uncompressed WAV with your original tags and cover art, title suffixed (Extended Mix). The song itself passes through untouched." onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
+        <button class="btn btn-ghost" id="dlBtn" data-tip-title="Download" data-tip="Uncompressed WAV with your original tags and cover art, title suffixed (Extended Mix). The song itself passes through untouched. If the mix uses Pro features, this takes one of your 5 free Pro downloads." onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
         <button class="btn btn-pro" id="buildAllBtn" data-tip-title="Build all · Pro" data-tip="Builds every track in the library with the current settings, then Download all." onclick="buildAll()" title="Pro: build every track in the library">Build all · PRO</button><button class="btn btn-ghost" id="dlAllBtn" onclick="downloadAll()" style="display:none">Download all</button>
       </div>
     </div>
     <div class="progress" id="buildProg"><div id="buildBar"></div></div>
     <div id="libWrap"><div class="lempty" id="libEmpty">No tracks yet. Drop songs on the deck or click Add tracks.<br>Each track is analysed on this device: tempo, beat grid, key.</div><table class="lt" id="libTable" style="display:none"><thead><tr><th>#</th><th>Preview</th><th>Title</th><th>Artist</th><th>BPM</th><th>Key</th><th>Length</th><th>Status</th><th></th></tr></thead><tbody id="libBody"></tbody></table></div>
-    <div class="pro" style="margin-top:auto"><b>PRO</b><span id="proBanner">Sampler, all 32 grooves and Build all for your whole library. $49.99 to own it forever, or $9.99 a month. 5 free Pro uses to try first.</span><button class="sb" id="proBtn" onclick="openUpgrade([])">Go Pro</button></div>
+    <div class="pro" style="margin-top:auto"><b>PRO</b><span id="proBanner">Sampler, all 32 grooves and Build all for your whole library. $49.99 to own it forever, or $9.99 a month. Try everything free; your first 5 downloads that use Pro features are on us.</span><button class="sb" id="proBtn" onclick="openUpgrade([])">Go Pro</button></div>
     <div class="meta" id="dlNote" style="padding:0 14px 10px"></div>
   </section>
 </div>
@@ -503,7 +503,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 <!-- GO PRO -->
 <div class="modal" id="proModal"><div class="mbox" style="max-width:480px"><button class="x" onclick="closeModal('proModal')"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="proTitle">Go Pro</h3>
-  <p id="proText">You've used your 5 free Pro uses. Own Extend The Mix for good, or go month to month.</p>
+  <p id="proText">Build and listen with Pro features as much as you like. Downloading a mix that uses them takes one of your 5 free Pro downloads.</p>
   <div class="plans">
     <div class="plan best" onclick="startCheckout('lifetime')"><span class="tag">BEST VALUE · OWN IT</span><div class="nm">LIFETIME</div><div class="pr">$49.99</div><div class="sub">One payment. Every Pro feature, forever. No renewals, ever.</div><button class="btn btn-primary" id="buyLife">Own it forever</button></div>
     <div class="plan" onclick="startCheckout('monthly')"><div class="nm">MONTHLY</div><div class="pr">$9.99<small> / mo</small></div><div class="sub">Cancel any time from your account menu.</div><button class="btn btn-ghost" id="buyMonth">Go monthly</button></div>
@@ -1222,7 +1222,7 @@ function pickPhrase(tr,which){var sp=tr.samp&&tr.samp[which];if(sp)return {start
 var sampSel=null,sampLoop=false,sampMel=false,sampMelBuf=null,SAMP_BARS=[1,2,4,8,16,32];
 function sampKey(w){var sp=song&&song.samp&&song.samp[w];return sp?song.id+'/'+w+'/'+sp.start.toFixed(4)+'/'+sp.bars:'';}
 function sampLabel(w){return (w==='in'?'INTRO':'OUTRO')+' SAMPLE';}
-function createSample(which){if(!song)return;if(GATE&&!isPro()&&!song.proTried&&triesLeft()<=0){openUpgrade(['sampler']);return;}if(view!=='src')setView('src');song.samp=song.samp||{};var cur0=song.samp[which],bars=cur0?cur0.bars:opt.bed.len,maxStart=song.lastDB-bars*song.bar;
+function createSample(which){if(!song)return;if(view!=='src')setView('src');song.samp=song.samp||{};var cur0=song.samp[which],bars=cur0?cur0.bars:opt.bed.len,maxStart=song.lastDB-bars*song.bar;
   var start=Math.max(song.firstDB,Math.min(maxStart,snapBar(song,deckPos())));song.samp[which]={start:start,bars:bars};if(which==='in')opt.bed.inOn=true;else opt.bed.outOn=true;$('bedIn').checked=opt.bed.inOn;$('bedOut').checked=opt.bed.outOn;
   sampSel=which;sampLoop=true;sampMel=false;renderSampBox();seekTo(start);playAt(start);bedInfoText();}
 function removeSample(which){if(!song)return;song.samp=song.samp||{};if(which==null){song.samp={};}else delete song.samp[which];if(sampSel&&!song.samp[sampSel]){sampSel=null;sampLoop=false;if(player.playing){var p=deckPos();player.stop();playAt(p);}}renderSampBox();draw();bedInfoText();}
@@ -1286,8 +1286,8 @@ function toast(msg){var t=$('toast');t.textContent=msg;t.classList.add('show');c
 async function sessionToken(){if(!auth.sb)return '';try{var r=await auth.sb.auth.getSession();return r.data&&r.data.session?r.data.session.access_token:'';}catch(e){return '';}}
 async function fetchPro(){if(!GATE||!auth.user)return;var tok=await sessionToken();if(!tok)return;try{var r=await fetch(API+'/extendo/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});auth.pro=await r.json();}catch(e){}renderAuth();renderStyles();renderSampBox();}
 function openUpgrade(features){var used=triesLeft()<=0,f=(features||[]).map(function(k){return PRO_LABEL[k]||k;});
-  $('proTitle').textContent=f.length?'Go Pro to keep using '+f.join(' and '):'Go Pro';
-  $('proText').textContent=used?'You have used your '+PRO_TRIES+' free Pro uses. Own Extend The Mix for good, or go month to month.':'Try Pro features free '+PRO_TRIES+' times, then own it for good or go month to month.';
+  $('proTitle').textContent=f.length?'This mix uses '+f.join(' and '):'Go Pro';
+  $('proText').textContent=used?'You have used your '+PRO_TRIES+' free Pro downloads. Own Extend The Mix for good, or go month to month.':'Build and listen with Pro features as much as you like. Downloading a mix that uses them takes one of your '+PRO_TRIES+' free Pro downloads.';
   if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}$('proModal').classList.add('show');mfb('ViewContent',{content_name:'extendo_pro_modal',content_category:'extendo'});}
 async function startCheckout(kind){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}var b=$(kind==='lifetime'?'buyLife':'buyMonth');b.disabled=true;b.textContent='Opening checkout…';
   mfb('InitiateCheckout',{value:PRO_PRICE[kind],currency:'USD',content_name:'extendo_'+kind,content_category:'extendo'});
@@ -1301,9 +1301,10 @@ async function afterCheckoutReturn(){var q=new URLSearchParams(location.search);
   else toast('Payment received. Pro unlocks as soon as Stripe confirms, usually within a minute.');}
 async function managePro(){$('umenu').classList.remove('show');if(!isPro()){openUpgrade([]);return;}if(auth.pro.kind==='lifetime'){toast('Lifetime Pro: nothing to manage, it never expires.');return;}
   if(!confirm('Cancel your monthly Pro at the end of the current period?'))return;var tok=await sessionToken();try{var r=await fetch(API+'/extendo/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({access_token:tok})});var d=await r.json();toast(d.ok?'Pro stays active until the end of your billing period.':(d.error||'Could not cancel, email support.'));}catch(e){toast('Could not cancel, email support.');}}
-// charge one free Pro use per song (rebuilds and shuffles of the same track are free); false = blocked
-function spendProTry(features){if(isPro()||!features.length||!GATE)return true;if(song.proTried)return true;if(triesLeft()<=0){openUpgrade(features);return false;}
-  song.proTried=true;saveMeta({extendo_pro_used:proUsed()+1});toast('Pro feature used. '+triesLeft()+' free Pro use'+(triesLeft()===1?'':'s')+' left.');return true;}
+// Pro features are free to build and audition. Downloading a mix that uses them spends one of the free Pro downloads,
+// once per song (rebuilds, shuffles and re-downloads of the same track are free). false = blocked, upgrade modal shown.
+function canDownloadPro(){var f=(result&&result.proFeatures)||[];if(!GATE||isPro()||!f.length||song.proTried)return true;if(triesLeft()<=0){openUpgrade(f);return false;}
+  song.proTried=true;saveMeta({extendo_pro_used:proUsed()+1});toast('Pro download used. '+triesLeft()+' free Pro download'+(triesLeft()===1?'':'s')+' left.');return true;}
 // Build all (Pro): every ready track in the library, one after another, then Download all
 async function buildAll(){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}if(!isPro()){openUpgrade(['batch']);return;}var list=lib.filter(function(t){return t.status==='ready'&&!t.result;});if(!list.length){toast('Every track in the library is already built.');$('dlAllBtn').style.display='';return;}
   var b=$('buildAllBtn');b.disabled=true;for(var i=0;i<list.length;i++){b.textContent='Building '+(i+1)+' / '+list.length+'…';selectTrack(list[i]);await build();player.stop();}
@@ -1333,7 +1334,7 @@ function renderAuth(){var a=$('authArea');if(!GATE)return;
   if(!auth.user){a.innerHTML='<button class="authbtn" onclick="openAuth()">Sign in</button>';return;}
   var e=auth.user.email||'',lbl=isPro()?'<b>PRO</b>'+(auth.pro.kind==='lifetime'?' · lifetime':''):unlocked()?'<b>Unlimited</b>':'<b>'+freeLeft()+'</b> free mix'+(freeLeft()===1?'':'es')+' left';
   a.innerHTML='<div class="upill" onclick="$(\'umenu\').classList.toggle(\'show\')"><span class="av'+(isPro()?' pro':'')+'">'+(e[0]||'?').toUpperCase()+'</span><span class="ul">'+lbl+'</span></div>';
-  $('umenuPro').textContent=isPro()?(auth.pro.kind==='lifetime'?'Lifetime Pro':'Manage Pro'):'Go Pro · '+triesLeft()+' free use'+(triesLeft()===1?'':'s')+' left';$('sampProTag').style.display=isPro()?'none':'';
+  $('umenuPro').textContent=isPro()?(auth.pro.kind==='lifetime'?'Lifetime Pro':'Manage Pro'):'Go Pro · '+triesLeft()+' free Pro download'+(triesLeft()===1?'':'s')+' left';$('sampProTag').style.display=isPro()?'none':'';
   $('umenuEmail').textContent=e;$('umenuPlan').textContent=unlocked()?'Unlimited. Thank you for the follows.':freeLeft()+' of '+FREE_BUILDS+' free mixes left';}
 document.addEventListener('click',function(e){if(!e.target.closest('.upill')&&!e.target.closest('#umenu'))$('umenu').classList.remove('show');});
 function addLead(email,name,tag){if(!email)return;fetch(API+'/systeme/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,name:name||'',tag:tag})}).catch(function(){});}
@@ -1366,7 +1367,7 @@ async function build(){
   if(!song||busy)return;
   if(GATE&&!auth.user){auth.pending='build';openAuth();return;}
   if(!canBuild()){auth.pending='build';openUnlock(true);return;}
-  if(!spendProTry(proFeaturesInUse()))return;
+  var proUsedHere=proFeaturesInUse();
   busy=true;player.stop();cpu(85);var btn=$('buildBtn');btn.disabled=true;btn.textContent='Rendering…';$('buildProg').classList.add('show');$('buildBar').style.width='10%';
   try{
     var sr=song.sr,fx=opt.fx,tl=ExtendoDSP.plan(gridArgs(),opt);
@@ -1405,7 +1406,7 @@ async function build(){
       var bd=ch?bedR:bedL;for(i=0;i<total;i++){var si=i-shift,add=d[i]+bd[i],v=add+(si>=o0&&si<sEnd?sd[si]:0),a=Math.abs(v);if(add!==0&&a>0.98)v=(v<0?-1:1)*(0.98+0.02*Math.tanh((a-0.98)/0.02));o[i]=v;mono[i]+=v*0.5;}}
     var c=player.ctxGet(),rb=c.createBuffer(2,total,sr);rb.copyToChannel(out[0],0);rb.copyToChannel(out[1],1);
     var bedRms=0;if(bedRegions.length){var ra=Math.round(bedRegions[0].a*sr),rb2=Math.min(total,Math.round(bedRegions[0].b*sr)),ss=0;for(i=ra;i<rb2;i++)ss+=bedL[i]*bedL[i];bedRms=Math.sqrt(ss/Math.max(1,rb2-ra));}
-    result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),bedRms:bedRms,wav:null,url:null};$('buildBar').style.width='100%';
+    result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),bedRms:bedRms,proFeatures:proUsedHere,wav:null,url:null};$('buildBar').style.width='100%';
     result.intro=opt.intro;result.outro=opt.outro;result.styleLabel=opt.styles.map(function(s){return (STYLES[s].name+' '+STYLES[s].grooves[grooveOf(s)].name).toUpperCase();}).join(' → ');song.result=result;countBuild();showResultInfo(true);renderLib();
   }catch(e){status(e.message||String(e),true);console.error(e);alert(e.message||e);}
   busy=false;cpu(8);btn.disabled=false;btn.textContent='Build extended mix';setTimeout(function(){$('buildProg').classList.remove('show');$('buildBar').style.width='0';},600);
@@ -1423,7 +1424,7 @@ function wavMeta(){var tg=Object.assign({},song.tags||{});tg.title=(tg.title||so
 function wavBits(){return song.tags&&song.tags.bits>=24?24:16;}
 function wavName(){return ((song.artist?song.artist+' - ':'')+song.title+' (Extended Mix).wav').replace(/[\\/:*?"<>|]+/g,'-');}
 function makeWav(){if(!result.wav){var ab=ExtendoDSP.encodeWav(result.chs,song.sr,wavMeta(),wavBits());result.ab=ab;result.wav=new Blob([ab],{type:'audio/wav'});result.url=URL.createObjectURL(result.wav);}return result;}
-function download(){if(!result)return;makeWav();var a=document.createElement('a');a.href=result.url;a.download=wavName();document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1000);}
+function download(){if(!result)return;if(!canDownloadPro())return;makeWav();var a=document.createElement('a');a.href=result.url;a.download=wavName();document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1000);}
 </script>
 </body>
 </html>

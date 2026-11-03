@@ -454,9 +454,7 @@ for the account gate.
    backend (`POST /extendo/status` with the user's access token → the
    `extendo_subscriptions` table, see aimix-backend `extendo_tables.sql`),
    never from `user_metadata`. Pro features: the sampler, grooves 3–4 of each
-   style (`FREE_GROOVES=2`), Build all. Free accounts get `PRO_TRIES` (5) uses,
-   charged once per song at build time (`spendProTry`, counter
-   `user_metadata.extendo_pro_used`). `openUpgrade()` → `startCheckout(kind)`
+   style (`FREE_GROOVES=2`), Build all. Pro features are free to build and audition; free accounts get `PRO_TRIES` (5) **downloads** of mixes that use them, charged once per song at download time (`canDownloadPro`, `result.proFeatures`, counter `user_metadata.extendo_pro_used`). `openUpgrade()` → `startCheckout(kind)`
    → `POST /extendo/checkout` → Stripe; the return URL `?pro=success&kind=..&
    session_id=..` re-polls the entitlement and fires the Meta `Purchase` with
    `eventID = session_id` (CAPI dedupe). Cancel monthly: `POST /extendo/cancel`.
