@@ -99,6 +99,18 @@ const {chromium}=require('playwright');
   // Space toggles play even right after clicking a button
   await page.click('#tabSrc');await page.keyboard.press('Space');const sp=await page.evaluate(()=>player.playing);await page.keyboard.press('Space');const sp2=await page.evaluate(()=>player.playing);
   ok(sp&&!sp2,'Space starts and stops playback after a button click');
+  // sampler: Outro here → box at the playhead's bar, looping; ×2 doubles; drag moves it by whole bars; the build uses it
+  const sm=await page.evaluate(()=>{seekTo(song.firstDB+8*song.bar+0.3);createSample('out');const sp=song.samp.out;return {start:sp.start,bars:sp.bars,len:opt.bed.len,loop:player.loop,playing:player.playing,box:document.getElementById('sampBox').classList.contains('show'),title:document.getElementById('sampTitle').textContent,exp:song.firstDB+8*song.bar};});
+  ok(sm.box&&Math.abs(sm.start-sm.exp)<1e-6&&sm.bars===sm.len&&sm.playing&&sm.loop&&Math.abs(sm.loop.b-sm.loop.a-sm.len*dt.bar)<1e-6&&/BAR 9/.test(sm.title),'Outro here: sample box at bar 9, '+sm.len+' bars, looping ('+sm.title+')');
+  const sm2=await page.evaluate(()=>{scaleSample(2);return {bars:song.samp.out.bars,loopLen:player.loop.b-player.loop.a};});ok(sm2.bars===sm.len*2&&Math.abs(sm2.loopLen-sm.len*2*dt.bar)<1e-6,'×2 doubles the sample to '+sm2.bars+' bars and the loop follows');
+  await page.evaluate(()=>{setSampleBars(4);player.stop();seekTo(song.samp.out.start+song.bar);setZoom(8);});
+  const bx=await page.evaluate(()=>{const r=document.getElementById('dtWrap').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,s0:song.samp.out.start};});
+  await page.mouse.move(bx.x,bx.y);await page.mouse.down();await page.mouse.move(bx.x+bx.w/4,bx.y,{steps:8});await page.mouse.up();
+  const bx2=await page.evaluate(()=>song.samp.out.start);ok(Math.abs(bx2-(bx.s0+2*dt.bar))<1e-6,'dragging the box moved it by 2 bars (zoom 8, quarter width)');
+  await page.evaluate(()=>{opt.bed.inOn=false;});await page.click('#buildBtn');await page.waitForFunction(()=>!window.busy,null,{timeout:120000});
+  const br=await page.evaluate(()=>({n:result.tl.bedRegions.length,bars:result.tl.bedRegions[0].bars,phrase:result.tl.bedRegions[0].phrase,s:song.samp.out.start}));
+  ok(br.n===1&&br.bars===4&&Math.abs(br.phrase-br.s)<1e-9,'build used the sampled phrase (4 bars from the box)');
+  await page.evaluate(()=>{setView('src');removeSample(null);opt.bed.inOn=true;});
   await page.evaluate(()=>{if(!gridEdit)toggleGridEdit();});
   await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>{seekTo(song.firstDB+2*song.bar);window.scrollTo(0,0);});await page.screenshot({path:path.join(TMP,'shot_gridedit.png')});
   await page.evaluate(()=>{toggleGridEdit();setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});
