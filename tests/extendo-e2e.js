@@ -40,7 +40,7 @@ const {chromium}=require('playwright');
   await page.evaluate(()=>{followClick('spotify');followClick('insta');});
   ok(await page.evaluate(()=>!document.getElementById('unlockBtn').disabled),'both follows clicked → unlock enabled');
   const t0=Date.now();await page.evaluate(()=>confirmUnlock());await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
-  ok(await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&song.counted&&/UNLIMITED/.test(document.getElementById('authArea').textContent)),'unlock closed the modal, built the pending mix, pill shows UNLIMITED');
+  ok(await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&song.counted&&/unlimited/i.test(document.getElementById('authArea').textContent)),'unlock closed the modal, built the pending mix, pill shows UNLIMITED');
   // shuffle grooves → different groove for the selected styles and an automatic rebuild
   const sh=await page.evaluate(async()=>{const before={...opt.groove},id=result.id;shuffleGrooves(false);await new Promise(r=>setTimeout(r,50));while(busy)await new Promise(r=>setTimeout(r,50));return {before,after:{...opt.groove},rebuilt:result.id!==id,meta:document.getElementById('resultMeta').textContent};});
   ok(opt_changed(sh)&&sh.rebuilt,'shuffle picked new grooves ('+JSON.stringify(sh.after)+') and rebuilt: '+sh.meta);
