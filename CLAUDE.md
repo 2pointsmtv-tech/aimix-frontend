@@ -19,10 +19,12 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `vercel.json` | Rewrites `/` → `/index.html`. That's it. |
+| `extendo.html` | **Extendo** (~560 lines). Standalone DJ tool: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums before and after → WAV download. Fully client-side, calls **no backend**. See §9. |
+| `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`. That's it. |
+| `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` needs just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
 
-There is no test suite, no linter, no CI. "Running" it is just opening the HTML
+There is no linter and no CI; the only tests are the two Extendo scripts in `tests/`. "Running" it is just opening the HTML
 files (or `vercel dev` / any static server). Deploys happen by pushing to the
 Vercel-connected branch.
 
@@ -342,3 +344,37 @@ timing-sensitive:
 - **Secrets:** only *public* keys belong here (Supabase anon key, Stripe
   publishable key, Meta pixel id). Never add a service-role key, Stripe secret
   key, or Spotify client secret to these files — those live on the backend.
+
+## 9. Extendo (`extendo.html`) — the DJ extended-mix page
+
+Separate product on the same site, no shared code with the other two pages,
+no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
+
+1. `decodeAudioData` → mono downmix → `ExtendoDSP.analyze()` (the `<script id="dsp">`
+   block, **pure functions, no DOM**; `tests/extendo-dsp.test.js` extracts and
+   runs it in Node, keep it DOM-free).
+   - Tempo: 3-band log-energy flux at 512-sample hops → integer-lag
+     autocorrelation with harmonic + log-tempo prior → **multi-scale parabolic
+     refinement** over 1…64-beat lags (needed: a 0.05 BPM error drifts ~90 ms
+     over 4 minutes). Confidence ignores octave (½×/2×) rivals.
+   - Phase: comb over the frame envelope, then `refinePhase` re-pins it with a
+     32-sample-hop flux (±20 ms). Downbeat (`detectDownbeat`) favours low-band
+     onsets/level and **penalises mid/high transients** so the snare backbeat
+     on 2 & 4 doesn't win.
+   - `plan()` builds the timeline: the song's first grid downbeat lands exactly
+     at the end of the intro; the outro starts on the last bar line before the
+     audio ends; "blend" bars overlap drums under the song with linear fades.
+2. Drums (`<script id="drums">`): patterns are 16/32-step strings per
+   instrument in `STYLES` (`x`/`o`/`-`/`.`), each style has an A/B variant and a
+   synth `kit`. Every (style, instrument) is rendered **once** as a one-shot via
+   a tiny `OfflineAudioContext` (`loadShots`), then `renderSection` mixes
+   patterns in plain JS. ⚠️ Do not go back to scheduling one Web Audio node per
+   hit over the whole timeline — that took ~20 s per build. Also **no
+   `DynamicsCompressorNode` anywhere** in the render path: it adds ~6 ms of
+   latency and would shift the grid.
+3. `build()` mixes the song in with a single integer sample `shift`
+   (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
+   (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.
+
+The shared `player` object follows the same iOS rule as the other pages: set
+`playing=false` and null `onended` **before** `stop()`.
