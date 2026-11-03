@@ -66,6 +66,8 @@ const {chromium}=require('playwright');
   ok(r.view==='ext'&&r.extTab,'deck switched to EXTENDED view');
   const blank=await page.evaluate(()=>{const chk=id=>{const cv=document.getElementById(id),g=cv.getContext('2d'),d=g.getImageData(0,0,cv.width,cv.height).data;let lit=0;for(let i=0;i<d.length;i+=4)if(d[i]+d[i+1]+d[i+2]>120)lit++;return lit/(d.length/4);};return {ov:chk('ov'),dt:chk('dt')};});
   console.log('canvas lit fraction:',JSON.stringify(blank));ok(blank.ov>0.05&&blank.dt>0.03,'overview + detail waveforms drawn');
+  const mini=await page.evaluate(()=>{const cv=document.querySelector('#libBody canvas'),g=cv.getContext('2d'),d=g.getImageData(0,0,cv.width,cv.height).data;let green=0,other=0;for(let i=0;i<d.length;i+=4){const r=d[i],gg=d[i+1],b=d[i+2];if(r+gg+b<60)continue;if(gg>r*1.6&&gg>b*1.6)green++;else other++;}return {green,other};});
+  ok(mini.green>200&&mini.other>200,'library preview shows the extended mix: green added parts + coloured song ('+mini.green+' / '+mini.other+' px)');
   // download → a blob of the right size
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const fname=dl.suggestedFilename();const p=await dl.path();const size=require('fs').statSync(p).size;
   console.log('download:',fname,size,'bytes');ok(/Extendo 16\+8 bar extended mix\)\.wav$/.test(fname),'download filename');ok(size===44+Math.round(r.len*44100)*4,'wav size matches');

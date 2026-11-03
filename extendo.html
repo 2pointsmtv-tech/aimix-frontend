@@ -785,16 +785,17 @@ function stripsFor(c,regions){var cols=c.cols,key=wfMode+'/'+c.anchor.toFixed(4)
       for(var i=0;i<w;i++){var c0=(t+i)*step,c1=Math.min(n,c0+step),pk=0,ci=c0;for(var j=c0;j<c1;j++)if(cols.pk[j]>pk){pk=cols.pk[j];ci=j;}var amp=Math.min(1,pk/cols.ref),h=amp*(TH/2-1);if(h<0.5)continue;g.fillStyle=colorAt(cols,ci,amp,tiers,green);g.fillRect(i,TH/2-h,1,2*h);}
       tiles.push(cv);}return tiles;};
   return cols._strip={key:key,tiers:tiers,green:green,lod0:lod(1),lod1:lod(4)};}
-function setWfMode(m){wfMode=m;Array.from($('wfMode').children).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-m')===m);});if(song)song.cols._strip=null;if(result)result.cols._strip=null;ovKey='';draw();}
+function setWfMode(m){wfMode=m;Array.from($('wfMode').children).forEach(function(b){b.classList.toggle('on',b.getAttribute('data-m')===m);});if(song)song.cols._strip=null;if(result)result.cols._strip=null;ovKey='';draw();renderLib();}
 
 /* ── what the deck shows: Deck A = ORIGINAL (song + grid), Deck B = EXTENDED (result) ── */
 function cur(){if(view==='ext'&&result)return {buf:result.buf,cols:result.cols,dur:result.buf.duration,bar:result.tl.bar,beat:result.tl.beat,anchor:result.tl.dropT-opt.intro*result.tl.bar};
   if(song)return {buf:song.buf,cols:song.cols,dur:song.buf.duration,bar:song.bar,beat:song.beat,anchor:song.firstDB};return null;}
 function cuesOf(){if(view==='ext'&&result){var tl=result.tl;return [{n:'A',t:tl.dropT,label:'DROP',c:CUE_COL.A},{n:'B',t:tl.outro?tl.outro.start:tl.lastDBT,label:'OUTRO',c:CUE_COL.B},{n:'C',t:tl.outroEnd,label:'END',c:CUE_COL.C}];}
   if(song)return [{n:'A',t:song.firstDB,label:'BEAT 1',c:CUE_COL.A},{n:'B',t:song.lastDB,label:'LAST BAR',c:CUE_COL.B}];return [];}
-function regionsOf(){if(view!=='ext'||!result)return [];var tl=result.tl,b=tl.bar,r=[];
-  if(tl.intro)r.push({a:0,b:tl.intro.bars*b,c:'#a855f7',label:'INTRO DRUMS · '+opt.intro+' BARS'+(opt.blendIn?' +'+opt.blendIn+' BLEND':'')+' · '+opt.styles.map(function(s){return (STYLES[s].name+' '+STYLES[s].grooves[grooveOf(s)].name).toUpperCase();}).join(' → ')});
-  if(tl.outro)r.push({a:tl.outro.start,b:tl.outroEnd,c:'#a855f7',label:'OUTRO DRUMS · '+opt.outro+' BARS'+(opt.blendOut?' +'+opt.blendOut+' BLEND':'')});
+function regionsOf(){return view==='ext'&&result?regionsFor(result):[];}
+function regionsFor(res){var tl=res.tl,b=tl.bar,r=[];
+  if(tl.intro)r.push({a:0,b:tl.intro.bars*b,c:'#a855f7',label:'INTRO DRUMS · '+res.intro+' BARS'+(opt.blendIn?' +'+opt.blendIn+' BLEND':'')+' · '+(res.styleLabel||'')});
+  if(tl.outro)r.push({a:tl.outro.start,b:tl.outroEnd,c:'#a855f7',label:'OUTRO DRUMS · '+res.outro+' BARS'+(opt.blendOut?' +'+opt.blendOut+' BLEND':'')});
   (tl.fxRegions||[]).forEach(function(f){r.push({a:f.a,b:f.b,c:'#e879f9',label:'FX',fx:true});});return r;}
 
 /* ── player (with output gain + analyser for the level meter) ── */
@@ -927,14 +928,18 @@ function selectTrack(tr){if(!tr||tr.status!=='ready')return;player.stop();song=t
   renderBpmUI();refreshGrid();if(result){showResultInfo(false);setView('ext');seekTo(Math.max(0,result.tl.dropT-2*result.tl.bar));}else{$('cueBar').style.display='none';setView('src');seekTo(Math.max(0,tr.firstDB-2*tr.beat));}
   renderLib();}
 function removeTrack(id){var i=lib.findIndex(function(t){return t.id===id;});if(i<0)return;var tr=lib[i];lib.splice(i,1);if(song===tr){player.stop();song=null;result=null;var nx=lib.find(function(t){return t.status==='ready';});if(nx)selectTrack(nx);else{$('dropBig').classList.remove('hide');$('dTitle').textContent=$('dTitle2').textContent='No track loaded';$('buildBtn').disabled=true;$('dlBtn').disabled=true;$('tabExt').disabled=true;['pGrid','pExt','pFx','pStyles'].forEach(function(id){$(id).classList.add('off');});}}renderLib();}
-function drawMini(cv,cols){var dpr=window.devicePixelRatio||1,W=140,H=26;cv.width=W*dpr;cv.height=H*dpr;var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#07060d';g.fillRect(0,0,W,H);var per=cols.n/W;
-  for(var x=0;x<W;x++){var a=agg(cols,Math.floor(x*per),Math.floor((x+1)*per)),h=Math.min(1,a.pk/cols.ref)*(H/2-1);if(h<0.5)continue;g.fillStyle=colColor(a.lo,a.mi,a.hi,a.pk/cols.ref);g.fillRect(x,H/2-h,1,2*h);}}
+function drawMini(cv,tr){var res=tr.result,cols=res?res.cols:tr.cols,anchor=res?res.tl.dropT-res.intro*res.tl.bar:tr.firstDB,bar=res?res.tl.bar:tr.bar,regions=res?regionsFor(res):[];
+  var key=wfMode+'/'+anchor.toFixed(4)+'/'+bar.toFixed(5)+'/'+regions.length,m=cols._mini;
+  if(!m||m.key!==key){var green=null;if(regions.length){green=new Uint8Array(cols.n);regions.forEach(function(r){var a=Math.max(0,Math.floor(r.a*cols.sr/HOPC)),b=Math.min(cols.n,Math.ceil(r.b*cols.sr/HOPC));for(var i=a;i<b;i++)green[i]=1;});}
+    m=cols._mini={key:key,tiers:wfMode==='loud'?tiersFor(cols,anchor,bar):null,green:green};}
+  var dpr=window.devicePixelRatio||1,W=140,H=26;cv.width=W*dpr;cv.height=H*dpr;var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.fillStyle='#07060d';g.fillRect(0,0,W,H);var per=cols.n/W;
+  for(var x=0;x<W;x++){var c0=Math.floor(x*per),c1=Math.max(c0+1,Math.floor((x+1)*per)),pk=0,ci=c0;for(var j=c0;j<c1&&j<cols.n;j++)if(cols.pk[j]>pk){pk=cols.pk[j];ci=j;}var amp=Math.min(1,pk/cols.ref),h=amp*(H/2-1);if(h<0.5)continue;g.fillStyle=colorAt(cols,ci,amp,m.tiers,m.green);g.fillRect(x,H/2-h,1,2*h);}}
 function renderLib(){var tb=$('libBody');tb.innerHTML='';$('libCount').textContent=lib.length+' track'+(lib.length===1?'':'s');$('libEmpty').style.display=lib.length?'none':'';$('libTable').style.display=lib.length?'':'none';
   lib.forEach(function(tr,i){var r=document.createElement('tr');if(tr===song)r.className='sel';
     var st=tr.status==='ready'?(tr.result?'<span class="st ext">EXTENDED +'+tr.result.intro+'/+'+tr.result.outro+'</span>':'<span class="st ok">READY</span>'):tr.status==='analyzing'?'<span class="st busy">ANALYSING…</span>':tr.status==='error'?'<span class="st" style="color:var(--cD)" title="'+(tr.error||'')+'">ERROR</span>':'<span class="st">QUEUED</span>';
     r.innerHTML='<td class="num">'+(i+1)+'</td><td class="pv"><canvas></canvas></td><td class="ti">'+esc(tr.title)+'</td><td class="ar">'+esc(tr.artist||'—')+'</td><td class="mono">'+(tr.bpm?tr.bpm.toFixed(2):'—')+'</td><td class="key">'+(tr.key?tr.key.camelot:'—')+'</td><td class="mono">'+(tr.buf?fmtS(tr.buf.duration):'—')+'</td><td>'+st+'</td>'+
       '<td><div class="rowact"><button title="Build" data-a="build">'+ICON.bolt+'</button><button title="Download" data-a="dl" '+(tr.result?'':'disabled')+'>'+ICON.dl+'</button><button title="Remove" data-a="rm">'+ICON.x+'</button></div></td>';
-    if(tr.cols)drawMini(r.querySelector('canvas'),tr.cols);
+    if(tr.cols)drawMini(r.querySelector('canvas'),tr);
     r.onclick=function(e){var b=e.target.closest('button');if(b){e.stopPropagation();var a=b.getAttribute('data-a');if(a==='rm')removeTrack(tr.id);else if(tr.status==='ready'){selectTrack(tr);if(a==='build')build();else if(a==='dl'&&result)download();}return;}if(tr.status==='ready')selectTrack(tr);};
     tb.appendChild(r);});}
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -978,6 +983,7 @@ function refreshGrid(){
   song.beat=p.beat;song.bar=p.bar;song.firstDB=p.firstDB;song.lastDB=p.lastDB;song.bars=p.bars;song.click=null;song.id=Date.now();song.cols._strip=null;
   $('gridInfo').innerHTML='Bar 1 at <b>'+fmt(p.firstDB)+'</b>'+(song.firstDBOverride!=null?' (set by you)':'')+' · last bar line <b>'+fmt(p.lastDB)+'</b> · <b>'+p.bars+'</b> bars · <b>'+p.bar.toFixed(3)+' s</b> per bar';
   if(view==='src'){var was=player.playing,pos=player.pos();if(was)player.stop();renderHotcues();ovKey='';if(was)playAt(pos);else draw();}
+  renderLib();
 }
 
 /* ── settings UI ── */
@@ -1101,7 +1107,7 @@ async function build(){
       for(i=0;i<total;i++){var si=i-shift,v=d[i]+(si>=o0&&si<sEnd?sd[si]:0),a=Math.abs(v);if(a>0.95)v=(v<0?-1:1)*(0.95+0.05*Math.tanh((a-0.95)/0.05));o[i]=v;mono[i]+=v*0.5;}}
     var c=player.ctxGet(),rb=c.createBuffer(2,total,sr);rb.copyToChannel(out[0],0);rb.copyToChannel(out[1],1);
     result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),wav:null,url:null};$('buildBar').style.width='100%';
-    result.intro=opt.intro;result.outro=opt.outro;song.result=result;countBuild();showResultInfo(true);renderLib();
+    result.intro=opt.intro;result.outro=opt.outro;result.styleLabel=opt.styles.map(function(s){return (STYLES[s].name+' '+STYLES[s].grooves[grooveOf(s)].name).toUpperCase();}).join(' → ');song.result=result;countBuild();showResultInfo(true);renderLib();
   }catch(e){status(e.message||String(e),true);console.error(e);alert(e.message||e);}
   busy=false;cpu(8);btn.disabled=false;btn.textContent='Build extended mix';setTimeout(function(){$('buildProg').classList.remove('show');$('buildBar').style.width='0';},600);
 }
