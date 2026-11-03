@@ -19,10 +19,12 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `vercel.json` | Rewrites `/` → `/index.html`. That's it. |
+| `extendo.html` | **Extendo** (~900 lines). Standalone DJ tool styled like DJ software (master strip, Deck A/B, hot-cue pads, settings sidebar, multi-track library): drop songs → BPM/grid/key detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
+| `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`; **host-based**: on `extendthemix.com` (same Vercel project, extra domain) `/` → `/extendo.html` and `/extendo*` redirects to `/`. |
+| `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
 
-There is no test suite, no linter, no CI. "Running" it is just opening the HTML
+There is no linter and no CI; the only tests are the two Extendo scripts in `tests/`. "Running" it is just opening the HTML
 files (or `vercel dev` / any static server). Deploys happen by pushing to the
 Vercel-connected branch.
 
@@ -342,3 +344,110 @@ timing-sensitive:
 - **Secrets:** only *public* keys belong here (Supabase anon key, Stripe
   publishable key, Meta pixel id). Never add a service-role key, Stripe secret
   key, or Spotify client secret to these files — those live on the backend.
+
+## 9. Extendo (`extendo.html`) — the DJ extended-mix page
+
+Separate product, served at **extendthemix.com** (own domain on the same Vercel project, see `vercel.json`) and at `/extendo` here; no shared code with the other two pages.
+Audio is 100% in the browser; the only network calls are the shared Supabase
+auth, the Meta Pixel and `POST /systeme/contact` (lead tagging). See item 5
+for the account gate.
+
+1. `decodeAudioData` → mono downmix → `ExtendoDSP.analyze()` (the `<script id="dsp">`
+   block, **pure functions, no DOM**; `tests/extendo-dsp.test.js` extracts and
+   runs it in Node, keep it DOM-free).
+   - Tempo: 3-band log-energy flux at 512-sample hops → 6-harmonic comb on the
+     smoothed autocorrelation at integer lags (+ log-tempo prior centred on
+     128 BPM, σ 0.6 oct) → top-8 peaks → **multi-scale parabolic refinement**
+     over 1…64-beat lags (needed: a 0.05 BPM error drifts ~90 ms over 4
+     minutes) → **re-rank the comb at each refined fractional period** (integer
+     lags miss high harmonics when the period isn't a whole frame, which used
+     to favour 4:3 / 4:5 pattern periods). Confidence ignores octave rivals.
+   - Phase: comb over the frame envelope, then `refinePhase` re-pins it with a
+     32-sample-hop flux (±20 ms).
+   - Downbeat (`detectDownbeat`): per-beat features z-scored over the track —
+     kick/bass onsets (+), snare/hat transients (−), 24-band FFT spectrum
+     change vs the previous beat (chords/bass notes change on the bar line),
+     spectral + energy change between the next 4 beats and the previous 4
+     (sections start on a downbeat), plus a bonus for the beat the track's
+     first real hit lands on. `tests/extendo-downbeat-bench.js` scores it on
+     36 synthetic house/boom-bap/trap tracks (32/36; the 4 misses are 67 BPM
+     boom-bap read as 134 with the downbeat still right). Run it before
+     touching the weights.
+   - `plan()` builds the timeline: the song's first grid downbeat lands exactly
+     at the end of the intro (or the user's `firstDBOverride`, snapped to the
+     grid); the outro starts on the last bar line before the audio ends;
+     "blend" bars overlap drums under the song with linear fades.
+2. Drums (`<script id="drums">`): patterns are 16/32-step strings per
+   instrument in `STYLES` (`x`/`o`/`-`/`.`). Each style has a synth `kit` and
+   **4 `grooves`** (`{name, A, B}`; B is the variation for the 2nd 4 bars of
+   each 8). `opt.groove[styleId]` picks one; `shuffleGrooves()` randomises the
+   selected styles and **rebuilds automatically** when a result exists. Every (style, instrument) is rendered **once** as a one-shot via
+   a tiny `OfflineAudioContext` (`loadShots`), then `renderSection` mixes
+   patterns in plain JS. ⚠️ Do not go back to scheduling one Web Audio node per
+   hit over the whole timeline — that took ~20 s per build. Also **no
+   `DynamicsCompressorNode` anywhere** in the render path: it adds ~6 ms of
+   latency and would shift the grid.
+   Transition FX: `sec.fxEnds` (bar-aligned, section-relative) marks where a
+   transition lands; `renderSection` then does the **snare build** (replaces
+   the pattern for the last `fx.len` bars, kick kept) and the **filter sweep**
+   (per-sample 2-pole high-pass rising 30 Hz → 2.5 kHz). The **noise riser**
+   (`renderRiser`, Web Audio, cached) and **reverse cymbal** (reversed crash
+   one-shot) are added in `build()` at absolute times. `tl.fxRegions` drives
+   the pink overlays.
+   **Melody bed** (`opt.bed`): `hpss()` in the DSP block (median-filter
+   harmonic/percussive separation, 2048/512 STFT, 17×17 medians, in-place
+   insertion-sort median) strips the drums from a 4/8-bar phrase of the song;
+   `bedLoop()` builds a seam-crossfaded loop per channel (cached per track +
+   phrase), `pickPhrase()` uses the user's **sample box** (`song.samp.in/out =
+   {start,bars}`, set with "Intro here / Outro here", drawn green on Deck A,
+   draggable by whole bars, toolbar `#sampBox`: 1…32 bars, ÷2/×2, Loop =
+   sample-accurate `BufferSource.loop` via `player.play(...,loop)`, Melody
+   only = previews the HPSS loop buffer with `player.view0` offsetting the
+   deck time) or otherwise auto-picks the last/first *loud* phrase (slides by
+   4 bars while rms < 50 % of the track's loudness); `placeBed()` loops it from the last
+   bar line to the end of the outro (2-bar fade-out) and/or from 0 to the drop
+   (1-bar fade-in). Mixed in `build()` as `bedL/bedR`; `tl.bedRegions` draws
+   the green "MELODY LOOP" bands. ~2 s per 8-bar stereo phrase.
+3. `build()` mixes the song in with a single integer sample `shift`
+   (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
+   (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.
+4. Deck UI: one `player` + `view` (`'src'` = **Deck A** original with
+   metronome click, `'ext'` = **Deck B** extended result). `lib[]` holds every
+   loaded track (`loadFiles` → `processQueue` analyses them one at a time;
+   `selectTrack` makes one the `song`; each track keeps its own `result`,
+   `firstDBOverride` and `counted`). `detectKey` (Krumhansl chroma → Camelot)
+   fills the KEY readouts. The player routes through `gain` (output knob) →
+   `AnalyserNode` (LED meter). Hot-cue pads A–D map to `cuesOf()`. `bandCols()` computes 3-band + peak per 256 samples once
+   per buffer; `drawOverview` caches the full-track RGB waveform (regions,
+   cue triangles) and `drawDetail` redraws the zoomed window with the beat grid
+   and bar numbers every frame. Bar 1 is the song's first downbeat (ORIGINAL)
+   or the start of the intro drums (EXTENDED). Cue buttons jump 2 bars early.
+   The grid is `(bpm, firstBeat, downbeat)`; every manual edit goes through
+   `setAnchor(t)` ("this time is a beat 1"). **GRID EDIT** mode on the zoomed
+   waveform: pointer drag slides the grid, a click snaps the nearest beat to
+   beat 1 (pointer handlers own the canvas, the seek-on-click is suppressed).
+   `nudgeBpm` pivots around bar 1 so a BPM trim keeps the downbeat; `setBpm`
+   (typed value, ½×/2×, TAP) re-detects phase + downbeat. `setBar1(t)` stores
+   `song.firstDBOverride` for tracks whose intro should sit under the drums.
+
+5. Account gate (`GATE=true`, the hosted test copy on claude.ai runs with
+   `GATE=false`): analysing, grid editing and drum previews are free and
+   anonymous; **Build** needs a sign-in (same Supabase project + custom auth
+   domain + `storageKey` as the other pages, magic link or Google; magic link
+   `emailRedirectTo` is `origin+pathname` = `/extendo`, which must be on the
+   Supabase redirect allowlist). On first sign-in the email is tagged
+   `extendo-lead` in Systeme.io. Free accounts get `FREE_BUILDS` (3) mixes,
+   counted **per song** (`song.counted`, rebuilds/shuffles of the same track
+   are free). After that `openUnlock()` asks for Spotify + Instagram follows
+   (`SOCIAL` links; honour system — both links must be clicked) and stores
+   `extendo_unlocked`. Counters/flags live in Supabase **`user_metadata`**
+   (`extendo_builds`, `extendo_unlocked`) via `saveMeta()` — no new tables,
+   follows the account across devices, and like every gate here it is
+   client-side and bypassable (§7.4). Unlock tags `extendo-unlocked`; the PRO
+   teaser tags `extendo-pro-waitlist`. Meta Pixel `Lead` events fire on magic
+   link / Google / unlock / waitlist. Cross-tab: the magic link opens a new
+   tab, supabase-js propagates the session to the original tab, whose
+   `auth.pending==='build'` then builds the still-loaded track.
+
+The shared `player` object follows the same iOS rule as the other pages: set
+`playing=false` and null `onended` **before** `stop()`.

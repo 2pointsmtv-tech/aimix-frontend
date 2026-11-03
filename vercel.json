@@ -1,5 +1,46 @@
 {
   "rewrites": [
-    { "source": "/", "destination": "/index.html" }
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?extendthemix\\.com"
+        }
+      ],
+      "destination": "/extendo.html"
+    },
+    {
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/extendo",
+      "destination": "/extendo.html"
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/extendo",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?extendthemix\\.com"
+        }
+      ],
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/extendo.html",
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?extendthemix\\.com"
+        }
+      ],
+      "destination": "/",
+      "permanent": true
+    }
   ]
 }
