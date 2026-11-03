@@ -10,7 +10,8 @@ for(let k=-1,t=phase-beat;t<dur-4;t+=beat,k++){const s0=Math.floor(t*sr),db=k%4=
   if(sn)for(let i=0;i<sr*0.15&&s0+i<n;i++){const v=0.4*Math.exp(-i/(sr*0.04))*rnd();L[s0+i]+=v;R[s0+i]+=v*0.9;}
   for(const h of [0,0.5]){const h0=Math.floor((t+h*beat)*sr);for(let i=0;i<sr*0.03&&h0+i<n;i++){const v=0.15*Math.exp(-i/(sr*0.008))*rnd();L[h0+i]+=v*0.8;R[h0+i]+=v;}}}
 for(let i=0;i<n;i++){const t=i/sr,g=t>dur-4?Math.max(0,1-(t-(dur-4))/3):1;L[i]=Math.max(-1,Math.min(1,L[i]*g));R[i]=Math.max(-1,Math.min(1,R[i]*g));}
-fs.writeFileSync(path.join(TMP,'song.wav'),Buffer.from(D.encodeWav([L,R],sr)));
+const PNG=Uint8Array.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0,0,0,13,73,72,68,82,0,0,0,1,0,0,0,1,8,6,0,0,0,31,21,196,137,0,0,0,10,73,68,65,84,120,156,99,0,1,0,0,5,0,1,13,10,45,180,0,0,0,0,73,69,78,68,174,66,96,130]);
+fs.writeFileSync(path.join(TMP,'song.wav'),Buffer.from(D.encodeWav([L,R],sr,{title:'Test Song',artist:'2 Points',album:'Demos',genre:'House',cover:{mime:'image/png',data:PNG}})));
 const {chromium}=require('playwright');
 (async()=>{
   const browser=await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']});const page=await browser.newPage();
@@ -23,6 +24,8 @@ const {chromium}=require('playwright');
   let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};const opt_changed=sh=>['house','trap'].every(k=>(sh.before[k]||0)!==(sh.after[k]||0));
   ok(Math.abs(g.bpm-128.4)<0.03,'page detected 128.4 BPM ('+g.bpm.toFixed(3)+')');
   ok(Math.abs(g.firstDB-0.9)<0.006,'first downbeat at 0.9 s ('+g.firstDB.toFixed(4)+')');
+  const tg=await page.evaluate(()=>({title:song.title,artist:song.artist,art:!!document.querySelector('#art img'),row:!!document.querySelector('#libBody .ti img'),deck:document.getElementById('dTitle').textContent}));
+  ok(tg.title==='Test Song'&&tg.artist==='2 Points'&&tg.art&&tg.row&&tg.deck==='Test Song','tags read from the file: title, artist and cover shown on the deck and in the library');
   ok(Math.abs(g.sStart-(0.9-60/128.4))<0.02,'audible start = 1-beat pickup');
   // every style previews without throwing
   const prev=await page.evaluate(async()=>{const out={};for(const id of STYLE_ORDER){for(let g=0;g<STYLES[id].grooves.length;g++){const b=await renderStyle(id,song.bpm,2,44100,g);out[id+'/'+STYLES[id].grooves[g].name]=+rmsOf(b).toFixed(3);}}return out;});
@@ -71,7 +74,9 @@ const {chromium}=require('playwright');
   ok(mini.green>200&&mini.other>200,'library preview shows the extended mix: green added parts + coloured song ('+mini.green+' / '+mini.other+' px)');
   // download → a blob of the right size
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const fname=dl.suggestedFilename();const p=await dl.path();const size=require('fs').statSync(p).size;
-  console.log('download:',fname,size,'bytes');ok(/Extendo 16\+8 bar extended mix\)\.wav$/.test(fname),'download filename');ok(size===44+Math.round(r.len*44100)*4,'wav size matches');
+  console.log('download:',fname,size,'bytes');ok(fname==='2 Points - Test Song (Extended Mix).wav','download filename = Artist - Title (Extended Mix).wav');ok(size>44+Math.round(r.len*44100)*4,'wav holds the audio plus tag chunks');
+  const dt0=D.parseTags(new Uint8Array(require('fs').readFileSync(p)),'d.wav');
+  ok(dt0.title==='Test Song (Extended Mix)'&&dt0.artist==='2 Points'&&dt0.album==='Demos'&&dt0.genre==='House'&&dt0.cover&&dt0.cover.data.length===PNG.length&&dt0.cover.data.every((v,i)=>v===PNG[i]),'downloaded WAV carries the original tags + cover, title suffixed (Extended Mix)');
   // grid-check click track + nudge controls don't throw
   await page.evaluate(()=>{setView('src');togglePlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();togglePlay();tapTempo();setBpm(128.4);jumpCue(0);setZoom(4);});
   // grid edit: drag the zoomed waveform by 1/16 of the window (=1 beat at zoom 4) and check the anchor moved by a bar; then click a beat to make it beat 1

@@ -449,5 +449,27 @@ for the account gate.
    tab, supabase-js propagates the session to the original tab, whose
    `auth.pending==='build'` then builds the still-loaded track.
 
+6. **Pro** (`$49.99` lifetime / `$9.99` monthly): entitlement comes from the
+   backend (`POST /extendo/status` with the user's access token → the
+   `extendo_subscriptions` table, see aimix-backend `extendo_tables.sql`),
+   never from `user_metadata`. Pro features: the sampler, grooves 3–4 of each
+   style (`FREE_GROOVES=2`), Build all. Free accounts get `PRO_TRIES` (5) uses,
+   charged once per song at build time (`spendProTry`, counter
+   `user_metadata.extendo_pro_used`). `openUpgrade()` → `startCheckout(kind)`
+   → `POST /extendo/checkout` → Stripe; the return URL `?pro=success&kind=..&
+   session_id=..` re-polls the entitlement and fires the Meta `Purchase` with
+   `eventID = session_id` (CAPI dedupe). Cancel monthly: `POST /extendo/cancel`.
+7. **Metadata & export.** `parseTags()` (DSP block) reads title/artist/album/
+   genre/year/track/BPM/key/cover + raw ID3 frames from MP3, M4A, FLAC and WAV
+   **before** `decodeAudioData` (which detaches the buffer). The deck and
+   library show the cover and tags. `encodeWav(chs, sr, meta, bits)` writes a
+   LIST/INFO chunk and an `id3 ` chunk: with an ID3 source every original frame
+   is copied verbatim and only `TIT2` gets " (Extended Mix)"; BPM/key are added
+   only when the original had none; nothing branded is written. Bit depth
+   follows the source (24-bit WAV/FLAC → 24-bit, else 16). The mix passes the
+   song through sample-for-sample; soft-limiting only happens where added
+   drums or the melody bed overlap it. Filename: `Artist - Title (Extended
+   Mix).wav`.
+
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.
