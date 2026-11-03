@@ -28,7 +28,7 @@ const {chromium}=require('playwright');
   const prev=await page.evaluate(async()=>{const out={};for(const id of STYLE_ORDER){const b=await renderStyle(id,song.bpm,2,44100);out[id]=rmsOf(b);}return out;});
   console.log('style rms:',JSON.stringify(prev));ok(Object.values(prev).every(v=>v>0.02&&v<0.5),'all 8 styles render with sane RMS');
   // build: 16-bar house→trap cycling intro, 8-bar outro with 2-bar blend, crash+fill
-  await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.fill=true;opt.level=0;});
+  await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.level=0;opt.fx={len:2,riser:true,rev:true,sweep:true,build:true,atDrop:true,atOutro:true,atEnd:true};fxUI();});
   const t0=Date.now();await page.click('#buildBtn');await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
   const r=await page.evaluate(()=>{
     const tl=result.tl,sr=song.sr,o=result.chs[0],s=song.buf.getChannelData(0);
@@ -36,7 +36,7 @@ const {chromium}=require('playwright');
     // sample-exact placement check: output at drop must equal song at firstDB (no drums there once blendIn=0 → only crash tail overlaps; compare 2 s after drop where intro drums are silent)
     const chk=(tSong,len)=>{let e=0;const b=Math.round(tSong*sr),a=b+result.shift;for(let i=0;i<len;i++)e=Math.max(e,Math.abs(o[a+i]-s[b+i]));return e;};
     return {tl:tl,len:o.length/sr,introRms:rms(0,tl.dropT-1),midSongRms:rms(tl.dropT+5,tl.dropT+15),outroRms:rms(tl.lastDBT+0.5,tl.outroEnd-0.5),tailRms:rms(tl.outroEnd+0.5,tl.total),
-      placementErr:chk(tl.firstDB+8,sr*2),dropIdxErr:Math.round(tl.firstDB*sr)+result.shift-tl.dropT*sr,peak:(()=>{let p=0;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>p)p=a;}return p;})(),
+      placementErr:chk(tl.firstDB+8,sr*2),fxRegions:tl.fxRegions,riserRms:rms(tl.dropT-0.6,tl.dropT-0.05),preRiserRms:rms(tl.dropT-2*tl.bar-1.5,tl.dropT-2*tl.bar-0.5),view:view,extTab:!document.getElementById('tabExt').disabled,dropIdxErr:Math.round(tl.firstDB*sr)+result.shift-tl.dropT*sr,peak:(()=>{let p=0;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>p)p=a;}return p;})(),
       cues:document.getElementById('cues').textContent,meta:document.getElementById('resultMeta').textContent,dl:document.getElementById('dlNote').textContent};
   });
   console.log('result:',JSON.stringify({len:r.len,introRms:r.introRms,midSongRms:r.midSongRms,outroRms:r.outroRms,tailRms:r.tailRms,placementErr:r.placementErr,peak:r.peak,dropT:r.tl.dropT,lastDBT:r.tl.lastDBT,outroEnd:r.tl.outroEnd,total:r.tl.total,cues:r.cues,meta:r.meta,dl:r.dl}));
@@ -47,11 +47,16 @@ const {chromium}=require('playwright');
   ok(r.placementErr<0.06&&Math.abs(r.dropIdxErr)<=1,'song placed sample-exactly (max diff '+r.placementErr.toFixed(3)+', drop index error '+r.dropIdxErr.toFixed(2)+' samples)');
   ok(r.peak<=1.0,'no overs');
   ok(Math.abs(r.len-r.tl.total)<0.01,'output length = plan');
+  ok(r.fxRegions.length===3&&Math.abs(r.fxRegions[0].b-r.tl.dropT)<1e-9&&Math.abs(r.fxRegions[0].b-r.fxRegions[0].a-2*bar)<1e-9,'3 FX regions, 2 bars each, first ends at the drop');
+  ok(r.view==='ext'&&r.extTab,'deck switched to EXTENDED view');
+  const blank=await page.evaluate(()=>{const chk=id=>{const cv=document.getElementById(id),g=cv.getContext('2d'),d=g.getImageData(0,0,cv.width,cv.height).data;let lit=0;for(let i=0;i<d.length;i+=4)if(d[i]+d[i+1]+d[i+2]>120)lit++;return lit/(d.length/4);};return {ov:chk('ov'),dt:chk('dt')};});
+  console.log('canvas lit fraction:',JSON.stringify(blank));ok(blank.ov>0.05&&blank.dt>0.03,'overview + detail waveforms drawn');
   // download → a blob of the right size
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const fname=dl.suggestedFilename();const p=await dl.path();const size=require('fs').statSync(p).size;
   console.log('download:',fname,size,'bytes');ok(/Extendo 16\+8 bar extended mix\)\.wav$/.test(fname),'download filename');ok(size===44+Math.round(r.len*44100)*4,'wav size matches');
   // grid-check click track + nudge controls don't throw
-  await page.evaluate(()=>{toggleGridPlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();toggleGridPlay();tapTempo();setBpm(128.4);});
+  await page.evaluate(()=>{setView('src');togglePlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();togglePlay();tapTempo();setBpm(128.4);jumpCue(0);setZoom(4);setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});
+  await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(TMP,'shot_deck.png')});
   await page.setViewportSize({width:390,height:800});await page.screenshot({path:path.join(TMP,'shot_mobile.png'),fullPage:true});
   await page.setViewportSize({width:1200,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(TMP,'shot_desktop.png'),fullPage:true});
   ok(errors.length===0,'no page errors'+(errors.length?': '+errors.join(' | '):''));

@@ -19,7 +19,7 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `extendo.html` | **Extendo** (~560 lines). Standalone DJ tool: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums before and after → WAV download. Fully client-side, calls **no backend**. See §9. |
+| `extendo.html` | **Extendo** (~670 lines). Standalone DJ tool with a Rekordbox-style deck UI: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums + transition FX before and after → WAV download. Fully client-side, calls **no backend**. See §9. |
 | `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`. That's it. |
 | `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` needs just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
@@ -372,9 +372,22 @@ no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
    hit over the whole timeline — that took ~20 s per build. Also **no
    `DynamicsCompressorNode` anywhere** in the render path: it adds ~6 ms of
    latency and would shift the grid.
+   Transition FX: `sec.fxEnds` (bar-aligned, section-relative) marks where a
+   transition lands; `renderSection` then does the **snare build** (replaces
+   the pattern for the last `fx.len` bars, kick kept) and the **filter sweep**
+   (per-sample 2-pole high-pass rising 30 Hz → 2.5 kHz). The **noise riser**
+   (`renderRiser`, Web Audio, cached) and **reverse cymbal** (reversed crash
+   one-shot) are added in `build()` at absolute times. `tl.fxRegions` drives
+   the pink overlays.
 3. `build()` mixes the song in with a single integer sample `shift`
    (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
    (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.
+4. Deck UI: one `player` + `view` (`'src'` = song with metronome click,
+   `'ext'` = result). `bandCols()` computes 3-band + peak per 256 samples once
+   per buffer; `drawOverview` caches the full-track RGB waveform (regions,
+   cue triangles) and `drawDetail` redraws the zoomed window with the beat grid
+   and bar numbers every frame. Bar 1 is the song's first downbeat (ORIGINAL)
+   or the start of the intro drums (EXTENDED). Cue buttons jump 2 bars early.
 
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.
