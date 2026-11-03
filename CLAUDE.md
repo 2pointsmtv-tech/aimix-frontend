@@ -20,7 +20,8 @@ The whole repo is:
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
 | `extendo.html` | **Extendo** (~900 lines). Standalone DJ tool styled like DJ software (master strip, Deck A/B, hot-cue pads, settings sidebar, multi-track library): drop songs → BPM/grid/key detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
-| `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`; **host-based**: on `extendthemix.com` (same Vercel project, extra domain) `/` → `/extendo.html` and `/extendo*` redirects to `/`. |
+| `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`; on `extendthemix.com` `/extendo*` redirects to `/`. |
+| `middleware.js` | Vercel Edge Middleware: `extendthemix.com/` → `extendo.html`. Needed because Vercel serves the static `index.html` at `/` **before** `vercel.json` rewrites run, so a host-based rewrite for `/` never fires. Matches only `/`; everything else passes through. |
 | `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
 
