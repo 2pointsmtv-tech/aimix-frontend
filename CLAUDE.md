@@ -394,6 +394,16 @@ for the account gate.
    (`renderRiser`, Web Audio, cached) and **reverse cymbal** (reversed crash
    one-shot) are added in `build()` at absolute times. `tl.fxRegions` drives
    the pink overlays.
+   **Melody bed** (`opt.bed`): `hpss()` in the DSP block (median-filter
+   harmonic/percussive separation, 2048/512 STFT, 17×17 medians, in-place
+   insertion-sort median) strips the drums from a 4/8-bar phrase of the song;
+   `bedLoop()` builds a seam-crossfaded loop per channel (cached per track +
+   phrase), `pickPhrase()` chooses the last/first *loud* phrase (slides by 4
+   bars while rms < 50 % of the track's loudness) unless the user set one
+   (`song.bedOutT` / `song.bedInT`), and `placeBed()` loops it from the last
+   bar line to the end of the outro (2-bar fade-out) and/or from 0 to the drop
+   (1-bar fade-in). Mixed in `build()` as `bedL/bedR`; `tl.bedRegions` draws
+   the green "MELODY LOOP" bands. ~2 s per 8-bar stereo phrase.
 3. `build()` mixes the song in with a single integer sample `shift`
    (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
    (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.

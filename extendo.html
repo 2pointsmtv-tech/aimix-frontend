@@ -363,15 +363,24 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
         <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="levelSl" min="-12" max="6" step="0.5" value="0" oninput="opt.level=+this.value;$('levelVal').textContent=(opt.level>0?'+':'')+opt.level.toFixed(1)+' dB'"><span class="val" id="levelVal">0.0 dB</span></div>
         <div class="row"><span class="lbl">Crash</span><label class="sw"><input type="checkbox" id="crashChk" checked onchange="opt.crash=this.checked"><span class="tr"></span><span class="l">Drop and ending</span></label></div>
       </div>
+      <div class="sec off" id="pBed">
+        <h3><span class="n">02</span>MELODY BED<span class="note">The song's own melody under the drums</span></h3>
+        <div class="row"><span class="lbl">Outro</span><label class="sw"><input type="checkbox" id="bedOut" checked onchange="opt.bed.outOn=this.checked"><span class="tr"></span><span class="l">Loop the last phrase</span></label></div>
+        <div class="row"><span class="lbl">Intro</span><label class="sw"><input type="checkbox" id="bedIn" onchange="opt.bed.inOn=this.checked"><span class="tr"></span><span class="l">Loop the first phrase</span></label></div>
+        <div class="row"><span class="lbl">Phrase</span><div class="seg" id="bedLen"></div><span class="meta">bars</span></div>
+        <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="bedSl" min="-18" max="6" step="1" value="-3" oninput="opt.bed.level=+this.value;$('bedVal').textContent=(opt.bed.level>0?'+':'')+opt.bed.level+' dB'"><span class="val" id="bedVal">-3 dB</span></div>
+        <div class="row"><span class="lbl">Pick phrase</span><button class="sb" onclick="setBedPhrase('out')">Outro here</button><button class="sb" onclick="setBedPhrase('in')">Intro here</button><button class="sb" onclick="setBedPhrase(null)">Auto</button></div>
+        <div class="info" id="bedInfo">Drums are stripped from the phrase on this device, then it loops under the new drums and fades out.</div>
+      </div>
       <div class="sec off" id="pStyles">
-        <h3><span class="n">02</span>DRUM STYLES<button class="sb" style="margin-left:auto" onclick="shuffleGrooves(false)"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button></h3>
+        <h3><span class="n">03</span>DRUM STYLES<button class="sb" style="margin-left:auto" onclick="shuffleGrooves(false)"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button></h3>
         <div class="row" id="cycleRow"><span class="lbl">Cycle every</span><div class="seg" id="cycleBars"></div><span class="meta">bars</span></div>
         <div class="row"><div class="styles" id="styleGrid"></div></div>
       </div>
     </div>
     <div id="sideFx" style="display:none">
       <div class="sec off" id="pFx">
-        <h3><span class="n">03</span>TRANSITION FX<span class="note">Pink on the waveform</span></h3>
+        <h3><span class="n">04</span>TRANSITION FX<span class="note">Pink on the waveform</span></h3>
         <div class="row"><span class="lbl">Length</span><div class="seg" id="fxLen"></div></div>
         <div class="row" style="align-items:flex-start"><span class="lbl" style="padding-top:2px">Effects</span>
           <div class="fxlist">
@@ -391,7 +400,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     </div>
     <div id="sideGrid" style="display:none">
       <div class="sec off" id="pGrid">
-        <h3><span class="n">04</span>TEMPO &amp; GRID<span class="note" id="songMeta"></span></h3>
+        <h3><span class="n">05</span>TEMPO &amp; GRID<span class="note" id="songMeta"></span></h3>
         <div class="row"><div class="bpm-edit"><input id="bpmInput" type="number" step="0.01" min="40" max="300" value="0"><span class="meta">BPM</span></div><span class="conf" id="bpmConf">—</span></div>
         <div class="row"><span class="lbl">Fine</span><div class="seg"><button onclick="nudgeBpm(-0.1)">−0.1</button><button onclick="nudgeBpm(-0.01)">−0.01</button><button onclick="nudgeBpm(0.01)">+0.01</button><button onclick="nudgeBpm(0.1)">+0.1</button></div></div>
         <div class="row"><span class="lbl">Tempo</span><button class="sb" id="tapBtn" onclick="tapTempo()">Tap</button><button class="sb" onclick="setBpm(song.bpm/2)">½×</button><button class="sb" onclick="setBpm(song.bpm*2)">2×</button><button class="sb" onclick="redetect()">Re-detect</button></div>
@@ -581,6 +590,24 @@ var ExtendoDSP=(function(){
     if(!best)return null;var cam=(best.minor?CAM_MIN:CAM_MAJ)[best.tonic]+(best.minor?'A':'B');
     return {name:NOTES[best.tonic]+(best.minor?' minor':' major'),camelot:cam,confidence:best.r};}
   function corr(x,prof,shift){var n=12,mx=0,my=0;for(var i=0;i<n;i++){mx+=x[i];my+=prof[i];}mx/=n;my/=n;var sxy=0,sxx=0,syy=0;for(i=0;i<n;i++){var a=x[i]-mx,b=prof[(i-shift+12)%12]-my;sxy+=a*b;sxx+=a*a;syy+=b*b;}return sxx&&syy?sxy/Math.sqrt(sxx*syy):0;}
+  // ── Harmonic/percussive separation (median-filtering HPSS, Fitzgerald 2010): keeps pads, chords, bass notes and
+  //    most vocals; drops drum hits. Used to loop a "melody bed" from the song under the added drums. ──
+  var HN=2048,HH=512;
+  function medianOf(a,n){for(var i=1;i<n;i++){var v=a[i],j=i-1;while(j>=0&&a[j]>v){a[j+1]=a[j];j--;}a[j+1]=v;}return a[n>>1];}   // in-place insertion sort: n ≤ 17, no allocation
+  function hpss(x,opts){opts=opts||{};var N=HN,H=HH,F=Math.max(1,Math.floor((x.length-N)/H)+1),B=N/2+1,win=new Float32Array(N),re=new Float32Array(N),im=new Float32Array(N);
+    for(var i=0;i<N;i++)win[i]=0.5-0.5*Math.cos(2*Math.PI*i/N);
+    var RE=[],IM=[],MAG=[];
+    for(var f=0;f<F;f++){var o=f*H;for(i=0;i<N;i++){re[i]=(o+i<x.length?x[o+i]:0)*win[i];im[i]=0;}fft(re,im);var r=new Float32Array(B),m=new Float32Array(B),g=new Float32Array(B);for(i=0;i<B;i++){r[i]=re[i];m[i]=im[i];g[i]=Math.sqrt(re[i]*re[i]+im[i]*im[i]);}RE.push(r);IM.push(m);MAG.push(g);}
+    var wt=opts.timeWin||17,wf=opts.freqWin||17,ht=wt>>1,hf=wf>>1,tmp=new Float32Array(Math.max(wt,wf)),p=opts.power||2,bias=opts.bias||1;
+    var out=new Float32Array(x.length),norm=new Float32Array(x.length);
+    for(f=0;f<F;f++){var mg=MAG[f];
+      for(var b=0;b<B;b++){var n=0;for(var t=f-ht;t<=f+ht;t++)if(t>=0&&t<F)tmp[n++]=MAG[t][b];var hm=medianOf(tmp,n);n=0;for(var q=b-hf;q<=b+hf;q++)if(q>=0&&q<B)tmp[n++]=mg[q];var pm=medianOf(tmp,n);
+        var hp=Math.pow(hm,p),pp=Math.pow(pm*bias,p),mask=hp+pp>0?hp/(hp+pp):0;re[b]=RE[f][b]*mask;im[b]=IM[f][b]*mask;}
+      for(b=1;b<B-1;b++){re[N-b]=re[b];im[N-b]=-im[b];}   // hermitian symmetry → real signal
+      for(i=0;i<N;i++)im[i]=-im[i];fft(re,im);           // inverse via conjugate trick
+      var o2=f*H;for(i=0;i<N&&o2+i<x.length;i++){out[o2+i]+=re[i]/N*win[i];norm[o2+i]+=win[i]*win[i];}}
+    for(i=0;i<x.length;i++)if(norm[i]>1e-3)out[i]/=norm[i];
+    return out;}
   // Timeline plan. a: {sStart,sEnd,bpm,firstBeat,downbeat}  o: {intro,outro,blendIn,blendOut} (bars)
   // Song time s ↦ timeline time s+off. The song's first downbeat lands exactly on the end of the intro.
   function plan(a,o){
@@ -606,7 +633,7 @@ var ExtendoDSP=(function(){
     str('RIFF');u32(bytes-8);str('WAVE');str('fmt ');u32(16);u16(1);u16(nc);u32(sr);u32(sr*nc*2);u16(nc*2);u16(16);str('data');u32(n*nc*2);
     for(var i=0;i<n;i++)for(var c=0;c<nc;c++){var s=chs[c][i];s=s>1?1:s<-1?-1:s;v.setInt16(p,s<0?s*32768:s*32767,true);p+=2;}
     return ab;}
-  return {HOP:HOP,toMono:toMono,envelope:envelope,bounds:bounds,loudness:loudness,detectTempo:detectTempo,detectPhase:detectPhase,detectDownbeat:detectDownbeat,analyze:analyze,rephase:rephase,refinePhase:refinePhase,detectKey:detectKey,plan:plan,encodeWav:encodeWav,acAt:acAt};
+  return {HOP:HOP,toMono:toMono,envelope:envelope,bounds:bounds,loudness:loudness,detectTempo:detectTempo,detectPhase:detectPhase,detectDownbeat:detectDownbeat,analyze:analyze,rephase:rephase,refinePhase:refinePhase,detectKey:detectKey,hpss:hpss,plan:plan,encodeWav:encodeWav,acAt:acAt};
 })();
 if(typeof module!=='undefined')module.exports=ExtendoDSP;
 </script>
@@ -744,7 +771,7 @@ function rmsOf(buf){var d=buf.getChannelData(0),s=0;for(var i=0;i<d.length;i++)s
 var $=function(id){return document.getElementById(id);};
 var ICON={play:'<svg class="i" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',pause:'<svg class="i" viewBox="0 0 24 24"><path d="M7 5v14M17 5v14" stroke-width="2.6"/></svg>',prev:'<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',next:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',dice:'<svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>',tri:'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',dl:'<svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>',x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',bolt:'<svg class="i" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>'};
 var song=null,result=null,busy=false,view='src',zoomBars=8,ZOOMS=[4,8,16,32];
-var opt={intro:16,outro:16,styles:['house'],groove:{},cycle:8,blendIn:0,blendOut:0,crash:true,level:0,fx:{len:2,riser:true,rev:true,sweep:false,build:true,atDrop:true,atOutro:false,atEnd:true}};
+var opt={intro:16,outro:16,styles:['house'],groove:{},cycle:8,blendIn:0,blendOut:0,crash:true,level:0,bed:{inOn:false,outOn:true,len:8,level:-3},fx:{len:2,riser:true,rev:true,sweep:false,build:true,atDrop:true,atOutro:false,atEnd:true}};
 var fmtT=function(t){var neg=t<0;t=Math.abs(t);var m=Math.floor(t/60),s=t-m*60;return (neg?'-':'')+(m<10?'0':'')+m+':'+(s<10?'0':'')+s.toFixed(1);};
 var fmt=function(t){t=Math.max(0,t);var m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2);};
 var fmtS=function(t){t=Math.max(0,t);var m=Math.floor(t/60),s=Math.round(t-m*60);if(s===60){m++;s=0;}return m+':'+(s<10?'0':'')+s;};
@@ -796,6 +823,7 @@ function regionsOf(){return view==='ext'&&result?regionsFor(result):[];}
 function regionsFor(res){var tl=res.tl,b=tl.bar,r=[];
   if(tl.intro)r.push({a:0,b:tl.intro.bars*b,c:'#a855f7',label:'INTRO DRUMS · '+res.intro+' BARS'+(opt.blendIn?' +'+opt.blendIn+' BLEND':'')+' · '+(res.styleLabel||'')});
   if(tl.outro)r.push({a:tl.outro.start,b:tl.outroEnd,c:'#a855f7',label:'OUTRO DRUMS · '+res.outro+' BARS'+(opt.blendOut?' +'+opt.blendOut+' BLEND':'')});
+  (tl.bedRegions||[]).forEach(function(bd){r.push({a:bd.a,b:bd.b,c:'#22c55e',label:'MELODY LOOP',bed:true});});
   (tl.fxRegions||[]).forEach(function(f){r.push({a:f.a,b:f.b,c:'#e879f9',label:'FX',fx:true});});return r;}
 
 /* ── player (with output gain + analyser for the level meter) ── */
@@ -843,18 +871,18 @@ var ovCache=null,ovKey='';
 function drawOverview(c,pos){var f=fit($('ov')),g=f.g,W=f.W,H=f.H,key=view+'/'+(view==='ext'?(result&&result.id):(song&&song.id))+'/'+W+'x'+H+'/'+zoomBars;
   if(ovKey!==key||!ovCache){ovKey=key;ovCache=document.createElement('canvas');ovCache.width=$('ov').width;ovCache.height=$('ov').height;var cg=ovCache.getContext('2d');cg.setTransform(f.dpr,0,0,f.dpr,0,0);
     cg.fillStyle='#07060d';cg.fillRect(0,0,W,H);var cols=c.cols,per=cols.n/W,mid=H/2;
-    regionsOf().forEach(function(r){var x0=r.a/c.dur*W,x1=r.b/c.dur*W;cg.fillStyle=r.fx?'rgba(232,121,249,.16)':'rgba(168,85,247,.14)';cg.fillRect(x0,0,x1-x0,H);});
+    regionsOf().forEach(function(r){var x0=r.a/c.dur*W,x1=r.b/c.dur*W;cg.fillStyle=r.fx?'rgba(232,121,249,.16)':r.bed?'rgba(34,197,94,.10)':'rgba(168,85,247,.14)';cg.fillRect(x0,0,x1-x0,H);});
     var st=stripsFor(c,regionsOf());
     for(var x=0;x<W;x++){var c0=Math.floor(x*per),c1=Math.max(c0+1,Math.floor((x+1)*per)),pk=0,ci=c0;for(var j=c0;j<c1&&j<cols.n;j++)if(cols.pk[j]>pk){pk=cols.pk[j];ci=j;}var amp=Math.min(1,pk/cols.ref),h=amp*(H/2-3);if(h<0.5)continue;cg.fillStyle=colorAt(cols,ci,amp,st.tiers,st.green);cg.fillRect(x,mid-h,1,2*h);}
     regionsOf().forEach(function(r){var x0=r.a/c.dur*W,x1=r.b/c.dur*W;cg.strokeStyle=r.c;cg.lineWidth=1;cg.strokeRect(x0+0.5,0.5,x1-x0-1,H-1);
-      if(!r.fx){cg.font='600 9px Inter, sans-serif';cg.fillStyle='rgba(0,0,0,.65)';var tw=cg.measureText(r.label).width;cg.fillRect(x0+4,4,tw+10,14);cg.fillStyle=r.c;cg.fillText(r.label,x0+9,14);}});
+      if(!r.fx){cg.font='600 9px Inter, sans-serif';cg.fillStyle='rgba(0,0,0,.65)';var tw=cg.measureText(r.label).width,ly=r.bed?H-18:4;cg.fillRect(x0+4,ly,tw+10,14);cg.fillStyle=r.c;cg.fillText(r.label,x0+9,ly+10);}});
     cuesOf().forEach(function(q){var x=Math.round(q.t/c.dur*W);cg.fillStyle=q.c;cg.beginPath();cg.moveTo(x-5,0);cg.lineTo(x+5,0);cg.lineTo(x,7);cg.closePath();cg.fill();cg.fillRect(x,0,1,H);cg.font='700 9px Inter, sans-serif';cg.fillText(q.n,x+4,H-4);});}
   g.drawImage(ovCache,0,0,W,H);
   var px=pos/c.dur*W;g.fillStyle='#fff';g.fillRect(Math.round(px),0,2,H);
   var win=zoomBars*c.bar/c.dur*W;g.strokeStyle='rgba(255,255,255,.35)';g.strokeRect(px-win/2,0.5,win,H-1);}
 function drawDetail(c,pos){var f=fit($('dt')),g=f.g,W=f.W,H=f.H,win=zoomBars*c.bar,t0=pos-win/2,spp=win/W,cols=c.cols,R=18,mid=R+(H-R)/2;
   g.fillStyle='#07060d';g.fillRect(0,0,W,H);g.fillStyle='#100d1d';g.fillRect(0,0,W,R);g.fillStyle='#2a2545';g.fillRect(0,R,W,1);
-  regionsOf().forEach(function(r){var x0=(r.a-t0)/spp,x1=(r.b-t0)/spp;if(x1<0||x0>W)return;g.fillStyle=r.fx?'rgba(232,121,249,.14)':'rgba(168,85,247,.10)';g.fillRect(x0,R,x1-x0,H-R);});
+  regionsOf().forEach(function(r){var x0=(r.a-t0)/spp,x1=(r.b-t0)/spp;if(x1<0||x0>W)return;g.fillStyle=r.fx?'rgba(232,121,249,.14)':r.bed?'rgba(34,197,94,.08)':'rgba(168,85,247,.10)';g.fillRect(x0,R,x1-x0,H-R);});
   var k0=Math.floor((t0-c.anchor)/c.beat)-1,k1=Math.ceil((t0+win-c.anchor)/c.beat)+1;
   for(var k=k0;k<=k1;k++){var t=c.anchor+k*c.beat,x=Math.round((t-t0)/spp);if(x<-1||x>W+1)continue;var isBar=((k%4)+4)%4===0;
     g.fillStyle=isBar?'rgba(255,255,255,.55)':'rgba(255,255,255,.14)';g.fillRect(x,R,1,H-R);g.fillStyle=isBar?'rgba(255,255,255,.8)':'rgba(255,255,255,.3)';g.fillRect(x,isBar?4:11,1,isBar?R-4:R-11);
@@ -923,11 +951,11 @@ async function analyzeTrack(tr){tr.status='analyzing';renderLib();if(!song)statu
   renderLib();if(!song&&tr.status==='ready')selectTrack(tr);}
 function selectTrack(tr){if(!tr||tr.status!=='ready')return;player.stop();song=tr;result=tr.result||null;
   $('dTitle').textContent=$('dTitle2').textContent=tr.title;$('dArtist').textContent=(tr.artist?tr.artist+' · ':'')+fmtS(tr.buf.duration)+' · '+tr.sr+' Hz';$('dArtist2').textContent=tr.artist?'· '+tr.artist:'';$('songMeta').textContent=tr.file.name;
-  ['pGrid','pExt','pFx','pStyles'].forEach(function(id){$(id).classList.remove('off');});$('buildBtn').disabled=false;$('dlBtn').disabled=!result;$('shuffleBtn').disabled=!result;$('tabExt').disabled=!result;
+  ['pGrid','pExt','pFx','pStyles','pBed'].forEach(function(id){$(id).classList.remove('off');});$('buildBtn').disabled=false;$('dlBtn').disabled=!result;$('shuffleBtn').disabled=!result;$('tabExt').disabled=!result;
   status('');$('dropBig').classList.add('hide');$('bar1Auto').classList.toggle('on',tr.firstDBOverride==null);if(gridEdit)toggleGridEdit();
   renderBpmUI();refreshGrid();if(result){showResultInfo(false);setView('ext');seekTo(Math.max(0,result.tl.dropT-2*result.tl.bar));}else{$('cueBar').style.display='none';setView('src');seekTo(Math.max(0,tr.firstDB-2*tr.beat));}
   renderLib();}
-function removeTrack(id){var i=lib.findIndex(function(t){return t.id===id;});if(i<0)return;var tr=lib[i];lib.splice(i,1);if(song===tr){player.stop();song=null;result=null;var nx=lib.find(function(t){return t.status==='ready';});if(nx)selectTrack(nx);else{$('dropBig').classList.remove('hide');$('dTitle').textContent=$('dTitle2').textContent='No track loaded';$('buildBtn').disabled=true;$('dlBtn').disabled=true;$('tabExt').disabled=true;['pGrid','pExt','pFx','pStyles'].forEach(function(id){$(id).classList.add('off');});}}renderLib();}
+function removeTrack(id){var i=lib.findIndex(function(t){return t.id===id;});if(i<0)return;var tr=lib[i];lib.splice(i,1);if(song===tr){player.stop();song=null;result=null;var nx=lib.find(function(t){return t.status==='ready';});if(nx)selectTrack(nx);else{$('dropBig').classList.remove('hide');$('dTitle').textContent=$('dTitle2').textContent='No track loaded';$('buildBtn').disabled=true;$('dlBtn').disabled=true;$('tabExt').disabled=true;['pGrid','pExt','pFx','pStyles','pBed'].forEach(function(id){$(id).classList.add('off');});}}renderLib();}
 function drawMini(cv,tr){var res=tr.result,cols=res?res.cols:tr.cols,anchor=res?res.tl.dropT-res.intro*res.tl.bar:tr.firstDB,bar=res?res.tl.bar:tr.bar,regions=res?regionsFor(res):[];
   var key=wfMode+'/'+anchor.toFixed(4)+'/'+bar.toFixed(5)+'/'+regions.length,m=cols._mini;
   if(!m||m.key!==key){var green=null;if(regions.length){green=new Uint8Array(cols.n);regions.forEach(function(r){var a=Math.max(0,Math.floor(r.a*cols.sr/HOPC)),b=Math.min(cols.n,Math.ceil(r.b*cols.sr/HOPC));for(var i=a;i<b;i++)green[i]=1;});}
@@ -993,6 +1021,22 @@ chips('outroBars',[0,8,16,32],function(){return opt.outro;},function(v){opt.outr
 chips('cycleBars',[4,8,16],function(){return opt.cycle;},function(v){opt.cycle=v;});
 chips('blendIn',[0,2,4,8],function(){return opt.blendIn;},function(v){opt.blendIn=v;},function(v){return v?v+'':'Off';});
 chips('blendOut',[0,2,4,8],function(){return opt.blendOut;},function(v){opt.blendOut=v;},function(v){return v?v+'':'Off';});
+chips('bedLen',[4,8],function(){return opt.bed.len;},function(v){opt.bed.len=v;});
+// which bars of the song feed the melody bed: 'out' = last loud phrase before the last bar line, 'in' = first loud phrase after bar 1
+function snapBar(tr,t){return tr.firstDB+Math.round((t-tr.firstDB)/tr.bar)*tr.bar;}
+function phraseRms(tr,t,dur){var c=tr.cols,a=Math.max(0,Math.floor(t*c.sr/HOPC)),b=Math.min(c.n,Math.floor((t+dur)*c.sr/HOPC)),s=0,n=0;for(var i=a;i<b;i++){s+=c.lo[i]*c.lo[i]+c.mi[i]*c.mi[i]+c.hi[i]*c.hi[i];n++;}return n?Math.sqrt(s/n):0;}
+function pickPhrase(tr,which,len){var bar=tr.bar,dur=len*bar,t;
+  if(which==='out'){if(tr.bedOutT!=null)return snapBar(tr,tr.bedOutT);t=tr.lastDB-dur;for(var k=0;k<8&&t-4*bar>=tr.firstDB&&phraseRms(tr,t,dur)<0.5*tr.loud;k++)t-=4*bar;return Math.max(tr.firstDB,snapBar(tr,t));}
+  if(tr.bedInT!=null)return snapBar(tr,tr.bedInT);t=tr.firstDB;for(k=0;k<8&&t+dur+4*bar<=tr.lastDB&&phraseRms(tr,t,dur)<0.5*tr.loud;k++)t+=4*bar;return snapBar(tr,t);}
+function setBedPhrase(which){if(!song)return;if(which==null){song.bedInT=null;song.bedOutT=null;}else{if(view!=='src'){setView('src');}var t=snapBar(song,player.pos());if(which==='out')song.bedOutT=t;else song.bedInT=t;}
+  $('bedInfo').innerHTML='Outro phrase: bar <b>'+(Math.round((pickPhrase(song,'out',opt.bed.len)-song.firstDB)/song.bar)+1)+'</b>'+(song.bedOutT!=null?' (yours)':'')+' · intro phrase: bar <b>'+(Math.round((pickPhrase(song,'in',opt.bed.len)-song.firstDB)/song.bar)+1)+'</b>'+(song.bedInT!=null?' (yours)':'')+'. Rebuild to hear it.';}
+// harmonic-only loop of `len` bars from song time `start`: HPSS per channel, 10 ms seam crossfade with the real continuation
+async function bedLoop(tr,start,len){var sr=tr.sr,n=Math.round(len*tr.bar*sr),s0=Math.round(start*sr),key=s0+'/'+n;tr._bed=tr._bed||{};if(tr._bed[key])return tr._bed[key];
+  var xf=Math.round(0.01*sr),chs=[],nch=tr.buf.numberOfChannels;
+  for(var ch=0;ch<2;ch++){var src=tr.buf.getChannelData(Math.min(ch,nch-1)),seg=new Float32Array(n+xf);for(var i=0;i<seg.length;i++)seg[i]=s0+i<src.length&&s0+i>=0?src[s0+i]:0;
+    var h=ExtendoDSP.hpss(seg),out=new Float32Array(n);for(i=0;i<n;i++)out[i]=h[i];for(i=0;i<xf;i++){var a=i/xf;out[i]=out[i]*a+h[n+i]*(1-a);}chs.push(out);
+    await new Promise(function(r){setTimeout(r,0);});}
+  return tr._bed[key]={L:chs[0],R:chs[1],n:n};}
 chips('fxLen',[1,2,4],function(){return opt.fx.len;},function(v){opt.fx.len=v;},function(v){return v+' bar'+(v>1?'s':'');});
 function fxTog(k,el){opt.fx[k]=!!el.checked;fxMap();}
 function fxUI(){[['riser','fxRiser'],['rev','fxRev'],['sweep','fxSweep'],['build','fxBuild'],['atDrop','fxAtDrop'],['atOutro','fxAtOutro'],['atEnd','fxAtEnd']].forEach(function(p){$(p[1]).checked=!!opt.fx[p[0]];});fxMap();}
@@ -1100,13 +1144,21 @@ async function build(){
       if(fx.rev){var cr=_shots[lastStyle+'/crash/'+sr],rv=new Float32Array(cr.length);for(var j=0;j<cr.length;j++)rv[j]=cr[cr.length-1-j]*Math.min(1,j/(sr*0.3));addAt(rv,t-cr.length/sr,drumGain*0.9);any=true;}
       if(fx.sweep||fx.build)any=true;
       if(any)tl.fxRegions.push({a:t-L,b:t});}
+    // melody bed: harmonic loop of the song's own phrase under the drums
+    var bedL=new Float32Array(total),bedR=new Float32Array(total),bedGain=Math.pow(10,opt.bed.level/20),bedRegions=[];
+    var placeBed=async function(start,len,fromT,toT,fadeInBars,fadeOutBars){var bl=await bedLoop(song,start,len),a=Math.max(0,Math.round(fromT*sr)),b=Math.min(total,Math.round(toT*sr)),fiN=Math.round(fadeInBars*tl.bar*sr),foN=Math.round(fadeOutBars*tl.bar*sr);
+      for(var i2=a,k=0;i2<b;i2++,k++){var j=k%bl.n,g=bedGain;if(fiN&&k<fiN)g*=k/fiN;if(foN&&b-i2<foN)g*=(b-i2)/foN;bedL[i2]+=bl.L[j]*g;bedR[i2]+=bl.R[j]*g;}bedRegions.push({a:fromT,b:toT,phrase:start});};
+    if(opt.bed.outOn&&tl.outro){$('buildBar').style.width='55%';await placeBed(pickPhrase(song,'out',opt.bed.len),opt.bed.len,tl.lastDBT,tl.outroEnd,0,2);}
+    if(opt.bed.inOn&&tl.intro){$('buildBar').style.width='65%';await placeBed(pickPhrase(song,'in',opt.bed.len),opt.bed.len,0,tl.dropT,1,0);}
+    tl.bedRegions=bedRegions;
     $('buildBar').style.width='70%';
     // output sample i ↔ song sample i-shift (one integer shift, so the grid stays sample-exact)
     var out=[new Float32Array(total),new Float32Array(total)],shift=Math.round(tl.off*sr),o0=Math.round(tl.songOffset*sr),sEnd=Math.min(song.buf.length,Math.round(song.sEnd*sr)+sr),mono=new Float32Array(total);
     for(var ch=0;ch<2;ch++){var d=drum,sd=song.buf.getChannelData(Math.min(ch,song.buf.numberOfChannels-1)),o=out[ch];
-      for(i=0;i<total;i++){var si=i-shift,v=d[i]+(si>=o0&&si<sEnd?sd[si]:0),a=Math.abs(v);if(a>0.95)v=(v<0?-1:1)*(0.95+0.05*Math.tanh((a-0.95)/0.05));o[i]=v;mono[i]+=v*0.5;}}
+      var bd=ch?bedR:bedL;for(i=0;i<total;i++){var si=i-shift,v=d[i]+bd[i]+(si>=o0&&si<sEnd?sd[si]:0),a=Math.abs(v);if(a>0.95)v=(v<0?-1:1)*(0.95+0.05*Math.tanh((a-0.95)/0.05));o[i]=v;mono[i]+=v*0.5;}}
     var c=player.ctxGet(),rb=c.createBuffer(2,total,sr);rb.copyToChannel(out[0],0);rb.copyToChannel(out[1],1);
-    result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),wav:null,url:null};$('buildBar').style.width='100%';
+    var bedRms=0;if(bedRegions.length){var ra=Math.round(bedRegions[0].a*sr),rb2=Math.min(total,Math.round(bedRegions[0].b*sr)),ss=0;for(i=ra;i<rb2;i++)ss+=bedL[i]*bedL[i];bedRms=Math.sqrt(ss/Math.max(1,rb2-ra));}
+    result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),bedRms:bedRms,wav:null,url:null};$('buildBar').style.width='100%';
     result.intro=opt.intro;result.outro=opt.outro;result.styleLabel=opt.styles.map(function(s){return (STYLES[s].name+' '+STYLES[s].grooves[grooveOf(s)].name).toUpperCase();}).join(' → ');song.result=result;countBuild();showResultInfo(true);renderLib();
   }catch(e){status(e.message||String(e),true);console.error(e);alert(e.message||e);}
   busy=false;cpu(8);btn.disabled=false;btn.textContent='Build extended mix';setTimeout(function(){$('buildProg').classList.remove('show');$('buildBar').style.width='0';},600);

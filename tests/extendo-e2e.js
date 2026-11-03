@@ -28,7 +28,7 @@ const {chromium}=require('playwright');
   const prev=await page.evaluate(async()=>{const out={};for(const id of STYLE_ORDER){for(let g=0;g<STYLES[id].grooves.length;g++){const b=await renderStyle(id,song.bpm,2,44100,g);out[id+'/'+STYLES[id].grooves[g].name]=+rmsOf(b).toFixed(3);}}return out;});
   console.log('groove rms:',JSON.stringify(prev));ok(Object.keys(prev).length===32&&Object.values(prev).every(v=>v>0.02&&v<0.5),'all 32 grooves (8 styles × 4) render with sane RMS');
   // build: 16-bar house→trap cycling intro, 8-bar outro with 2-bar blend, crash+fill
-  await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.level=0;opt.fx={len:2,riser:true,rev:true,sweep:true,build:true,atDrop:true,atOutro:true,atEnd:true};fxUI();});
+  await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.level=0;opt.fx={len:2,riser:true,rev:true,sweep:true,build:true,atDrop:true,atOutro:true,atEnd:true};fxUI();opt.bed={inOn:true,outOn:true,len:4,level:-3};});
   // account gate: signed out → build opens the sign-in modal; a signed-in user with no free mixes left → unlock modal; following both unlocks and builds
   await page.click('#buildBtn');
   const g1=await page.evaluate(()=>({modal:document.getElementById('authModal').classList.contains('show'),pending:auth.pending,result:!!result}));
@@ -51,7 +51,7 @@ const {chromium}=require('playwright');
     // sample-exact placement check: output at drop must equal song at firstDB (no drums there once blendIn=0 → only crash tail overlaps; compare 2 s after drop where intro drums are silent)
     const chk=(tSong,len)=>{let e=0;const b=Math.round(tSong*sr),a=b+result.shift;for(let i=0;i<len;i++)e=Math.max(e,Math.abs(o[a+i]-s[b+i]));return e;};
     return {tl:tl,len:o.length/sr,introRms:rms(0,tl.dropT-1),midSongRms:rms(tl.dropT+5,tl.dropT+15),outroRms:rms(tl.lastDBT+0.5,tl.outroEnd-0.5),tailRms:rms(tl.outroEnd+0.5,tl.total),
-      placementErr:chk(tl.firstDB+8,sr*2),fxRegions:tl.fxRegions,riserRms:rms(tl.dropT-0.6,tl.dropT-0.05),preRiserRms:rms(tl.dropT-2*tl.bar-1.5,tl.dropT-2*tl.bar-0.5),view:view,extTab:!document.getElementById('tabExt').disabled,dropIdxErr:Math.round(tl.firstDB*sr)+result.shift-tl.dropT*sr,peak:(()=>{let p=0;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>p)p=a;}return p;})(),
+      placementErr:chk(tl.firstDB+8,sr*2),bedRegions:tl.bedRegions,bedRms:result.bedRms,fxRegions:tl.fxRegions,riserRms:rms(tl.dropT-0.6,tl.dropT-0.05),preRiserRms:rms(tl.dropT-2*tl.bar-1.5,tl.dropT-2*tl.bar-0.5),view:view,extTab:!document.getElementById('tabExt').disabled,dropIdxErr:Math.round(tl.firstDB*sr)+result.shift-tl.dropT*sr,peak:(()=>{let p=0;for(let i=0;i<o.length;i++){const a=Math.abs(o[i]);if(a>p)p=a;}return p;})(),
       cues:document.getElementById('cues').textContent,meta:document.getElementById('resultMeta').textContent,dl:document.getElementById('dlNote').textContent};
   });
   console.log('result:',JSON.stringify({len:r.len,introRms:r.introRms,midSongRms:r.midSongRms,outroRms:r.outroRms,tailRms:r.tailRms,placementErr:r.placementErr,peak:r.peak,dropT:r.tl.dropT,lastDBT:r.tl.lastDBT,outroEnd:r.tl.outroEnd,total:r.tl.total,cues:r.cues,meta:r.meta,dl:r.dl}));
@@ -64,6 +64,7 @@ const {chromium}=require('playwright');
   ok(Math.abs(r.len-r.tl.total)<0.01,'output length = plan');
   ok(r.fxRegions.length===3&&Math.abs(r.fxRegions[0].b-r.tl.dropT)<1e-9&&Math.abs(r.fxRegions[0].b-r.fxRegions[0].a-2*bar)<1e-9,'3 FX regions, 2 bars each, first ends at the drop');
   ok(r.view==='ext'&&r.extTab,'deck switched to EXTENDED view');
+  ok(r.bedRegions.length===2&&Math.abs(r.bedRegions[0].a-r.tl.lastDBT)<1e-9&&Math.abs(r.bedRegions[1].b-r.tl.dropT)<1e-9&&r.bedRms>0.01,'melody bed placed under the outro and intro (rms '+r.bedRms.toFixed(3)+')');
   const blank=await page.evaluate(()=>{const chk=id=>{const cv=document.getElementById(id),g=cv.getContext('2d'),d=g.getImageData(0,0,cv.width,cv.height).data;let lit=0;for(let i=0;i<d.length;i+=4)if(d[i]+d[i+1]+d[i+2]>120)lit++;return lit/(d.length/4);};return {ov:chk('ov'),dt:chk('dt')};});
   console.log('canvas lit fraction:',JSON.stringify(blank));ok(blank.ov>0.05&&blank.dt>0.03,'overview + detail waveforms drawn');
   const mini=await page.evaluate(()=>{const cv=document.querySelector('#libBody canvas'),g=cv.getContext('2d'),d=g.getImageData(0,0,cv.width,cv.height).data;let green=0,other=0;for(let i=0;i<d.length;i+=4){const r=d[i],gg=d[i+1],b=d[i+2];if(r+gg+b<60)continue;if(gg>r*1.6&&gg>b*1.6)green++;else other++;}return {green,other};});

@@ -49,4 +49,15 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
   const k=D.detectKey(x,sr);ok(k&&k.camelot==='8A','key: Am-F-C-G reads 8A / A minor ('+(k&&k.name)+' '+(k&&k.camelot)+')');
   const y=new Float32Array(n);for(let i=0;i<n;i++){let v=0;for(const m of [50,54,57,62]){const f=440*Math.pow(2,(m-69)/12);v+=0.2*Math.sin(2*Math.PI*f*i/sr);}y[i]=v;}
   const k2=D.detectKey(y,sr);ok(k2&&k2.camelot==='10B','key: D major triad reads 10B ('+(k2&&k2.name)+' '+(k2&&k2.camelot)+')');}
+// HPSS: sustained chord + periodic noise bursts → harmonic output keeps the chord, drops most of the bursts
+{const sr=44100,n=sr*4,x=new Float32Array(n),tone=new Float32Array(n),burst=new Float32Array(n);let sd=5;const rnd=()=>{sd=(sd*16807)%2147483647;return sd/2147483647*2-1;};
+  for(let i=0;i<n;i++){let v=0;for(const f of [220,277.2,329.6])v+=0.2*Math.sin(2*Math.PI*f*i/sr);tone[i]=v;}
+  for(let t=0;t<4;t+=0.25){const s0=Math.floor(t*sr);for(let i=0;i<sr*0.05;i++)burst[s0+i]+=0.6*Math.exp(-i/(sr*0.01))*rnd();}
+  for(let i=0;i<n;i++)x[i]=tone[i]+burst[i];
+  const t0=Date.now();const h=D.hpss(x);const ms=Date.now()-t0;
+  const e=(a,b)=>{let s=0;for(let i=0;i<a.length;i++){const d=a[i]-(b?b[i]:0);s+=d*d;}return s;};
+  // how much of the tone survives (compare to tone) and how much burst energy remains (project onto burst-only windows)
+  let toneKeep=1-e(h,tone)/e(tone), burstLeft=0, burstTot=0;for(let t=0;t<4;t+=0.25){const s0=Math.floor(t*sr);for(let i=0;i<sr*0.05;i++){burstLeft+=(h[s0+i]-tone[s0+i])**2;burstTot+=burst[s0+i]**2;}}
+  console.log(`hpss: tone kept ${(toneKeep*100).toFixed(0)}%, burst energy left ${(burstLeft/burstTot*100).toFixed(0)}%, ${ms} ms for 4 s`);
+  ok(toneKeep>0.85,'hpss keeps the sustained chord');ok(burstLeft/burstTot<0.25,'hpss removes most of the drum-like bursts');}
 console.log(fails?`\n${fails} FAILED`:'\nALL PASS');process.exit(fails?1:0);
