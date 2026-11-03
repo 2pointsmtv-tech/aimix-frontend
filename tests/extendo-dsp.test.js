@@ -60,4 +60,35 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
   let toneKeep=1-e(h,tone)/e(tone), burstLeft=0, burstTot=0;for(let t=0;t<4;t+=0.25){const s0=Math.floor(t*sr);for(let i=0;i<sr*0.05;i++){burstLeft+=(h[s0+i]-tone[s0+i])**2;burstTot+=burst[s0+i]**2;}}
   console.log(`hpss: tone kept ${(toneKeep*100).toFixed(0)}%, burst energy left ${(burstLeft/burstTot*100).toFixed(0)}%, ${ms} ms for 4 s`);
   ok(toneKeep>0.85,'hpss keeps the sustained chord');ok(burstLeft/burstTot<0.25,'hpss removes most of the drum-like bursts');}
+// tags: ID3v2.3 with APIC round-trips through the tagged WAV; WAV/M4A/FLAC readers
+{const png=Uint8Array.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,1,2,3,4,5,6,7,8,9]);
+  const L=new Float32Array(2000),R=new Float32Array(2000);for(let i=0;i<2000;i++){L[i]=Math.sin(i/9)*0.5;R[i]=-L[i];}
+  const ab=D.encodeWav([L,R],44100,{title:'Night Drive (Extended Mix)',artist:'2 Points',album:'Singles',bpm:124,key:'8A',cover:{mime:'image/png',data:png}});
+  const t=D.parseTags(new Uint8Array(ab),'x.wav');
+  ok(t.title==='Night Drive (Extended Mix)'&&t.artist==='2 Points'&&t.album==='Singles'&&t.bpm==='124'&&t.key==='8A','tagged WAV: title/artist/album/BPM/key read back ('+JSON.stringify({t:t.title,a:t.artist,b:t.bpm,k:t.key})+')');
+  ok(t.cover&&t.cover.mime==='image/png'&&t.cover.data.length===png.length&&t.cover.data.every((v,i)=>v===png[i]),'tagged WAV: cover art bytes round-trip');
+  // the PCM payload is untouched and the file still parses as a WAV with an even-aligned data chunk
+  const v=new DataView(ab);ok(v.getUint32(4,true)===ab.byteLength-8&&v.getUint32(40,true)===2000*4&&v.getInt16(44,true)===0,'tagged WAV: RIFF size and data chunk intact');
+  // minimal M4A: ftyp + moov/udta/meta/ilst with ©nam and covr
+  const atom=(type,payload)=>{const b=new Uint8Array(8+payload.length);const n=b.length;b[0]=n>>>24;b[1]=(n>>16)&255;b[2]=(n>>8)&255;b[3]=n&255;for(let i=0;i<4;i++)b[4+i]=type.charCodeAt(i)&255;b.set(payload,8);return b;};
+  const cat=(...a)=>{const n=a.reduce((s,x)=>s+x.length,0),o=new Uint8Array(n);let p=0;for(const x of a){o.set(x,p);p+=x.length;}return o;};
+  const data=(kind,bytes)=>atom('data',cat(Uint8Array.from([0,0,0,kind,0,0,0,0]),bytes));
+  const nam=atom('©nam',data(1,new TextEncoder().encode('Night Drive')));const art=atom('©ART',data(1,new TextEncoder().encode('2 Points')));const covr=atom('covr',data(14,png));
+  const m4a=cat(atom('ftyp',new TextEncoder().encode('M4A mp42')),atom('moov',atom('udta',atom('meta',cat(Uint8Array.from([0,0,0,0]),atom('ilst',cat(nam,art,covr)))))));
+  const tm=D.parseTags(m4a,'x.m4a');ok(tm.title==='Night Drive'&&tm.artist==='2 Points'&&tm.cover&&tm.cover.mime==='image/png'&&tm.cover.data.length===png.length,'M4A: title/artist/cover from the ilst atoms');
+  // minimal FLAC: fLaC + VORBIS_COMMENT + PICTURE
+  const le=(n)=>Uint8Array.from([n&255,(n>>8)&255,(n>>16)&255,(n>>>24)&255]),be=(n)=>Uint8Array.from([n>>>24,(n>>16)&255,(n>>8)&255,n&255]);
+  const vc=(()=>{const vendor=new TextEncoder().encode('ref');const items=['TITLE=Night Drive','ARTIST=2 Points'].map(x=>new TextEncoder().encode(x));return cat(le(vendor.length),vendor,le(items.length),...items.flatMap(i=>[le(i.length),i]));})();
+  const mime=new TextEncoder().encode('image/png');const pic=cat(be(3),be(mime.length),mime,be(0),be(0),be(0),be(0),be(0),be(png.length),png);
+  const blk=(type,last,body)=>cat(Uint8Array.from([(last?0x80:0)|type,(body.length>>16)&255,(body.length>>8)&255,body.length&255]),body);
+  const flac=cat(new TextEncoder().encode('fLaC'),blk(4,false,vc),blk(6,true,pic));
+  const tf=D.parseTags(flac,'x.flac');ok(tf.title==='Night Drive'&&tf.artist==='2 Points'&&tf.cover&&tf.cover.data.length===png.length,'FLAC: title/artist/cover from the metadata blocks');
+  // raw MP3-style ID3v2.3 header (what encodeWav's id3Bytes produces) parses standalone too
+  const wavU8=new Uint8Array(ab);let idx=-1;for(let i=44;i<wavU8.length-3;i++)if(wavU8[i]===0x49&&wavU8[i+1]===0x44&&wavU8[i+2]===0x33){idx=i;break;}
+  const id3=wavU8.slice(idx);const tmp3=D.parseTags(id3,'x.mp3');ok(tmp3.title==='Night Drive (Extended Mix)'&&tmp3.cover&&tmp3.cover.data.length===png.length,'MP3: ID3v2 tag at file start');
+  // an ID3 source: every frame copied verbatim (TXXX / TCON / TYER survive), only the title changes, no branded frames added
+  const srcTags=D.parseTags(id3,'x.mp3');srcTags.frames.push({id:'TXXX',data:Uint8Array.from([0].concat(Array.from(new TextEncoder().encode('LABEL\0Night Records'))))},{id:'TCON',data:Uint8Array.from([0].concat(Array.from(new TextEncoder().encode('House'))))});
+  const meta2=Object.assign({},srcTags,{title:'Night Drive (Extended Mix)'});const ab2=D.encodeWav([L,R],44100,meta2,24);const t2=D.parseTags(new Uint8Array(ab2),'y.wav');
+  const ids=t2.frames.map(f=>f.id);ok(t2.title==='Night Drive (Extended Mix)'&&t2.genre==='House'&&ids.includes('TXXX')&&ids.includes('APIC')&&!ids.includes('TENC')&&ids.filter(x=>x==='TIT2').length===1,'ID3 source: frames copied verbatim, title rewritten once, no branding ('+ids.join(',')+')');
+  const v2=new DataView(ab2);ok(v2.getUint16(34,true)===24&&v2.getUint32(40,true)===2000*6&&t2.bits===24,'24-bit WAV when asked (bits read back as 24)');}
 console.log(fails?`\n${fails} FAILED`:'\nALL PASS');process.exit(fails?1:0);
