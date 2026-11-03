@@ -43,4 +43,10 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
 {const L=new Float32Array([0,0.5,-0.5,1,-1,2]),R=new Float32Array([0,0.25,-0.25,0,0,0]);const ab=D.encodeWav([L,R],44100);const v=new DataView(ab);
   ok(ab.byteLength===44+6*2*2&&String.fromCharCode(v.getUint8(0),v.getUint8(1),v.getUint8(2),v.getUint8(3))==='RIFF'&&v.getUint32(24,true)===44100&&v.getUint16(22,true)===2,'wav header');
   ok(v.getInt16(44,true)===0&&v.getInt16(46,true)===0&&v.getInt16(48,true)===16383&&v.getInt16(56,true)===32767&&v.getInt16(60,true)===-32768&&v.getInt16(64,true)===32767,'wav samples + clipping');}
+// key detection: A minor progression (Am F C G) → 8A ; D major chord loop → 10B
+{const sr=44100,dur=30,n=sr*dur,x=new Float32Array(n);const chords={Am:[57,60,64],F:[53,57,60],C:[48,52,55],G:[55,59,62]};const seq=['Am','F','C','G'];
+  for(let i=0;i<n;i++){const ch=chords[seq[Math.floor(i/sr/2)%4]];let v=0;for(const m of ch){const f=440*Math.pow(2,(m-69)/12);v+=0.2*Math.sin(2*Math.PI*f*i/sr)+0.05*Math.sin(2*Math.PI*2*f*i/sr);}x[i]=v;}
+  const k=D.detectKey(x,sr);ok(k&&k.camelot==='8A','key: Am-F-C-G reads 8A / A minor ('+(k&&k.name)+' '+(k&&k.camelot)+')');
+  const y=new Float32Array(n);for(let i=0;i<n;i++){let v=0;for(const m of [50,54,57,62]){const f=440*Math.pow(2,(m-69)/12);v+=0.2*Math.sin(2*Math.PI*f*i/sr);}y[i]=v;}
+  const k2=D.detectKey(y,sr);ok(k2&&k2.camelot==='10B','key: D major triad reads 10B ('+(k2&&k2.name)+' '+(k2&&k2.camelot)+')');}
 console.log(fails?`\n${fails} FAILED`:'\nALL PASS');process.exit(fails?1:0);

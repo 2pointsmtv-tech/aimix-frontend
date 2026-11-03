@@ -19,7 +19,7 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `extendo.html` | **Extendo** (~800 lines). Standalone DJ tool with a Rekordbox-style deck UI: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
+| `extendo.html` | **Extendo** (~900 lines). Standalone DJ tool styled like DJ software (master strip, Deck A/B, hot-cue pads, settings sidebar, multi-track library): drop songs → BPM/grid/key detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
 | `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`. That's it. |
 | `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
@@ -397,8 +397,13 @@ for the account gate.
 3. `build()` mixes the song in with a single integer sample `shift`
    (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
    (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.
-4. Deck UI: one `player` + `view` (`'src'` = song with metronome click,
-   `'ext'` = result). `bandCols()` computes 3-band + peak per 256 samples once
+4. Deck UI: one `player` + `view` (`'src'` = **Deck A** original with
+   metronome click, `'ext'` = **Deck B** extended result). `lib[]` holds every
+   loaded track (`loadFiles` → `processQueue` analyses them one at a time;
+   `selectTrack` makes one the `song`; each track keeps its own `result`,
+   `firstDBOverride` and `counted`). `detectKey` (Krumhansl chroma → Camelot)
+   fills the KEY readouts. The player routes through `gain` (output knob) →
+   `AnalyserNode` (LED meter). Hot-cue pads A–D map to `cuesOf()`. `bandCols()` computes 3-band + peak per 256 samples once
    per buffer; `drawOverview` caches the full-track RGB waveform (regions,
    cue triangles) and `drawDetail` redraws the zoomed window with the beat grid
    and bar numbers every frame. Bar 1 is the song's first downbeat (ORIGINAL)
