@@ -55,7 +55,21 @@ const {chromium}=require('playwright');
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const fname=dl.suggestedFilename();const p=await dl.path();const size=require('fs').statSync(p).size;
   console.log('download:',fname,size,'bytes');ok(/Extendo 16\+8 bar extended mix\)\.wav$/.test(fname),'download filename');ok(size===44+Math.round(r.len*44100)*4,'wav size matches');
   // grid-check click track + nudge controls don't throw
-  await page.evaluate(()=>{setView('src');togglePlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();togglePlay();tapTempo();setBpm(128.4);jumpCue(0);setZoom(4);setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});
+  await page.evaluate(()=>{setView('src');togglePlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();togglePlay();tapTempo();setBpm(128.4);jumpCue(0);setZoom(4);});
+  // grid edit: drag the zoomed waveform by 1/16 of the window (=1 beat at zoom 4) and check the anchor moved by a bar; then click a beat to make it beat 1
+  const ge=await page.evaluate(()=>{window.scrollTo(0,0);player.stop();seekTo(10);toggleGridEdit();const r=document.getElementById('dtWrap').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,a0:anchorT(),beat:song.beat,bar:song.bar,db0:song.firstDB,bpm:song.bpm};});
+  await page.mouse.move(ge.x,ge.y);await page.mouse.down();await page.mouse.move(ge.x+ge.w/16,ge.y,{steps:8});await page.mouse.up();
+  const ge2=await page.evaluate(()=>({a:anchorT(),db:song.firstDB,gridEdit:gridEdit}));
+  let shift=((ge2.a-ge.a0)%ge.bar+ge.bar)%ge.bar;ok(ge2.gridEdit&&Math.abs(shift-ge.beat)<0.02,'grid edit drag slid the grid by one beat (shift '+(shift).toFixed(3)+' s, beat '+ge.beat.toFixed(3)+')');
+  await page.mouse.click(ge.x+ge.w/8,ge.y); // 1/8 of window = half a bar right of the playhead → that beat becomes beat 1
+  const ge3=await page.evaluate(()=>{const t=player.pos()+song.bar/2,beat=song.beat,near=song.firstBeat+Math.round((t-song.firstBeat)/beat)*beat;return {near,a:anchorT(),beat};});
+  const dm=((ge3.a-ge3.near)%(4*ge3.beat)+4*ge3.beat)%(4*ge3.beat);ok(dm<1e-6||4*ge3.beat-dm<1e-6,'clicking a beat in grid edit makes it beat 1');
+  const b1=await page.evaluate(()=>{toggleGridEdit();setBpm(128.4);setBar1(song.firstDB+2*song.bar+0.1);const o=song.firstDB;nudgeBpm(0.1);return {over:o,after:song.firstDB,bpm:song.bpm,info:document.getElementById('gridInfo').textContent};});
+  ok(Math.abs(b1.over-(ge.db0+2*ge.bar))<1e-6&&/set by you/.test(b1.info),'set bar 1 at a later bar line (snapped)');
+  ok(Math.abs(b1.after-b1.over)<0.002&&Math.abs(b1.bpm-128.5)<1e-9,'BPM nudge pivots around bar 1');
+  await page.evaluate(()=>{setBar1(null);setBpm(128.4);toggleGridEdit();});
+  await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>{seekTo(song.firstDB+2*song.bar);window.scrollTo(0,0);});await page.screenshot({path:path.join(TMP,'shot_gridedit.png')});
+  await page.evaluate(()=>{toggleGridEdit();setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});
   await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(TMP,'shot_deck.png')});
   await page.setViewportSize({width:390,height:800});await page.screenshot({path:path.join(TMP,'shot_mobile.png'),fullPage:true});
   await page.setViewportSize({width:1200,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(TMP,'shot_desktop.png'),fullPage:true});

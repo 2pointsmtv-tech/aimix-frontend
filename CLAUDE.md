@@ -21,7 +21,7 @@ The whole repo is:
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
 | `extendo.html` | **Extendo** (~670 lines). Standalone DJ tool with a Rekordbox-style deck UI: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums + transition FX before and after → WAV download. Fully client-side, calls **no backend**. See §9. |
 | `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`. That's it. |
-| `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` needs just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
+| `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
 
 There is no linter and no CI; the only tests are the two Extendo scripts in `tests/`. "Running" it is just opening the HTML
@@ -353,17 +353,28 @@ no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
 1. `decodeAudioData` → mono downmix → `ExtendoDSP.analyze()` (the `<script id="dsp">`
    block, **pure functions, no DOM**; `tests/extendo-dsp.test.js` extracts and
    runs it in Node, keep it DOM-free).
-   - Tempo: 3-band log-energy flux at 512-sample hops → integer-lag
-     autocorrelation with harmonic + log-tempo prior → **multi-scale parabolic
-     refinement** over 1…64-beat lags (needed: a 0.05 BPM error drifts ~90 ms
-     over 4 minutes). Confidence ignores octave (½×/2×) rivals.
+   - Tempo: 3-band log-energy flux at 512-sample hops → 6-harmonic comb on the
+     smoothed autocorrelation at integer lags (+ log-tempo prior centred on
+     128 BPM, σ 0.6 oct) → top-8 peaks → **multi-scale parabolic refinement**
+     over 1…64-beat lags (needed: a 0.05 BPM error drifts ~90 ms over 4
+     minutes) → **re-rank the comb at each refined fractional period** (integer
+     lags miss high harmonics when the period isn't a whole frame, which used
+     to favour 4:3 / 4:5 pattern periods). Confidence ignores octave rivals.
    - Phase: comb over the frame envelope, then `refinePhase` re-pins it with a
-     32-sample-hop flux (±20 ms). Downbeat (`detectDownbeat`) favours low-band
-     onsets/level and **penalises mid/high transients** so the snare backbeat
-     on 2 & 4 doesn't win.
+     32-sample-hop flux (±20 ms).
+   - Downbeat (`detectDownbeat`): per-beat features z-scored over the track —
+     kick/bass onsets (+), snare/hat transients (−), 24-band FFT spectrum
+     change vs the previous beat (chords/bass notes change on the bar line),
+     spectral + energy change between the next 4 beats and the previous 4
+     (sections start on a downbeat), plus a bonus for the beat the track's
+     first real hit lands on. `tests/extendo-downbeat-bench.js` scores it on
+     36 synthetic house/boom-bap/trap tracks (32/36; the 4 misses are 67 BPM
+     boom-bap read as 134 with the downbeat still right). Run it before
+     touching the weights.
    - `plan()` builds the timeline: the song's first grid downbeat lands exactly
-     at the end of the intro; the outro starts on the last bar line before the
-     audio ends; "blend" bars overlap drums under the song with linear fades.
+     at the end of the intro (or the user's `firstDBOverride`, snapped to the
+     grid); the outro starts on the last bar line before the audio ends;
+     "blend" bars overlap drums under the song with linear fades.
 2. Drums (`<script id="drums">`): patterns are 16/32-step strings per
    instrument in `STYLES` (`x`/`o`/`-`/`.`), each style has an A/B variant and a
    synth `kit`. Every (style, instrument) is rendered **once** as a one-shot via
@@ -388,6 +399,13 @@ no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
    cue triangles) and `drawDetail` redraws the zoomed window with the beat grid
    and bar numbers every frame. Bar 1 is the song's first downbeat (ORIGINAL)
    or the start of the intro drums (EXTENDED). Cue buttons jump 2 bars early.
+   The grid is `(bpm, firstBeat, downbeat)`; every manual edit goes through
+   `setAnchor(t)` ("this time is a beat 1"). **GRID EDIT** mode on the zoomed
+   waveform: pointer drag slides the grid, a click snaps the nearest beat to
+   beat 1 (pointer handlers own the canvas, the seek-on-click is suppressed).
+   `nudgeBpm` pivots around bar 1 so a BPM trim keeps the downbeat; `setBpm`
+   (typed value, ½×/2×, TAP) re-detects phase + downbeat. `setBar1(t)` stores
+   `song.firstDBOverride` for tracks whose intro should sit under the drums.
 
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.

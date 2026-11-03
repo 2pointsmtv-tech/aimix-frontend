@@ -32,11 +32,13 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
   ok(p.total>=p.outroEnd&&p.songStartT>=0,'  timeline sane');
 }
 // rephase at a user BPM
-{const {x,sr}=synth({bpm:120,phase:0.25});const env=D.envelope(x,sr);const r=D.rephase(env,sr,120);const beat=0.5,bar=2,db=r.firstBeat+r.downbeat*beat;let err=((db-0.25)%bar+bar)%bar;if(err>bar/2)err-=bar;ok(Math.abs(err)<0.008,'rephase downbeat within 8 ms ('+(err*1000).toFixed(1)+'ms)');}
+{const {x,sr}=synth({bpm:120,phase:0.25});const env=D.envelope(x,sr);const r=D.rephase(env,sr,120,x);const beat=0.5,bar=2,db=r.firstBeat+r.downbeat*beat;let err=((db-0.25)%bar+bar)%bar;if(err>bar/2)err-=bar;ok(Math.abs(err)<0.008,'rephase downbeat within 8 ms ('+(err*1000).toFixed(1)+'ms)');}
 // plan with intro=0 → song starts at 0, pre-roll preserved
 {const p=D.plan({sStart:0.1,sEnd:200,bpm:128,firstBeat:0.3,downbeat:0},{intro:0,outro:16,blendIn:0,blendOut:4});ok(p.songStartT===0&&p.songOffset===0.1&&Math.abs(p.dropT-0.2)<1e-9,'intro=0 keeps song at t=0 with its lead-in');ok(p.outro.start===p.lastDBT-4*p.bar&&p.outro.bars===20,'blendOut shifts outro drums earlier');}
 // pickup: song starts 1 beat before its first downbeat
 {const p=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0},{intro:8,outro:0,blendIn:0,blendOut:0});ok(Math.abs(p.firstDB-0.5)<1e-9&&Math.abs(p.songStartT-(16-0.5))<1e-9,'1-beat pickup overlaps the intro');}
+// bar-1 override snaps to the grid and moves the drop
+{const p=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0,firstDBOverride:4.6},{intro:8,outro:0,blendIn:0,blendOut:0});ok(Math.abs(p.firstDB-4.5)<1e-9&&Math.abs(p.songStartT-(16-4.5))<1e-9,'firstDBOverride snaps 4.6 → bar line 4.5 and song starts earlier under the intro');}
 // WAV encoder
 {const L=new Float32Array([0,0.5,-0.5,1,-1,2]),R=new Float32Array([0,0.25,-0.25,0,0,0]);const ab=D.encodeWav([L,R],44100);const v=new DataView(ab);
   ok(ab.byteLength===44+6*2*2&&String.fromCharCode(v.getUint8(0),v.getUint8(1),v.getUint8(2),v.getUint8(3))==='RIFF'&&v.getUint32(24,true)===44100&&v.getUint16(22,true)===2,'wav header');
