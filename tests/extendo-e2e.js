@@ -14,22 +14,37 @@ fs.writeFileSync(path.join(TMP,'song.wav'),Buffer.from(D.encodeWav([L,R],sr)));
 const {chromium}=require('playwright');
 (async()=>{
   const browser=await chromium.launch({args:['--autoplay-policy=no-user-gesture-required']});const page=await browser.newPage();
-  const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text());});
+  const errors=[];page.on('pageerror',e=>errors.push('pageerror: '+e.message));page.on('console',m=>{if(m.type()==='error'&&!/Failed to load resource/.test(m.text()))errors.push('console: '+m.text());});
   await page.goto('file://'+PAGE);
   await page.setInputFiles('#fileInput',path.join(TMP,'song.wav'));
   await page.waitForFunction(()=>window.song&&window.song.bpm,null,{timeout:60000});
   const g=await page.evaluate(()=>({bpm:song.bpm,conf:song.confidence,firstBeat:song.firstBeat,db:song.downbeat,firstDB:song.firstDB,lastDB:song.lastDB,bars:song.bars,sStart:song.sStart,sEnd:song.sEnd,loud:song.loud,status:document.getElementById('dropStatus').textContent,conflbl:document.getElementById('bpmConf').textContent,info:document.getElementById('gridInfo').textContent}));
   console.log('grid:',JSON.stringify(g));
-  let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
+  let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};const opt_changed=sh=>['house','trap'].every(k=>(sh.before[k]||0)!==(sh.after[k]||0));
   ok(Math.abs(g.bpm-128.4)<0.03,'page detected 128.4 BPM ('+g.bpm.toFixed(3)+')');
   ok(Math.abs(g.firstDB-0.9)<0.006,'first downbeat at 0.9 s ('+g.firstDB.toFixed(4)+')');
   ok(Math.abs(g.sStart-(0.9-60/128.4))<0.02,'audible start = 1-beat pickup');
   // every style previews without throwing
-  const prev=await page.evaluate(async()=>{const out={};for(const id of STYLE_ORDER){const b=await renderStyle(id,song.bpm,2,44100);out[id]=rmsOf(b);}return out;});
-  console.log('style rms:',JSON.stringify(prev));ok(Object.values(prev).every(v=>v>0.02&&v<0.5),'all 8 styles render with sane RMS');
+  const prev=await page.evaluate(async()=>{const out={};for(const id of STYLE_ORDER){for(let g=0;g<STYLES[id].grooves.length;g++){const b=await renderStyle(id,song.bpm,2,44100,g);out[id+'/'+STYLES[id].grooves[g].name]=+rmsOf(b).toFixed(3);}}return out;});
+  console.log('groove rms:',JSON.stringify(prev));ok(Object.keys(prev).length===32&&Object.values(prev).every(v=>v>0.02&&v<0.5),'all 32 grooves (8 styles × 4) render with sane RMS');
   // build: 16-bar house→trap cycling intro, 8-bar outro with 2-bar blend, crash+fill
   await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.level=0;opt.fx={len:2,riser:true,rev:true,sweep:true,build:true,atDrop:true,atOutro:true,atEnd:true};fxUI();});
-  const t0=Date.now();await page.click('#buildBtn');await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
+  // account gate: signed out → build opens the sign-in modal; a signed-in user with no free mixes left → unlock modal; following both unlocks and builds
+  await page.click('#buildBtn');
+  const g1=await page.evaluate(()=>({modal:document.getElementById('authModal').classList.contains('show'),pending:auth.pending,result:!!result}));
+  ok(g1.modal&&g1.pending==='build'&&!g1.result,'signed-out build opens the sign-in modal');
+  await page.evaluate(()=>{closeModal('authModal');auth.pending=null;auth.user={id:'test',email:'dj@example.com',user_metadata:{extendo_builds:3}};renderAuth();});
+  await page.click('#buildBtn');
+  const g2=await page.evaluate(()=>({unlock:document.getElementById('unlockModal').classList.contains('show'),btn:document.getElementById('unlockBtn').disabled,pill:document.getElementById('authArea').textContent}));
+  ok(g2.unlock&&g2.btn&&/0 free/.test(g2.pill),'3 used free mixes → unlock modal, unlock button disabled until both follows are clicked');
+  await page.evaluate(()=>{followClick('spotify');followClick('insta');});
+  ok(await page.evaluate(()=>!document.getElementById('unlockBtn').disabled),'both follows clicked → unlock enabled');
+  const t0=Date.now();await page.evaluate(()=>confirmUnlock());await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
+  ok(await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&song.counted&&/UNLIMITED/.test(document.getElementById('authArea').textContent)),'unlock closed the modal, built the pending mix, pill shows UNLIMITED');
+  // shuffle grooves → different groove for the selected styles and an automatic rebuild
+  const sh=await page.evaluate(async()=>{const before={...opt.groove},id=result.id;shuffleGrooves(false);await new Promise(r=>setTimeout(r,50));while(busy)await new Promise(r=>setTimeout(r,50));return {before,after:{...opt.groove},rebuilt:result.id!==id,meta:document.getElementById('resultMeta').textContent};});
+  ok(opt_changed(sh)&&sh.rebuilt,'shuffle picked new grooves ('+JSON.stringify(sh.after)+') and rebuilt: '+sh.meta);
+  await page.evaluate(()=>{opt.groove={};});await page.click('#buildBtn');await page.waitForFunction(()=>!window.busy,null,{timeout:120000});
   const r=await page.evaluate(()=>{
     const tl=result.tl,sr=song.sr,o=result.chs[0],s=song.buf.getChannelData(0);
     const rms=(a,b)=>{let x=0,n=0;for(let i=Math.max(0,Math.floor(a*sr));i<Math.min(o.length,Math.floor(b*sr));i++){x+=o[i]*o[i];n++;}return Math.sqrt(x/n);};

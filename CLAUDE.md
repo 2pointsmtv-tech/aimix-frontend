@@ -19,7 +19,7 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `extendo.html` | **Extendo** (~670 lines). Standalone DJ tool with a Rekordbox-style deck UI: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums + transition FX before and after → WAV download. Fully client-side, calls **no backend**. See §9. |
+| `extendo.html` | **Extendo** (~800 lines). Standalone DJ tool with a Rekordbox-style deck UI: drop a song → BPM/grid detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
 | `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`. That's it. |
 | `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
 | `ChatGPT Image *.png` | Artist-chain avatar images (Drake/Rihanna/Kendrick/Travis/Weeknd). Served **from GitHub raw URLs**, not locally (see `CHAINS` in `index.html`). The local copies are the source the raw URLs point at. |
@@ -347,8 +347,10 @@ timing-sensitive:
 
 ## 9. Extendo (`extendo.html`) — the DJ extended-mix page
 
-Separate product on the same site, no shared code with the other two pages,
-no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
+Separate product on the same site, no shared code with the other two pages.
+Audio is 100% in the browser; the only network calls are the shared Supabase
+auth, the Meta Pixel and `POST /systeme/contact` (lead tagging). See item 5
+for the account gate.
 
 1. `decodeAudioData` → mono downmix → `ExtendoDSP.analyze()` (the `<script id="dsp">`
    block, **pure functions, no DOM**; `tests/extendo-dsp.test.js` extracts and
@@ -376,8 +378,10 @@ no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
      grid); the outro starts on the last bar line before the audio ends;
      "blend" bars overlap drums under the song with linear fades.
 2. Drums (`<script id="drums">`): patterns are 16/32-step strings per
-   instrument in `STYLES` (`x`/`o`/`-`/`.`), each style has an A/B variant and a
-   synth `kit`. Every (style, instrument) is rendered **once** as a one-shot via
+   instrument in `STYLES` (`x`/`o`/`-`/`.`). Each style has a synth `kit` and
+   **4 `grooves`** (`{name, A, B}`; B is the variation for the 2nd 4 bars of
+   each 8). `opt.groove[styleId]` picks one; `shuffleGrooves()` randomises the
+   selected styles and **rebuilds automatically** when a result exists. Every (style, instrument) is rendered **once** as a one-shot via
    a tiny `OfflineAudioContext` (`loadShots`), then `renderSection` mixes
    patterns in plain JS. ⚠️ Do not go back to scheduling one Web Audio node per
    hit over the whole timeline — that took ~20 s per build. Also **no
@@ -406,6 +410,25 @@ no auth/paywall/pixel yet, no backend calls. Everything happens in the browser:
    `nudgeBpm` pivots around bar 1 so a BPM trim keeps the downbeat; `setBpm`
    (typed value, ½×/2×, TAP) re-detects phase + downbeat. `setBar1(t)` stores
    `song.firstDBOverride` for tracks whose intro should sit under the drums.
+
+5. Account gate (`GATE=true`, the hosted test copy on claude.ai runs with
+   `GATE=false`): analysing, grid editing and drum previews are free and
+   anonymous; **Build** needs a sign-in (same Supabase project + custom auth
+   domain + `storageKey` as the other pages, magic link or Google; magic link
+   `emailRedirectTo` is `origin+pathname` = `/extendo`, which must be on the
+   Supabase redirect allowlist). On first sign-in the email is tagged
+   `extendo-lead` in Systeme.io. Free accounts get `FREE_BUILDS` (3) mixes,
+   counted **per song** (`song.counted`, rebuilds/shuffles of the same track
+   are free). After that `openUnlock()` asks for Spotify + Instagram follows
+   (`SOCIAL` links; honour system — both links must be clicked) and stores
+   `extendo_unlocked`. Counters/flags live in Supabase **`user_metadata`**
+   (`extendo_builds`, `extendo_unlocked`) via `saveMeta()` — no new tables,
+   follows the account across devices, and like every gate here it is
+   client-side and bypassable (§7.4). Unlock tags `extendo-unlocked`; the PRO
+   teaser tags `extendo-pro-waitlist`. Meta Pixel `Lead` events fire on magic
+   link / Google / unlock / waitlist. Cross-tab: the magic link opens a new
+   tab, supabase-js propagates the session to the original tab, whose
+   `auth.pending==='build'` then builds the still-loaded track.
 
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.
