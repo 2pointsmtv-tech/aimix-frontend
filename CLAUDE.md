@@ -19,7 +19,7 @@ The whole repo is:
 |------|------|
 | `index.html` | The **AI Mixer** page (~2100 lines). Upload → stem separation → live multitrack mixer. |
 | `master.html` | The **AI Master** page (~1440 lines). Loads the mixed track → mastering knobs → download. |
-| `extendo.html` | **Extendo** (~900 lines). Standalone DJ tool styled like DJ software (master strip, Deck A/B, hot-cue pads, settings sidebar, multi-track library): drop songs → BPM/grid/key detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
+| `extendo.html` | **Extend The Mix** by 2 Points Sound (product name; file/identifiers keep the `extendo` codename) (~1200 lines). Standalone DJ tool styled like DJ software (master strip, Deck A/B, hot-cue pads, settings sidebar, multi-track library): drop songs → BPM/grid/key detection → adds 8/16/32 bars of tempo-matched synthesized drums (8 styles × 4 grooves) + transition FX before and after → WAV download. Audio is fully client-side; sign-in gate via the shared Supabase auth. See §9. |
 | `vercel.json` | Rewrites `/` → `/index.html` and `/extendo` → `/extendo.html`; on `extendthemix.com` `/extendo*` redirects to `/`. |
 | `middleware.js` | Vercel Edge Middleware: `extendthemix.com/` → `extendo.html`. Needed because Vercel serves the static `index.html` at `/` **before** `vercel.json` rewrites run, so a host-based rewrite for `/` never fires. Matches only `/`; everything else passes through. |
 | `tests/` | Node tests for Extendo only (`extendo-dsp.test.js` and `extendo-downbeat-bench.js` need just Node; `extendo-e2e.js` needs Playwright + Chromium). The mixer/master pages still have no tests. |
@@ -346,7 +346,7 @@ timing-sensitive:
   publishable key, Meta pixel id). Never add a service-role key, Stripe secret
   key, or Spotify client secret to these files — those live on the backend.
 
-## 9. Extendo (`extendo.html`) — the DJ extended-mix page
+## 9. Extend The Mix (`extendo.html`) — the DJ extended-mix page
 
 Separate product, served at **extendthemix.com** (own domain on the same Vercel project, see `vercel.json`) and at `/extendo` here; no shared code with the other two pages.
 Audio is 100% in the browser; the only network calls are the shared Supabase
@@ -474,3 +474,9 @@ for the account gate.
 
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.
+
+8. **In-app help.** Any element with `data-tip` (+ optional `data-tip-title`)
+   gets a styled hover popover (`#tipBox`, 380 ms delay, never on touch). The
+   6-step **tour** (`TOUR[]`, `startTour`, spotlight ring + card) runs once on
+   first visit (`localStorage.extendo_tour`) and from the `?` button; Escape /
+   arrows navigate it, and it swallows the deck's keyboard shortcuts while open.

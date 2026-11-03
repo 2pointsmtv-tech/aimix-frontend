@@ -39,6 +39,8 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .top{display:flex;align-items:center;gap:16px;height:54px;padding:0 14px;}
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em;}
 .logo svg{width:30px;height:22px;}
+.logo small{font-weight:500;font-size:11px;color:var(--t3);margin-left:6px;letter-spacing:0;}
+@media (max-width:760px){.logo small{display:none;}}
 .navtabs{display:flex;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:3px;margin:0 auto;}
 .navtabs button{display:flex;align-items:center;gap:8px;background:transparent;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--t2);cursor:pointer;}
 .navtabs button:hover{color:var(--t1);}
@@ -146,6 +148,22 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:var(--s2);border:1px solid var(--line2);color:var(--t1);font-size:12px;font-weight:500;padding:10px 16px;border-radius:10px;box-shadow:0 12px 32px rgba(0,0,0,.5);opacity:0;transition:all .25s;z-index:300;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 @media (max-width:520px){.plans,.feat{grid-template-columns:1fr;}}
+.tip{position:fixed;z-index:400;max-width:280px;background:#16132a;border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12px;line-height:1.5;color:var(--t2);box-shadow:0 14px 36px rgba(0,0,0,.55);pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .12s,transform .12s;}
+.tip.show{opacity:1;transform:none;}
+.tip b{display:block;color:var(--t1);font-weight:600;margin-bottom:3px;font-size:12px;}
+.tip kbd{font-family:'JetBrains Mono',monospace;font-size:10px;background:var(--s3);border:1px solid var(--line2);border-radius:4px;padding:0 4px;color:var(--t1);}
+.tour{position:fixed;inset:0;z-index:350;display:none;}
+.tour.show{display:block;}
+.tour .ring{position:absolute;border-radius:12px;box-shadow:0 0 0 9999px rgba(5,4,12,.72),0 0 0 3px var(--p),0 0 30px var(--pg);transition:all .25s;pointer-events:none;}
+.tour .card{position:absolute;width:340px;max-width:calc(100vw - 24px);background:var(--s1);border:1px solid var(--line2);border-radius:14px;padding:18px;box-shadow:0 24px 64px rgba(0,0,0,.6);transition:all .25s;}
+.tour .card .tstep{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--p);margin-bottom:6px;}
+.tour .card h4{font-size:16px;font-weight:600;margin-bottom:6px;}
+.tour .card p{font-size:13px;color:var(--t2);line-height:1.55;margin-bottom:14px;}
+.tour .card .row{justify-content:space-between;margin:0;}
+.tour .card .dots{display:flex;gap:5px;}
+.tour .card .dots i{width:6px;height:6px;border-radius:50%;background:var(--line2);}
+.tour .card .dots i.on{background:var(--p);}
+.tour .card .skip{background:none;border:none;color:var(--t3);font-size:12px;cursor:pointer;}
 .gehint{position:absolute;right:10px;top:24px;z-index:2;font-size:11px;color:#000;background:var(--cC);padding:5px 10px;border-radius:6px;display:none;font-weight:600;}
 .dbar{display:flex;align-items:center;gap:8px;padding:10px 14px;flex-wrap:wrap;}
 .dbar .lab{font-size:10px;font-weight:700;letter-spacing:.1em;color:var(--t3);margin-right:4px;}
@@ -308,8 +326,8 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 <body>
 <div class="frame">
 <div class="pane top">
-  <div class="logo" title="extendthemix.com"><svg viewBox="0 0 30 22" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path stroke="url(#lg)" d="M1 11h4l3-7 4 14 4-11 3 6 3-2h7"/></svg>Extendo</div>
-  <nav class="navtabs" id="navtabs">
+  <div class="logo" title="extendthemix.com"><svg viewBox="0 0 30 22" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path stroke="url(#lg)" d="M1 11h4l3-7 4 14 4-11 3 6 3-2h7"/></svg>Extend The Mix <small>by 2 Points Sound</small></div>
+  <nav class="navtabs" id="navtabs" data-tip="Jump to the deck, the extension settings, the FX or the library.">
     <button class="on" onclick="goTab('deck',this)"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg>DECK</button>
     <button onclick="goTab('extend',this)"><svg class="i" viewBox="0 0 24 24"><path d="M4 6v12M8 6v12M12 6v12M16 6v12M20 6v12"/></svg>EXTEND</button>
     <button onclick="goTab('fx',this)"><svg class="i" viewBox="0 0 24 24"><path d="M3 18l6-12 4 8 3-5 5 9"/></svg>FX</button>
@@ -318,7 +336,8 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
   <div class="topright">
     <div class="cpu"><span>CPU</span><div class="bar"><div id="cpuBar"></div></div></div>
     <span id="authArea"></span>
-    <button class="ibtn" title="Fullscreen" onclick="toggleFull()"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+    <button class="ibtn" id="helpBtn" data-tip-title="How it works" data-tip="A 6-step walkthrough of the whole flow. Hover any control for a quick explanation." onclick="startTour(0)"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg></button>
+    <button class="ibtn" data-tip-title="Fullscreen" data-tip="Take the deck full screen, like DJ software. Press again to leave." onclick="toggleFull()"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
   </div>
   <div class="umenu" id="umenu"><div id="umenuEmail"></div><div id="umenuPlan"></div><button onclick="openUnlock(false)">Unlock unlimited</button><button id="umenuPro" onclick="managePro()">Go Pro</button><button onclick="authSignOut()">Sign out</button></div>
 </div>
@@ -327,51 +346,51 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 <div class="pane" id="deckTop">
   <div class="master">
     <div class="transport">
-      <button class="tb" onclick="seekTo(0)" title="Start"><svg class="i" viewBox="0 0 24 24"><path d="M6 5v14M19 5l-11 7 11 7z"/></svg></button>
-      <button class="tb" onclick="stepBars(-1)" title="Back one bar"><svg class="i" viewBox="0 0 24 24"><path d="M11 5l-7 7 7 7M20 5l-7 7 7 7"/></svg></button>
-      <button class="tb play" id="playBtn" onclick="togglePlay()" title="Play / pause (space)"></button>
-      <button class="tb" onclick="stepBars(1)" title="Forward one bar"><svg class="i" viewBox="0 0 24 24"><path d="M4 5l7 7-7 7M13 5l7 7-7 7"/></svg></button>
-      <button class="tb" onclick="seekTo(1e9)" title="End"><svg class="i" viewBox="0 0 24 24"><path d="M18 5v14M5 5l11 7-11 7z"/></svg></button>
+      <button class="tb" data-tip="Back to the start of the track." onclick="seekTo(0)" title="Start"><svg class="i" viewBox="0 0 24 24"><path d="M6 5v14M19 5l-11 7 11 7z"/></svg></button>
+      <button class="tb" data-tip="Back one bar. Keyboard: left arrow." onclick="stepBars(-1)" title="Back one bar"><svg class="i" viewBox="0 0 24 24"><path d="M11 5l-7 7 7 7M20 5l-7 7 7 7"/></svg></button>
+      <button class="tb play" id="playBtn" data-tip-title="Play / pause" data-tip="Keyboard: space bar." onclick="togglePlay()" title="Play / pause (space)"></button>
+      <button class="tb" data-tip="Forward one bar. Keyboard: right arrow." onclick="stepBars(1)" title="Forward one bar"><svg class="i" viewBox="0 0 24 24"><path d="M4 5l7 7-7 7M13 5l7 7-7 7"/></svg></button>
+      <button class="tb" data-tip="Jump to the end of the track." onclick="seekTo(1e9)" title="End"><svg class="i" viewBox="0 0 24 24"><path d="M18 5v14M5 5l11 7-11 7z"/></svg></button>
     </div>
-    <div class="art" id="art" title="Load tracks"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
+    <div class="art" id="art" data-tip-title="Artwork" data-tip="Cover art read from your file. It is written into the extended mix too. Click to load more tracks." title="Load tracks"><svg class="i" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
     <div class="tinfo"><div class="lab"><i></i>MASTER</div><div class="ti" id="dTitle">No track loaded</div><div class="ar" id="dArtist">Drop songs anywhere on the deck</div></div>
     <div class="times"><b id="tRemain">-00:00.0</b><b class="dim" id="tElapsed">00:00.0</b></div>
     <div class="ro"><span>BPM</span><b id="dBpm">—</b></div>
     <div class="ro k2"><span>KEY</span><b class="key" id="dKey">—</b></div>
-    <div style="display:flex;align-items:center;gap:14px"><div class="meter" id="meter"></div><div class="knob" id="knob" title="Output level" style="--rot:120deg"></div></div>
+    <div style="display:flex;align-items:center;gap:14px"><div class="meter" id="meter" data-tip-title="Level meter" data-tip="Live output level while playing."></div><div class="knob" id="knob" data-tip-title="Output volume" data-tip="Drag up or down. This only changes what you hear, never the exported file." title="Output level" style="--rot:120deg"></div></div>
   </div>
-  <div class="ov-wrap" id="ovWrap"><canvas id="ov"></canvas></div>
+  <div class="ov-wrap" id="ovWrap" data-tip-title="Overview" data-tip="The whole track. Click or drag to scrub. Blue → purple → amber → red = quiet → loud sections. Green = added by Extend The Mix."><canvas id="ov"></canvas></div>
 </div>
 
 <!-- DECK -->
 <div class="pane deck" id="deck">
   <input type="file" id="fileInput" accept="audio/*,.mp3,.wav,.flac,.m4a,.aac,.ogg,.aif,.aiff" multiple style="display:none">
   <div class="dleft">
-    <button class="dbtn on" id="tabSrc" onclick="setView('src')">DECK A</button>
-    <button class="dbtn" id="tabExt" disabled onclick="setView('ext')">DECK B</button>
-    <button class="dbtn" id="gridEditBtn" onclick="toggleGridEdit()">GRID EDIT</button>
-    <div class="stepper"><span><b id="zoomLbl">8 BARS</b></span><span><button onclick="zoomStep(1)"><svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button onclick="zoomStep(-1)"><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button></span></div>
-    <button class="bigplay" id="bigPlay" onclick="togglePlay()"></button>
+    <button class="dbtn on" id="tabSrc" data-tip-title="Deck A · the original" data-tip="Your song as uploaded, with the beat grid on top. Play it here with the click to check the grid before you build." onclick="setView('src')">DECK A</button>
+    <button class="dbtn" id="tabExt" disabled data-tip-title="Deck B · the extended mix" data-tip="The result after you build: your song with the new intro and outro. Green on the waveform is what was added." onclick="setView('ext')">DECK B</button>
+    <button class="dbtn" id="gridEditBtn" data-tip-title="Grid edit" data-tip="Fix the beat grid by hand: drag the zoomed waveform to slide the grid, click any beat to make it beat 1. Press again to finish." onclick="toggleGridEdit()">GRID EDIT</button>
+    <div class="stepper" data-tip-title="Zoom" data-tip="How many bars the zoomed waveform shows. 4 bars for precise grid work, 32 to see whole sections."><span><b id="zoomLbl">8 BARS</b></span><span><button onclick="zoomStep(1)"><svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button><button onclick="zoomStep(-1)"><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button></span></div>
+    <button class="bigplay" id="bigPlay" data-tip-title="Play / pause" data-tip="Space bar does the same. Left and right arrows step one bar." onclick="togglePlay()"></button>
     <div class="hp"><svg class="i" viewBox="0 0 24 24"><path d="M4 14v-3a8 8 0 0 1 16 0v3M4 14h3v6H5a1 1 0 0 1-1-1v-5zM20 14h-3v6h2a1 1 0 0 0 1-1v-5z"/></svg></div>
   </div>
   <div class="dmain">
     <div class="dhead"><div class="badge" id="deckBadge">A</div><div class="sp"><div class="ti" id="dTitle2">—</div><div class="ar"><span id="deckRole" style="color:var(--p);font-weight:600;letter-spacing:.08em;font-size:10px">ORIGINAL</span> <span id="dArtist2"></span></div></div>
       <div class="times"><b id="tRemain2">-00:00.0</b><b class="dim" id="tElapsed2">00:00.0</b></div>
       <div class="ro"><span>BAR</span><b id="tBar">—</b></div><div class="ro"><span>BPM</span><b id="dBpm2">—</b></div><div class="ro"><span>KEY</span><b class="key" id="dKey2">—</b></div></div>
-    <div class="dt-wrap" id="dtWrap"><canvas id="dt"></canvas>
+    <div class="dt-wrap" id="dtWrap" data-tip-title="Zoomed waveform" data-tip="Drag left or right to scrub. Numbers on the ruler are bars. Coloured flags are your cue points."><canvas id="dt"></canvas>
       <div class="sampbox" id="sampBox"><b id="sampTitle">OUTRO SAMPLE</b><div class="seg" id="sampBars"></div><div class="seg"><button onclick="scaleSample(0.5)" title="Halve">÷2</button><button onclick="scaleSample(2)" title="Double">×2</button></div><button class="sb" id="sampLoopBtn" onclick="toggleSampLoop()">Loop</button><button class="sb" id="sampMelBtn" onclick="toggleMelodyOnly()">Melody only</button><button class="sb" onclick="sampleSetHere()">Move here</button><button class="x" title="Remove sample" onclick="removeSample(sampSel)"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
       <div class="gehint" id="geHint">Grid edit · drag to slide the grid · click a beat to make it beat 1</div></div>
     <div class="dbar">
-      <span class="lab">HOT CUES</span><div class="padwrap" id="hotcues"></div>
+      <span class="lab" data-tip-title="Hot cues" data-tip="A: beat 1 (or the drop on Deck B). B: last bar (or where the outro drums start). C: the ending. Each pad starts 2 bars early so you hear the transition.">HOT CUES</span><div class="padwrap" id="hotcues"></div>
       <div class="sep"></div>
-      <button class="sb" id="gridEditBtn2" onclick="toggleGridEdit()">Grid edit</button>
-      <div class="seg"><button onclick="nudgeBeat(-1)">− beat</button><button onclick="nudgeBeat(1)">+ beat</button></div>
-      <div class="seg"><button onclick="nudgeMs(-10)">−10 ms</button><button onclick="nudgeMs(10)">+10 ms</button></div>
-      <button class="sb" onclick="setDownbeatHere()">Beat 1 here</button>
-      <button class="sb" id="bar1Auto" onclick="setBar1(null)">Bar 1 auto</button><button class="sb" onclick="setBar1(player.pos())">Bar 1 here</button>
-      <div class="sep"></div><span class="lab">SAMPLE</span><button class="sb" onclick="createSample('in')">Intro here</button><button class="sb" onclick="createSample('out')">Outro here</button><span class="protag" id="sampProTag">PRO</span>
-      <label class="sw" id="clickTog"><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
-      <div class="right"><span class="hint" id="trHint"></span><div class="seg" id="wfMode" title="Waveform colour"><button class="on" data-m="loud" onclick="setWfMode('loud')">Loudness</button><button data-m="freq" onclick="setWfMode('freq')">Frequency</button></div></div>
+      <button class="sb" id="gridEditBtn2" data-tip-title="Grid edit" data-tip="Drag the zoomed waveform to slide the grid, click a beat to make it beat 1." onclick="toggleGridEdit()">Grid edit</button>
+      <div class="seg" data-tip-title="Move beat 1" data-tip="If the high click lands on the wrong beat, shift beat 1 one beat earlier or later."><button onclick="nudgeBeat(-1)">− beat</button><button onclick="nudgeBeat(1)">+ beat</button></div>
+      <div class="seg" data-tip-title="Fine nudge" data-tip="Slide the whole grid by 10 milliseconds when the click sits just before or after the beat."><button onclick="nudgeMs(-10)">−10 ms</button><button onclick="nudgeMs(10)">+10 ms</button></div>
+      <button class="sb" data-tip-title="Beat 1 here" data-tip="Park the playhead on a beat you know is beat 1 and press this. The grid snaps to it." onclick="setDownbeatHere()">Beat 1 here</button>
+      <button class="sb" id="bar1Auto" data-tip-title="Bar 1 · auto" data-tip="Bar 1 is where the intro drums hand over to your song. Auto uses the first downbeat of the track." onclick="setBar1(null)">Bar 1 auto</button><button class="sb" data-tip-title="Bar 1 here" data-tip="Choose a later bar line as the hand-over point, for example after a long ambient opening. Everything before it plays under the intro drums." onclick="setBar1(player.pos())">Bar 1 here</button>
+      <div class="sep"></div><span class="lab" data-tip-title="Sampler" data-tip="Loop a phrase of the song, drums stripped, under the new drums. Put the playhead where the loop should start, then pick Intro or Outro.">SAMPLE</span><button class="sb" data-tip-title="Intro here" data-tip="Drops a green sample box at the playhead for the intro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('in')">Intro here</button><button class="sb" data-tip-title="Outro here" data-tip="Drops a green sample box at the playhead for the outro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('out')">Outro here</button><span class="protag" id="sampProTag">PRO</span>
+      <label class="sw" id="clickTog" data-tip-title="Metronome click" data-tip="Plays a click on every beat of the grid, with a high click on beat 1. If the high click is not on the 1, fix the grid before you build."><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
+      <div class="right"><span class="hint" id="trHint"></span><div class="seg" id="wfMode" data-tip-title="Waveform colour" data-tip="Loudness: sections coloured quiet to loud. Frequency: bass orange, mids green, highs blue, like Rekordbox. Added parts are always green." title="Waveform colour"><button class="on" data-m="loud" onclick="setWfMode('loud')">Loudness</button><button data-m="freq" onclick="setWfMode('freq')">Frequency</button></div></div>
     </div>
     <div class="cues" id="cueBar" style="display:none"><span class="lab">CUE POINTS</span><div class="cues" style="padding:0;border:0" id="cues"></div><span class="meta" id="resultMeta"></span></div>
   </div>
@@ -390,44 +409,44 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <div id="sideExt">
       <div class="sec off" id="pExt">
         <h3><span class="n">01</span>EXTENSION<span class="note">8 bars ≈ <span id="barsHint">15</span> s</span></h3>
-        <div class="row"><span class="lbl">Intro</span><div class="seg" id="introBars"></div></div>
-        <div class="row"><span class="lbl">Outro</span><div class="seg" id="outroBars"></div></div>
-        <div class="row"><span class="lbl">Blend in</span><div class="seg" id="blendIn"></div></div>
-        <div class="row"><span class="lbl">Blend out</span><div class="seg" id="blendOut"></div></div>
-        <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="levelSl" min="-12" max="6" step="0.5" value="0" oninput="opt.level=+this.value;$('levelVal').textContent=(opt.level>0?'+':'')+opt.level.toFixed(1)+' dB'"><span class="val" id="levelVal">0.0 dB</span></div>
-        <div class="row"><span class="lbl">Crash</span><label class="sw"><input type="checkbox" id="crashChk" checked onchange="opt.crash=this.checked"><span class="tr"></span><span class="l">Drop and ending</span></label></div>
+        <div class="row"><span class="lbl">Intro</span><div class="seg" id="introBars" data-tip-title="Intro drums" data-tip="How many bars of drums play before your song drops. 16 is the DJ standard; 32 for long blends."></div></div>
+        <div class="row"><span class="lbl">Outro</span><div class="seg" id="outroBars" data-tip-title="Outro drums" data-tip="How many bars of drums continue after your song ends, so the next DJ can mix in."></div></div>
+        <div class="row"><span class="lbl">Blend in</span><div class="seg" id="blendIn" data-tip-title="Blend in" data-tip="Keep the intro drums running under the first bars of the song, fading out. Off = clean cut on the drop."></div></div>
+        <div class="row"><span class="lbl">Blend out</span><div class="seg" id="blendOut" data-tip-title="Blend out" data-tip="Bring the outro drums in under the last bars of the song, fading in, instead of starting them cold."></div></div>
+        <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="levelSl" data-tip-title="Drum level" data-tip="The drums are matched to your song's loudness automatically. This trims them up or down from there." min="-12" max="6" step="0.5" value="0" oninput="opt.level=+this.value;$('levelVal').textContent=(opt.level>0?'+':'')+opt.level.toFixed(1)+' dB'"><span class="val" id="levelVal">0.0 dB</span></div>
+        <div class="row"><span class="lbl">Crash</span><label class="sw" data-tip-title="Crash" data-tip="A crash cymbal on the drop and on the final hit."><input type="checkbox" id="crashChk" checked onchange="opt.crash=this.checked"><span class="tr"></span><span class="l">Drop and ending</span></label></div>
       </div>
       <div class="sec off" id="pBed">
         <h3><span class="n">02</span>MELODY BED<span class="note">The song's own melody under the drums</span></h3>
-        <div class="row"><span class="lbl">Outro</span><label class="sw"><input type="checkbox" id="bedOut" checked onchange="opt.bed.outOn=this.checked"><span class="tr"></span><span class="l">Loop the last phrase</span></label></div>
-        <div class="row"><span class="lbl">Intro</span><label class="sw"><input type="checkbox" id="bedIn" onchange="opt.bed.inOn=this.checked"><span class="tr"></span><span class="l">Loop the first phrase</span></label></div>
-        <div class="row"><span class="lbl">Auto length</span><div class="seg" id="bedLen"></div><span class="meta">bars, when you haven't sampled</span></div>
-        <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="bedSl" min="-18" max="6" step="1" value="-3" oninput="opt.bed.level=+this.value;$('bedVal').textContent=(opt.bed.level>0?'+':'')+opt.bed.level+' dB'"><span class="val" id="bedVal">-3 dB</span></div>
+        <div class="row"><span class="lbl">Outro</span><label class="sw" data-tip-title="Melody bed · outro" data-tip="Loops a phrase of your song, with its drums stripped, under the outro drums so the hook keeps going while the next track mixes in."><input type="checkbox" id="bedOut" checked onchange="opt.bed.outOn=this.checked"><span class="tr"></span><span class="l">Loop the last phrase</span></label></div>
+        <div class="row"><span class="lbl">Intro</span><label class="sw" data-tip-title="Melody bed · intro" data-tip="Same idea under the intro drums: a loop of the song fades in before the full track drops."><input type="checkbox" id="bedIn" onchange="opt.bed.inOn=this.checked"><span class="tr"></span><span class="l">Loop the first phrase</span></label></div>
+        <div class="row"><span class="lbl">Auto length</span><div class="seg" id="bedLen" data-tip-title="Auto phrase length" data-tip="When you have not sampled a phrase yourself, we pick the last (or first) loud phrase of this length."></div><span class="meta">bars, when you haven't sampled</span></div>
+        <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="bedSl" data-tip-title="Melody level" data-tip="How loud the melody loop sits under the drums." min="-18" max="6" step="1" value="-3" oninput="opt.bed.level=+this.value;$('bedVal').textContent=(opt.bed.level>0?'+':'')+opt.bed.level+' dB'"><span class="val" id="bedVal">-3 dB</span></div>
         <div class="row"><span class="lbl">Sample</span><button class="sb" onclick="createSample('out')">Outro here</button><button class="sb" onclick="createSample('in')">Intro here</button><button class="sb" onclick="removeSample(null)">Auto</button></div>
         <div class="info" id="bedInfo">Put the playhead on Deck A where the loop should start and hit Outro here: a sample box appears on the waveform. Drums are stripped from it on this device, then it loops under the new drums.</div>
       </div>
       <div class="sec off" id="pStyles">
-        <h3><span class="n">03</span>DRUM STYLES<button class="sb" style="margin-left:auto" onclick="shuffleGrooves(false)"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button></h3>
-        <div class="row" id="cycleRow"><span class="lbl">Cycle every</span><div class="seg" id="cycleBars"></div><span class="meta">bars</span></div>
+        <h3><span class="n">03</span>DRUM STYLES<button class="sb" style="margin-left:auto" data-tip-title="Shuffle grooves" data-tip="Picks a different groove for every selected style and rebuilds instantly. Keep hitting it until one lands." onclick="shuffleGrooves(false)"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button></h3>
+        <div class="row" id="cycleRow"><span class="lbl">Cycle every</span><div class="seg" id="cycleBars" data-tip-title="Cycle styles" data-tip="With more than one style selected, the drums switch style every this many bars, in the order you picked them."></div><span class="meta">bars</span></div>
         <div class="row"><div class="styles" id="styleGrid"></div></div>
       </div>
     </div>
     <div id="sideFx" style="display:none">
       <div class="sec off" id="pFx">
         <h3><span class="n">04</span>TRANSITION FX<span class="note">Pink on the waveform</span></h3>
-        <div class="row"><span class="lbl">Length</span><div class="seg" id="fxLen"></div></div>
+        <div class="row"><span class="lbl">Length</span><div class="seg" id="fxLen" data-tip-title="FX length" data-tip="How many bars before each transition the effects build up. 2 bars is the classic."></div></div>
         <div class="row" style="align-items:flex-start"><span class="lbl" style="padding-top:2px">Effects</span>
           <div class="fxlist">
-            <label class="sw"><input type="checkbox" id="fxRiser" onchange="fxTog('riser',this)"><span class="tr"></span><span class="l">Noise riser</span></label>
-            <label class="sw"><input type="checkbox" id="fxRev" onchange="fxTog('rev',this)"><span class="tr"></span><span class="l">Reverse cymbal</span></label>
-            <label class="sw"><input type="checkbox" id="fxSweep" onchange="fxTog('sweep',this)"><span class="tr"></span><span class="l">Filter sweep</span></label>
-            <label class="sw"><input type="checkbox" id="fxBuild" onchange="fxTog('build',this)"><span class="tr"></span><span class="l">Snare build</span></label>
+            <label class="sw" data-tip-title="Noise riser" data-tip="A white-noise sweep that rises into the transition."><input type="checkbox" id="fxRiser" onchange="fxTog('riser',this)"><span class="tr"></span><span class="l">Noise riser</span></label>
+            <label class="sw" data-tip-title="Reverse cymbal" data-tip="A crash played backwards, sucking into the hit."><input type="checkbox" id="fxRev" onchange="fxTog('rev',this)"><span class="tr"></span><span class="l">Reverse cymbal</span></label>
+            <label class="sw" data-tip-title="Filter sweep" data-tip="A high-pass filter opens up on the drums over the last bars, thinning them out before the drop, like a DJ filter."><input type="checkbox" id="fxSweep" onchange="fxTog('sweep',this)"><span class="tr"></span><span class="l">Filter sweep</span></label>
+            <label class="sw" data-tip-title="Snare build" data-tip="A snare roll that speeds up: 8ths, 16ths, then 32nds, getting louder into the drop."><input type="checkbox" id="fxBuild" onchange="fxTog('build',this)"><span class="tr"></span><span class="l">Snare build</span></label>
           </div></div>
         <div class="row" style="align-items:flex-start"><span class="lbl" style="padding-top:2px">Apply to</span>
           <div class="fxlist">
-            <label class="sw"><input type="checkbox" id="fxAtDrop" onchange="fxTog('atDrop',this)"><span class="tr"></span><span class="l">The drop</span></label>
-            <label class="sw"><input type="checkbox" id="fxAtOutro" onchange="fxTog('atOutro',this)"><span class="tr"></span><span class="l">Outro start</span></label>
-            <label class="sw"><input type="checkbox" id="fxAtEnd" onchange="fxTog('atEnd',this)"><span class="tr"></span><span class="l">The ending</span></label>
+            <label class="sw" data-tip="Apply the effects into the moment your song comes in."><input type="checkbox" id="fxAtDrop" onchange="fxTog('atDrop',this)"><span class="tr"></span><span class="l">The drop</span></label>
+            <label class="sw" data-tip="Apply the effects into the point where the outro drums take over."><input type="checkbox" id="fxAtOutro" onchange="fxTog('atOutro',this)"><span class="tr"></span><span class="l">Outro start</span></label>
+            <label class="sw" data-tip="Apply the effects into the final hit of the extended mix."><input type="checkbox" id="fxAtEnd" onchange="fxTog('atEnd',this)"><span class="tr"></span><span class="l">The ending</span></label>
           </div></div>
         <div class="fxmap" id="fxMap"></div>
       </div>
@@ -435,9 +454,9 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <div id="sideGrid" style="display:none">
       <div class="sec off" id="pGrid">
         <h3><span class="n">05</span>TEMPO &amp; GRID<span class="note" id="songMeta"></span></h3>
-        <div class="row"><div class="bpm-edit"><input id="bpmInput" type="number" step="0.01" min="40" max="300" value="0"><span class="meta">BPM</span></div><span class="conf" id="bpmConf">—</span></div>
-        <div class="row"><span class="lbl">Fine</span><div class="seg"><button onclick="nudgeBpm(-0.1)">−0.1</button><button onclick="nudgeBpm(-0.01)">−0.01</button><button onclick="nudgeBpm(0.01)">+0.01</button><button onclick="nudgeBpm(0.1)">+0.1</button></div></div>
-        <div class="row"><span class="lbl">Tempo</span><button class="sb" id="tapBtn" onclick="tapTempo()">Tap</button><button class="sb" onclick="setBpm(song.bpm/2)">½×</button><button class="sb" onclick="setBpm(song.bpm*2)">2×</button><button class="sb" onclick="redetect()">Re-detect</button></div>
+        <div class="row"><div class="bpm-edit" data-tip-title="BPM" data-tip="Detected tempo. Type a value to override; the grid is re-detected at that tempo."><input id="bpmInput" type="number" step="0.01" min="40" max="300" value="0"><span class="meta">BPM</span></div><span class="conf" id="bpmConf">—</span></div>
+        <div class="row"><span class="lbl">Fine</span><div class="seg" data-tip-title="Fine BPM" data-tip="Trim the tempo in tiny steps when the grid drifts over the length of the track. Pivots around bar 1 so your downbeat stays put."><button onclick="nudgeBpm(-0.1)">−0.1</button><button onclick="nudgeBpm(-0.01)">−0.01</button><button onclick="nudgeBpm(0.01)">+0.01</button><button onclick="nudgeBpm(0.1)">+0.1</button></div></div>
+        <div class="row"><span class="lbl">Tempo</span><button class="sb" id="tapBtn" data-tip-title="Tap tempo" data-tip="Tap along with the beat, 4 or more times, to set the BPM by ear." onclick="tapTempo()">Tap</button><button class="sb" data-tip="Halve the BPM when a half-time track was read double." onclick="setBpm(song.bpm/2)">½×</button><button class="sb" data-tip="Double the BPM when a fast track was read half-time." onclick="setBpm(song.bpm*2)">2×</button><button class="sb" data-tip="Run the tempo and grid detection again from scratch." onclick="redetect()">Re-detect</button></div>
         <div class="row"><span class="lbl">Also try</span><span id="bpmAlts" style="display:flex;gap:6px"></span></div>
         <div class="info" id="gridInfo">Play Deck A with the click on. The high click should land on beat 1. Grid edit: drag the waveform to slide the grid, click a beat to make it beat 1.</div>
       </div>
@@ -447,11 +466,11 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <div class="ltool">
       <span class="title">Library</span><span class="cnt" id="libCount">0 tracks</span>
       <div class="right">
-        <button class="btn btn-ghost" onclick="$('fileInput').click()"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Add tracks</button>
-        <button class="btn btn-ghost" id="shuffleBtn" onclick="shuffleGrooves(false)" disabled title="Try other grooves and rebuild"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button>
-        <button class="btn btn-primary" id="buildBtn" onclick="build()" disabled>Build extended mix</button>
-        <button class="btn btn-ghost" id="dlBtn" onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
-        <button class="btn btn-pro" id="buildAllBtn" onclick="buildAll()" title="Pro: build every track in the library">Build all · PRO</button><button class="btn btn-ghost" id="dlAllBtn" onclick="downloadAll()" style="display:none">Download all</button>
+        <button class="btn btn-ghost" data-tip-title="Add tracks" data-tip="Load one song or a whole set. Each is analysed in turn and waits in the library. Nothing is uploaded." onclick="$('fileInput').click()"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Add tracks</button>
+        <button class="btn btn-ghost" id="shuffleBtn" data-tip-title="Shuffle" data-tip="New grooves for the selected styles, rebuilt on the spot." onclick="shuffleGrooves(false)" disabled title="Try other grooves and rebuild"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button>
+        <button class="btn btn-primary" id="buildBtn" data-tip-title="Build" data-tip="Renders the extended mix with the current settings, about a second per track, and switches to Deck B so you can listen." onclick="build()" disabled>Build extended mix</button>
+        <button class="btn btn-ghost" id="dlBtn" data-tip-title="Download" data-tip="Uncompressed WAV with your original tags and cover art, title suffixed (Extended Mix). The song itself passes through untouched." onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
+        <button class="btn btn-pro" id="buildAllBtn" data-tip-title="Build all · Pro" data-tip="Builds every track in the library with the current settings, then Download all." onclick="buildAll()" title="Pro: build every track in the library">Build all · PRO</button><button class="btn btn-ghost" id="dlAllBtn" onclick="downloadAll()" style="display:none">Download all</button>
       </div>
     </div>
     <div class="progress" id="buildProg"><div id="buildBar"></div></div>
@@ -467,12 +486,12 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 <div class="modal" id="authModal"><div class="mbox"><button class="x" onclick="closeModal('authModal')"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <div id="authStep1">
     <h3>Sign in to build your mix</h3>
-    <p>Extendo is free. Sign in once and your extended mixes are yours to download. No card.</p>
+    <p>Extend The Mix is free. Sign in once and your extended mixes are yours to download. No card.</p>
     <input type="email" id="authEmail" placeholder="you@email.com" autocomplete="email">
     <button class="btn btn-primary" id="authSend" onclick="authEmail()">Send me a sign-in link</button>
     <div class="or">or</div>
     <button class="btn btn-ghost" onclick="authGoogle()">Continue with Google</button>
-    <p class="fine">You'll get the occasional email from 2 Points. Unsubscribe any time.</p>
+    <p class="fine">You'll get the occasional email from 2 Points Sound. Unsubscribe any time.</p>
   </div>
   <div id="authStep2" style="display:none">
     <h3>Check your inbox</h3>
@@ -498,11 +517,12 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
   <p class="fine" id="proFine">Secure checkout by Stripe. Lifetime is a single charge of $49.99.</p>
 </div></div>
 <div class="toast" id="toast"></div>
+<div class="tour" id="tour"><div class="ring" id="tourRing"></div><div class="card" id="tourCard"><div class="tstep" id="tourStep"></div><h4 id="tourTitle"></h4><p id="tourText"></p><div class="row"><div class="dots" id="tourDots"></div><div style="display:flex;gap:6px;align-items:center"><button class="skip" onclick="endTour()">Skip</button><button class="sb" id="tourBack" onclick="tourGo(-1)">Back</button><button class="btn btn-primary" id="tourNext" onclick="tourGo(1)" style="padding:8px 14px">Next</button></div></div></div></div>
 
 <!-- FOLLOW TO UNLOCK -->
 <div class="modal" id="unlockModal"><div class="mbox"><button class="x" onclick="closeModal('unlockModal')"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <h3 id="unlockTitle">Unlock unlimited mixes</h3>
-  <p id="unlockText">Follow 2 Points on Spotify and Instagram and Extendo is unlimited on this account, for good.</p>
+  <p id="unlockText">Follow 2 Points on Spotify and Instagram and Extend The Mix is unlimited on this account, for good.</p>
   <div class="steps">
     <a class="step" id="stepSpotify" href="#" target="_blank" rel="noopener" onclick="followClick('spotify')"><span class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 9.5c3-1 6-.8 8.5.8M8.5 12.5c2.2-.7 4.6-.5 6.5.7M9 15.3c1.6-.5 3.3-.4 4.7.5"/></svg></span><span class="st">Follow on Spotify<small>Opens Spotify. Tap Follow, then come back.</small></span><span class="chk">1 / 2</span></a>
     <a class="step" id="stepInsta" href="#" target="_blank" rel="noopener" onclick="followClick('insta')"><span class="ic"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><circle cx="12" cy="12" r="3.5"/><circle cx="17" cy="7" r=".8" fill="currentColor"/></svg></span><span class="st">Follow on Instagram<small>Opens Instagram. Tap Follow, then come back.</small></span><span class="chk">2 / 2</span></a>
@@ -911,7 +931,7 @@ function colColor(lo,mi,hi,amp){var s=lo*1.0+mi*1.6+hi*2.6||1,a=lo/s,b=mi*1.6/s,
 function agg(cols,c0,c1){c0=Math.max(0,c0);c1=Math.min(cols.n,Math.max(c0+1,c1));var pk=0,lo=0,mi=0,hi=0;for(var c=c0;c<c1;c++){if(cols.pk[c]>pk)pk=cols.pk[c];if(cols.lo[c]>lo)lo=cols.lo[c];if(cols.mi[c]>mi)mi=cols.mi[c];if(cols.hi[c]>hi)hi=cols.hi[c];}return {pk:pk,lo:lo,mi:mi,hi:hi};}
 function fit(cv){var dpr=window.devicePixelRatio||1,W=cv.clientWidth||600,H=cv.clientHeight||100;if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);}var g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);return {g:g,W:W,H:H,dpr:dpr};}
 
-/* ── waveform colouring: 'loud' = song coloured by per-bar loudness tier, anything Extendo added is green; 'freq' = RGB by band ── */
+/* ── waveform colouring: 'loud' = song coloured by per-bar loudness tier, anything Extend The Mix added is green; 'freq' = RGB by band ── */
 var wfMode='loud',TIER_RGB=[[59,130,246],[168,85,247],[245,158,11],[239,68,68]],GREEN_RGB=[34,197,94];
 function rgbk(c,k){return 'rgb('+Math.round(c[0]*k)+','+Math.round(c[1]*k)+','+Math.round(c[2]*k)+')';}
 function tierColor(t,amp){return rgbk(TIER_RGB[t]||TIER_RGB[0],0.62+0.38*Math.min(1,amp));}
@@ -975,7 +995,7 @@ function clickBuffer(){if(song.click)return song.click;var c=player.ctxGet(),sr=
   for(var k=0,t=song.firstBeat;t<song.buf.duration;t+=beat,k++){var acc=((k-song.downbeat)%4+4)%4===0,f=acc?1600:1050,len=Math.floor(sr*(acc?0.04:0.025)),s0=Math.floor(t*sr),amp=acc?0.6:0.4;
     for(var i=0;i<len&&s0+i<n;i++)d[s0+i]+=amp*Math.sin(2*Math.PI*f*i/sr)*Math.exp(-i/(sr*0.008));}
   return song.click=b;}
-document.addEventListener('keydown',function(e){if(e.code==='Escape'){closeModal('authModal');closeModal('unlockModal');closeModal('proModal');}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;var c=cur();if(!c)return;
+document.addEventListener('keydown',function(e){if(tourI>=0)return;if(e.code==='Escape'){closeModal('authModal');closeModal('unlockModal');closeModal('proModal');}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;var c=cur();if(!c)return;
   if(e.code==='Space'){e.preventDefault();togglePlay();}else if(e.code==='ArrowLeft'){stepBars(-1);}else if(e.code==='ArrowRight'){stepBars(1);}});
 // level meter: 12 LEDs (8 green, 3 yellow, 1 red) driven by the analyser
 (function(){var m=$('meter'),h='';for(var i=0;i<12;i++)h+='<i class="'+(i>=11?'r':i>=8?'y':'')+'"></i>';m.innerHTML=h;})();
@@ -985,6 +1005,37 @@ function meterTick(){if(!player.an||!player.playing){return;}player.an.getFloatT
 // output knob: drag up/down
 (function(){var k=$('knob'),y0=0,v0=0,drag=false;var set=function(v){player.vol=Math.max(0,Math.min(1,v));if(player.gain)player.gain.gain.value=player.vol;k.style.setProperty('--rot',(-135+270*player.vol)+'deg');};
   k.addEventListener('pointerdown',function(e){drag=true;y0=e.clientY;v0=player.vol;k.setPointerCapture(e.pointerId);});k.addEventListener('pointermove',function(e){if(drag)set(v0+(y0-e.clientY)/150);});k.addEventListener('pointerup',function(){drag=false;});set(0.85);})();
+/* ── hover tips: any element with data-tip (and optional data-tip-title) gets a styled popover after a short hover ── */
+var tipsOn=true;try{tipsOn=localStorage.getItem('extendo_tips')!=='off';}catch(e){}
+(function(){var tip=document.createElement('div');tip.className='tip';tip.id='tipBox';document.body.appendChild(tip);var timer=null,cur=null;
+  function show(el){var t=el.getAttribute('data-tip'),h=el.getAttribute('data-tip-title');if(!t)return;tip.innerHTML=(h?'<b>'+h+'</b>':'')+t;tip.classList.add('show');
+    var r=el.getBoundingClientRect(),w=tip.offsetWidth,hh=tip.offsetHeight,x=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2)),y=r.top-hh-10;if(y<8)y=r.bottom+10;tip.style.left=x+'px';tip.style.top=y+'px';}
+  function hide(){clearTimeout(timer);cur=null;tip.classList.remove('show');}
+  document.addEventListener('pointerover',function(e){if(!tipsOn||e.pointerType==='touch')return;var el=e.target.closest('[data-tip]');if(!el||el===cur)return;cur=el;clearTimeout(timer);timer=setTimeout(function(){if(cur===el)show(el);},380);});
+  document.addEventListener('pointerout',function(e){var el=e.target.closest('[data-tip]');if(!el)return;if(e.relatedTarget&&el.contains(e.relatedTarget))return;hide();});
+  document.addEventListener('pointerdown',hide);window.addEventListener('scroll',hide,true);window.addEventListener('blur',hide);
+  window.showTip=show;window.hideTip=hide;})();
+function setTips(on){tipsOn=on;try{localStorage.setItem('extendo_tips',on?'on':'off');}catch(e){}hideTip();}
+/* ── guided tour: 6 steps, each spotlights an element ── */
+var TOUR=[
+  {sel:'#deck',title:'Drop your tracks on the deck',text:'MP3, WAV, FLAC or M4A, one song or a whole set. Everything happens on your device: nothing is uploaded, and your cover art and tags come along for the ride.'},
+  {sel:'#dtWrap',title:'Check the beat grid on Deck A',text:'Press play with the click on. The high click should land on beat 1. If it does not, use Grid edit (drag to slide, click a beat to make it beat 1) or the nudge buttons. A correct grid is what makes the drop land perfectly.'},
+  {sel:'#pExt',title:'Choose your intro and outro',text:'16 bars each is the DJ standard. Blend keeps drums running under the song for a softer hand-over. The drum level is matched to your track automatically.'},
+  {sel:'#pStyles',title:'Pick the drums',text:'Eight styles, four grooves each. Select more than one and they cycle. Shuffle rebuilds instantly with new grooves until you find the one you like. The FX tab adds risers, reverse cymbals, filter sweeps and snare builds into each transition.'},
+  {sel:'#hotcues',title:'Sample a phrase for the melody bed',text:'By default the outro loops the last loud phrase of your song with its drums stripped. For control, park the playhead and press Outro here: a green box appears that you can resize, drag and audition with Loop and Melody only.'},
+  {sel:'#buildBtn',title:'Build, listen, download',text:'Build renders in about a second and switches to Deck B. Hot cues A, B and C jump to the drop, the outro and the ending. Download gives you a WAV with your original tags and cover art, titled (Extended Mix).'}];
+var tourI=-1;
+function startTour(i){tourI=i||0;$('tour').classList.add('show');hideTip();tourShow();}
+function endTour(){tourI=-1;$('tour').classList.remove('show');try{localStorage.setItem('extendo_tour','seen');}catch(e){}}
+function tourGo(d){var n=tourI+d;if(n<0)return;if(n>=TOUR.length){endTour();return;}tourI=n;tourShow();}
+function tourShow(){var st=TOUR[tourI],el=document.querySelector(st.sel)||$('deck');el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){var r=el.getBoundingClientRect(),ring=$('tourRing'),card=$('tourCard'),pad=8;ring.style.left=(r.left-pad)+'px';ring.style.top=(r.top-pad)+'px';ring.style.width=(r.width+2*pad)+'px';ring.style.height=(r.height+2*pad)+'px';
+    $('tourStep').textContent='STEP '+(tourI+1)+' OF '+TOUR.length;$('tourTitle').textContent=st.title;$('tourText').textContent=st.text;$('tourDots').innerHTML=TOUR.map(function(_,i){return '<i class="'+(i===tourI?'on':'')+'"></i>';}).join('');
+    $('tourBack').style.visibility=tourI?'visible':'hidden';$('tourNext').textContent=tourI===TOUR.length-1?'Done':'Next';
+    var cw=card.offsetWidth,ch=card.offsetHeight,x=Math.max(12,Math.min(innerWidth-cw-12,r.left+r.width/2-cw/2)),y=r.bottom+14;if(y+ch>innerHeight-12)y=Math.max(12,r.top-ch-14);if(r.height>innerHeight*0.7)y=Math.max(12,innerHeight-ch-24);card.style.left=x+'px';card.style.top=y+'px';},350);}
+document.addEventListener('keydown',function(e){if(tourI<0)return;if(e.code==='Escape')endTour();else if(e.code==='ArrowRight'||e.code==='Enter')tourGo(1);else if(e.code==='ArrowLeft')tourGo(-1);});
+window.addEventListener('resize',function(){if(tourI>=0)tourShow();});
+try{if(localStorage.getItem('extendo_tour')!=='seen')setTimeout(function(){startTour(0);},900);}catch(e){}
 function toggleFull(){if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
 function goTab(name,btn){Array.from($('navtabs').children).forEach(function(b){b.classList.toggle('on',b===btn);});var el=name==='deck'?$('deckTop'):$('lower');if(name==='extend')sideTab('ext');if(name==='fx')sideTab('fx');el.scrollIntoView({behavior:'smooth',block:'start'});}
 function sideTab(n){['ext','fx','grid'].forEach(function(k){$('side'+k.charAt(0).toUpperCase()+k.slice(1)).style.display=k===n?'':'none';$('st'+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle('on',k===n);});}
@@ -1053,8 +1104,8 @@ function setZoom(b){zoomBars=b;$('zoomLbl').textContent=b+' BARS';draw();}
 function zoomStep(d){var i=ZOOMS.indexOf(zoomBars);setZoom(ZOOMS[Math.max(0,Math.min(ZOOMS.length-1,i-d))]);}
 window.addEventListener('resize',function(){ovKey='';draw();});
 function setView(v){if(v==='ext'&&!result)return;player.stop();view=v;$('tabSrc').classList.toggle('on',v==='src');$('tabExt').classList.toggle('on',v==='ext');$('deckBadge').textContent=v==='src'?'A':'B';$('deckRole').textContent=v==='src'?'ORIGINAL':'EXTENDED';$('clickTog').style.display=v==='src'?'':'none';
-  var c=cur();player.off=0;player.dur=c?c.dur:0;renderHotcues();renderSampBox();$('trHint').textContent=v==='src'?'Drag to scrub · Space plays · high click on beat 1 = grid is right.':'Green = added by Extendo. Blue → purple → amber → red = quiet → loud.';ovKey='';draw();}
-function renderHotcues(){var h=$('hotcues');h.innerHTML='';var qs=cuesOf();['A','B','C','D'].forEach(function(n,i){var q=qs[i],b=document.createElement('button');b.className='pad'+(q?' set':'');b.style.setProperty('--c',CUE_COL[n]);b.innerHTML=n+(q?'<small>'+q.label+' '+fmt(q.t).replace(/\.\d+$/,'')+'</small>':'');b.disabled=!q;b.title=q?q.label:'';b.onclick=function(){jumpCue(i);};h.appendChild(b);});}
+  var c=cur();player.off=0;player.dur=c?c.dur:0;renderHotcues();renderSampBox();$('trHint').textContent=v==='src'?'Drag to scrub · Space plays · high click on beat 1 = grid is right.':'Green = added by Extend The Mix. Blue → purple → amber → red = quiet → loud.';ovKey='';draw();}
+function renderHotcues(){var h=$('hotcues');h.innerHTML='';var qs=cuesOf();['A','B','C','D'].forEach(function(n,i){var q=qs[i],b=document.createElement('button');b.className='pad'+(q?' set':'');b.style.setProperty('--c',CUE_COL[n]);if(q){b.setAttribute('data-tip-title','Hot cue '+n+' · '+q.label);b.setAttribute('data-tip','Jumps 2 bars before '+q.label.toLowerCase()+' and plays, so you hear the transition.');}b.innerHTML=n+(q?'<small>'+q.label+' '+fmt(q.t).replace(/\.\d+$/,'')+'</small>':'');b.disabled=!q;b.title=q?q.label:'';b.onclick=function(){jumpCue(i);};h.appendChild(b);});}
 
 /* ── library ── */
 var lib=[],analyzing=false,fi=$('fileInput');
@@ -1208,7 +1259,7 @@ function shuffleGrooves(all){(all?STYLE_ORDER:opt.styles).forEach(function(id){v
 function grooveChanged(){if(result&&!busy)build();}
 function renderStyles(){var g=$('styleGrid');g.innerHTML='';STYLE_ORDER.forEach(function(id){var s=STYLES[id],d=document.createElement('div'),i=opt.styles.indexOf(id),gr=s.grooves[grooveOf(id)];d.className='style-card'+(i>=0?' on':'');
   d.innerHTML='<div class="ck"></div><div class="style-name">'+s.name+(i>=0&&opt.styles.length>1?'<i>'+(i+1)+'</i>':'')+'</div>'+
-    '<div class="groove"><button class="gbtn" data-g="-1" title="Previous groove">'+ICON.prev+'</button><span class="gname">'+gr.name+(isProGroove(id,grooveOf(id))&&!isPro()?'<span class="protag">PRO</span>':'')+'<small>'+(grooveOf(id)+1)+'/'+s.grooves.length+'</small></span><button class="gbtn" data-g="1" title="Next groove">'+ICON.next+'</button><button class="gbtn" data-g="rnd" title="Random groove">'+ICON.dice+'</button><button class="style-prev" title="Preview">'+ICON.tri+'</button></div>';
+    '<div class="groove" data-tip-title="Grooves" data-tip="Four drum patterns per style. Step through them, roll a random one, or press play to preview two bars at your track\'s tempo."><button class="gbtn" data-g="-1" title="Previous groove">'+ICON.prev+'</button><span class="gname">'+gr.name+(isProGroove(id,grooveOf(id))&&!isPro()?'<span class="protag">PRO</span>':'')+'<small>'+(grooveOf(id)+1)+'/'+s.grooves.length+'</small></span><button class="gbtn" data-g="1" title="Next groove">'+ICON.next+'</button><button class="gbtn" data-g="rnd" title="Random groove">'+ICON.dice+'</button><button class="style-prev" title="Preview">'+ICON.tri+'</button></div>';
   d.onclick=function(e){var t=e.target.closest('button');if(t){e.stopPropagation();if(t.classList.contains('style-prev')){previewStyle(id);return;}var dg=t.getAttribute('data-g');if(dg==='rnd'){var n=s.grooves.length,c=grooveOf(id),nx=c;if(n>1)while(nx===c)nx=Math.floor(Math.random()*n);setGroove(id,nx);}else setGroove(id,grooveOf(id)+(+dg));return;}
     var j=opt.styles.indexOf(id);if(j>=0){if(opt.styles.length>1)opt.styles.splice(j,1);}else opt.styles.push(id);renderStyles();};g.appendChild(d);});
   $('cycleRow').style.display=opt.styles.length>1?'':'none';}
@@ -1300,7 +1351,7 @@ function saveMeta(data){if(!auth.user)return Promise.resolve();auth.user.user_me
 function countBuild(){if(!GATE||!auth.user||song.counted)return;song.counted=true;if(!unlocked())saveMeta({extendo_builds:builds()+1});}
 function openUnlock(exhausted){if(!auth.user){auth.pending='build';openAuth();return;}
   $('unlockTitle').textContent=exhausted?'You have used your '+FREE_BUILDS+' free mixes':'Unlock unlimited mixes';
-  $('unlockText').textContent='Follow 2 Points on Spotify and Instagram and Extendo is unlimited on this account, for good.';
+  $('unlockText').textContent='Follow 2 Points on Spotify and Instagram and Extend The Mix is unlimited on this account, for good.';
   ['spotify','insta'].forEach(function(k){$(k==='spotify'?'stepSpotify':'stepInsta').classList.toggle('done',auth.followed[k]);});$('unlockBtn').disabled=!(auth.followed.spotify&&auth.followed.insta);
   $('unlockModal').classList.add('show');}
 function followClick(k){auth.followed[k]=true;var el=$(k==='spotify'?'stepSpotify':'stepInsta');el.classList.add('done');el.querySelector('.chk').textContent='✓';$('unlockBtn').disabled=!(auth.followed.spotify&&auth.followed.insta);}
