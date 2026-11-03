@@ -918,7 +918,7 @@ function draw(){var c=cur();if(!c)return;var pos=deckPos();drawOverview(c,pos);d
    Audio pauses while you hold and resumes from where you let go; a plain click on the zoomed view seeks to that spot. ── */
 var scrub=null,sampDrag=null;
 function scrubBind(el,mode){
-  el.addEventListener('pointerdown',function(e){var c=cur();if(!c||e.button!==0||(mode==='dt'&&gridEdit&&view==='src'))return;e.preventDefault();
+  el.addEventListener('pointerdown',function(e){var c=cur();if(!c||e.button!==0||(mode==='dt'&&gridEdit&&view==='src')||e.target.closest('.sampbox,button,.gehint'))return;e.preventDefault();
     if(mode==='dt'&&view==='src'){var r0=el.getBoundingClientRect(),tt=deckPos()+((e.clientX-r0.left)/r0.width-0.5)*zoomBars*c.bar,hit=samplesOf().filter(function(sm){return tt>=sm.a&&tt<=sm.b;})[0];
       if(hit){sampSel=hit.which;renderSampBox();sampDrag={which:hit.which,x0:e.clientX,s0:song.samp[hit.which].start,rect:r0,win:zoomBars*c.bar,was:player.playing};if(player.playing)player.stop();el.setPointerCapture(e.pointerId);draw();return;}}
     scrub={mode:mode,x0:e.clientX,was:player.playing,start:player.pos(),moved:false,rect:el.getBoundingClientRect(),dur:c.dur,win:zoomBars*c.bar};
@@ -934,6 +934,7 @@ function scrubBind(el,mode){
   el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);}
 function clampT(t){var c=cur();return Math.max(0,Math.min(c?c.dur-0.05:0,t));}
 scrubBind($('ovWrap'),'ov');scrubBind($('dtWrap'),'dt');
+['pointerdown','pointermove','pointerup'].forEach(function(ev){$('sampBox').addEventListener(ev,function(e){e.stopPropagation();});});
 // buttons keep focus after a click, which would make Space re-trigger them: drop focus so the shortcuts always reach the deck
 document.addEventListener('click',function(e){var b=e.target.closest('button');if(b)b.blur();});
 document.addEventListener('keyup',function(e){if(e.code==='Space'&&!/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))e.preventDefault();});
@@ -1022,7 +1023,7 @@ function setBar1(t){if(view!=='src'&&t!=null)return;song.firstDBOverride=t;$('ba
 var gridEdit=false;
 function toggleGridEdit(){gridEdit=!gridEdit;if(gridEdit&&view!=='src')setView('src');['gridEditBtn','gridEditBtn2'].forEach(function(id){$(id).classList.toggle('ge',gridEdit);});$('geHint').style.display=gridEdit?'block':'none';$('dtWrap').classList.toggle('ge',gridEdit);draw();}
 (function(){var el=$('dtWrap'),drag=null;
-  el.addEventListener('pointerdown',function(e){if(!gridEdit||view!=='src'||!song||e.target.tagName==='BUTTON')return;drag={x0:e.clientX,a0:anchorT(),moved:false};el.setPointerCapture(e.pointerId);});
+  el.addEventListener('pointerdown',function(e){if(!gridEdit||view!=='src'||!song||e.target.closest('.sampbox,button,.gehint'))return;drag={x0:e.clientX,a0:anchorT(),moved:false};el.setPointerCapture(e.pointerId);});
   el.addEventListener('pointermove',function(e){if(!drag)return;var dx=e.clientX-drag.x0;if(Math.abs(dx)>3)drag.moved=true;if(!drag.moved)return;var spp=zoomBars*song.bar/el.getBoundingClientRect().width;setAnchor(drag.a0+dx*spp);draw();});
   el.addEventListener('pointerup',function(e){if(!drag)return;var d=drag;drag=null;
     if(!d.moved){var r=el.getBoundingClientRect(),t=player.pos()+((e.clientX-r.left)/r.width-0.5)*zoomBars*song.bar,beat=60/song.bpm;setAnchor(song.firstBeat+Math.round((t-song.firstBeat)/beat)*beat);}
