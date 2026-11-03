@@ -83,6 +83,20 @@ const {chromium}=require('playwright');
   ok(Math.abs(b1.over-(ge.db0+2*ge.bar))<1e-6&&/set by you/.test(b1.info),'set bar 1 at a later bar line (snapped)');
   ok(Math.abs(b1.after-b1.over)<0.002&&Math.abs(b1.bpm-128.5)<1e-9,'BPM nudge pivots around bar 1');
   await page.evaluate(()=>{setBar1(null);setBpm(128.4);toggleGridEdit();});
+  // scrubbing: drag across the overview while playing → playhead follows, audio paused during the drag, resumes after
+  const ov=await page.evaluate(()=>{window.scrollTo(0,0);playAt(5);const r=document.getElementById('ovWrap').getBoundingClientRect();return {l:r.left,t:r.top+r.height/2,w:r.width,dur:song.buf.duration};});
+  await page.mouse.move(ov.l+ov.w*0.2,ov.t);await page.mouse.down();await page.mouse.move(ov.l+ov.w*0.5,ov.t,{steps:10});
+  const mid=await page.evaluate(()=>({playing:player.playing,pos:player.pos()}));
+  await page.mouse.up();const after=await page.evaluate(()=>({playing:player.playing,pos:player.pos()}));
+  ok(!mid.playing&&Math.abs(mid.pos-ov.dur*0.5)<0.5&&after.playing&&Math.abs(after.pos-ov.dur*0.5)<1,'overview scrub: paused while dragging, playhead at 50% ('+mid.pos.toFixed(2)+'s), resumed after');
+  // zoomed view: drag left by a quarter of the window = +1 bar at zoom 4
+  const dt=await page.evaluate(()=>{if(gridEdit)toggleGridEdit();player.stop();seekTo(20);setZoom(4);const r=document.getElementById('dtWrap').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2,w:r.width,bar:song.bar};});
+  await page.mouse.move(dt.x,dt.y);await page.mouse.down();await page.mouse.move(dt.x-dt.w/4,dt.y,{steps:8});await page.mouse.up();
+  const p2=await page.evaluate(()=>player.pos());ok(Math.abs(p2-(20+dt.bar))<0.05,'zoomed-view drag slid the track by one bar ('+(p2-20).toFixed(3)+' s)');
+  // Space toggles play even right after clicking a button
+  await page.click('#tabSrc');await page.keyboard.press('Space');const sp=await page.evaluate(()=>player.playing);await page.keyboard.press('Space');const sp2=await page.evaluate(()=>player.playing);
+  ok(sp&&!sp2,'Space starts and stops playback after a button click');
+  await page.evaluate(()=>{if(!gridEdit)toggleGridEdit();});
   await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>{seekTo(song.firstDB+2*song.bar);window.scrollTo(0,0);});await page.screenshot({path:path.join(TMP,'shot_gridedit.png')});
   await page.evaluate(()=>{toggleGridEdit();setView('ext');jumpCue(1);player.stop();seekTo(result.tl.dropT-result.tl.bar);});
   await page.setViewportSize({width:1300,height:900});await page.evaluate(()=>window.scrollTo(0,0));await page.screenshot({path:path.join(TMP,'shot_deck.png')});
