@@ -465,10 +465,16 @@ for the account gate.
    LIST/INFO chunk and an `id3 ` chunk: with an ID3 source every original frame
    is copied verbatim and only `TIT2` gets " (Extended Mix)"; BPM/key are added
    only when the original had none; nothing branded is written. Bit depth
-   follows the source (24-bit WAV/FLAC → 24-bit, else 16). The mix passes the
+   follows the source (24-bit WAV/FLAC → 24-bit, else 16). **Default export is
+   AIFF** (`encodeAiff`, big-endian PCM + the same ID3 tag in an `ID3 ` chunk):
+   rekordbox shows cover art for AIFF but ignores artwork inside WAV files, in
+   every chunk variant. The Format chips (`opt.fmt`, `localStorage.extendo_fmt`,
+   `setFmt()`) switch to WAV; switching drops every cached render so the next
+   download re-encodes. The mix passes the
    song through sample-for-sample; soft-limiting only happens where added
    drums or the melody bed overlap it. Filename: `Artist - Title (Extended
-   Mix).wav`.
+   Mix).aiff` (or `.wav`). `parseTags` also reads AIFF (`ID3 `/`id3 ` chunk,
+   bits from `COMM`).
 
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.

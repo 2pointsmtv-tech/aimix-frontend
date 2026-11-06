@@ -85,9 +85,16 @@ let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
   ok(mini.green>200&&mini.other>200,'library preview shows the extended mix: green added parts + coloured song ('+mini.green+' / '+mini.other+' px)');
   // download → a blob of the right size
   const [dl]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const fname=dl.suggestedFilename();const p=await dl.path();const size=require('fs').statSync(p).size;
-  console.log('download:',fname,size,'bytes');ok(fname==='2 Points - Test Song (Extended Mix).wav','download filename = Artist - Title (Extended Mix).wav');ok(size>44+Math.round(r.len*44100)*4,'wav holds the audio plus tag chunks');
-  const dt0=D.parseTags(new Uint8Array(require('fs').readFileSync(p)),'d.wav');
-  ok(dt0.title==='Test Song (Extended Mix)'&&dt0.artist==='2 Points'&&dt0.album==='Demos'&&dt0.genre==='House'&&dt0.cover&&dt0.cover.data.length===PNG.length&&dt0.cover.data.every((v,i)=>v===PNG[i]),'downloaded WAV carries the original tags + cover, title suffixed (Extended Mix)');
+  console.log('download:',fname,size,'bytes');ok(fname==='2 Points - Test Song (Extended Mix).aiff','download filename = Artist - Title (Extended Mix).aiff (AIFF is the default)');ok(size>54+Math.round(r.len*44100)*4,'aiff holds the audio plus the tag chunk');
+  const dbuf=require('fs').readFileSync(p);ok(dbuf.toString('latin1',0,4)==='FORM'&&dbuf.toString('latin1',8,12)==='AIFF','download is an AIFF');
+  const dt0=D.parseTags(new Uint8Array(dbuf),'d.aiff');
+  ok(dt0.title==='Test Song (Extended Mix)'&&dt0.artist==='2 Points'&&dt0.album==='Demos'&&dt0.genre==='House'&&dt0.cover&&dt0.cover.data.length===PNG.length&&dt0.cover.data.every((v,i)=>v===PNG[i]),'downloaded AIFF carries the original tags + cover, title suffixed (Extended Mix)');
+  // Format chip → WAV: the cached file is dropped and the next download is a RIFF WAV
+  const fw=await page.evaluate(()=>{setFmt('wav');return {name:wavName(),cached:!!result.wav,chip:$('exportFmt').querySelector('.on').textContent,stored:localStorage.extendo_fmt};});
+  ok(fw.name.endsWith('(Extended Mix).wav')&&!fw.cached&&fw.chip==='WAV'&&fw.stored==='wav','Format = WAV renames the download, drops the cached file and is remembered');
+  const [dl2]=await Promise.all([page.waitForEvent('download'),page.click('#dlBtn')]);const wb=require('fs').readFileSync(await dl2.path());
+  ok(dl2.suggestedFilename().endsWith('.wav')&&wb.toString('latin1',0,4)==='RIFF'&&D.parseTags(new Uint8Array(wb),'d.wav').title==='Test Song (Extended Mix)','WAV download is a RIFF file with the same tags');
+  await page.evaluate(()=>setFmt('aiff'));
   // grid-check click track + nudge controls don't throw
   await page.evaluate(()=>{setView('src');togglePlay();nudgeBeat(1);nudgeMs(10);setDownbeatHere();togglePlay();tapTempo();setBpm(128.4);jumpCue(0);setZoom(4);});
   // grid edit: drag the zoomed waveform by 1/16 of the window (=1 beat at zoom 4) and check the anchor moved by a bar; then click a beat to make it beat 1
