@@ -84,11 +84,22 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
   const flac=cat(new TextEncoder().encode('fLaC'),blk(4,false,vc),blk(6,true,pic));
   const tf=D.parseTags(flac,'x.flac');ok(tf.title==='Night Drive'&&tf.artist==='2 Points'&&tf.cover&&tf.cover.data.length===png.length,'FLAC: title/artist/cover from the metadata blocks');
   // raw MP3-style ID3v2.3 header (what encodeWav's id3Bytes produces) parses standalone too
-  const wavU8=new Uint8Array(ab);let idx=-1;for(let i=44;i<wavU8.length-3;i++)if(wavU8[i]===0x49&&wavU8[i+1]===0x44&&wavU8[i+2]===0x33){idx=i;break;}
+  const wavU8=new Uint8Array(ab);let idx=-1;for(let i=44;i<wavU8.length-5;i++)if(wavU8[i]===0x49&&wavU8[i+1]===0x44&&wavU8[i+2]===0x33&&wavU8[i+3]===3&&wavU8[i+4]===0){idx=i;break;}   // the tag header 'ID3' v2.3, not the 'ID3 ' chunk id
   const id3=wavU8.slice(idx);const tmp3=D.parseTags(id3,'x.mp3');ok(tmp3.title==='Night Drive (Extended Mix)'&&tmp3.cover&&tmp3.cover.data.length===png.length,'MP3: ID3v2 tag at file start');
   // an ID3 source: every frame copied verbatim (TXXX / TCON / TYER survive), only the title changes, no branded frames added
   const srcTags=D.parseTags(id3,'x.mp3');srcTags.frames.push({id:'TXXX',data:Uint8Array.from([0].concat(Array.from(new TextEncoder().encode('LABEL\0Night Records'))))},{id:'TCON',data:Uint8Array.from([0].concat(Array.from(new TextEncoder().encode('House'))))});
   const meta2=Object.assign({},srcTags,{title:'Night Drive (Extended Mix)'});const ab2=D.encodeWav([L,R],44100,meta2,24);const t2=D.parseTags(new Uint8Array(ab2),'y.wav');
   const ids=t2.frames.map(f=>f.id);ok(t2.title==='Night Drive (Extended Mix)'&&t2.genre==='House'&&ids.includes('TXXX')&&ids.includes('APIC')&&!ids.includes('TENC')&&ids.filter(x=>x==='TIT2').length===1,'ID3 source: frames copied verbatim, title rewritten once, no branding ('+ids.join(',')+')');
   const v2=new DataView(ab2);ok(v2.getUint16(34,true)===24&&v2.getUint32(40,true)===2000*6&&t2.bits===24,'24-bit WAV when asked (bits read back as 24)');}
+// rekordbox compatibility: tag written under both 'ID3 ' and 'id3 ' chunk ids; APIC normalised even from a v2.4 source with a data-length flag
+{const png=Uint8Array.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,9,9,9,9]);const L=new Float32Array(500),R=new Float32Array(500);
+  // a v2.4-style source frame set: UTF-8 title, APIC with encoding 3 + data-length-indicator flag (4 extra bytes), plus a compressed frame that must be dropped
+  const apic24=Uint8Array.from([0,0,0,0, 3].concat(Array.from(new TextEncoder().encode('image/png')),[0,0,0],Array.from(png)));
+  const frames=[{id:'TPE1',data:Uint8Array.from([3].concat(Array.from(new TextEncoder().encode('Bessey')))),ver:4,flags:0},{id:'APIC',data:apic24,ver:4,flags:0x01},{id:'TXXX',data:Uint8Array.from([0,65,0,66]),ver:4,flags:0x08}];
+  const ab=D.encodeWav([L,R],44100,{title:'All That (Extended Mix)',frames,cover:{mime:'image/png',data:png}});const u=new Uint8Array(ab);
+  const find=(id)=>{for(let i=44;i<u.length-4;i++)if(u[i]===id.charCodeAt(0)&&u[i+1]===id.charCodeAt(1)&&u[i+2]===id.charCodeAt(2)&&u[i+3]===32)return i;return -1;};
+  ok(find('ID3')>0&&find('id3')>0,'WAV carries the tag under both ID3 (uppercase) and id3 (lowercase) chunks');
+  const t=D.parseTags(u,'x.wav');const ap=t.frames.find(f=>f.id==='APIC');
+  ok(t.title==='All That (Extended Mix)'&&t.artist==='Bessey'&&t.cover&&t.cover.data.length===png.length&&t.cover.data.every((v,i)=>v===png[i]),'tags + cover read back from the dual-chunk WAV');
+  ok(ap&&ap.data[0]===0&&ap.data[ap.data.length-png.length-1]===0&&!t.frames.some(f=>f.id==='TXXX'),'APIC rewritten as encoding 0 / front cover; compressed source frame dropped');}
 console.log(fails?`\n${fails} FAILED`:'\nALL PASS');process.exit(fails?1:0);
