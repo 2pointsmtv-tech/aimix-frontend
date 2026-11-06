@@ -714,7 +714,7 @@ var ExtendoDSP=(function(){
     var body=u;if(ver===3&&(flags&0x80)){body=unsync(u.subarray(p,end));p=0;end=body.length;}
     if(flags&0x40){var ehs=ver===4?ss(body,p):be32(body,p);p+=ver===4?ehs:ehs+4;}
     while(p+10<=end){var id=u8str(body,p,p+4);if(!/^[A-Z0-9]{4}$/.test(id))break;var fs=ver===4?ss(body,p+4):be32(body,p+4),ff=body[p+9];p+=10;if(fs<=0||p+fs>end)break;var d=body.subarray(p,p+fs);if(ver===4&&(ff&0x02))d=unsync(d);
-      t.frames.push({id:id,data:d.slice(0)});
+      t.frames.push({id:id,data:d.slice(0),ver:ver,flags:ff});
       if(id==='TIT2')t.title=id3Text(d);else if(id==='TPE1')t.artist=id3Text(d);else if(id==='TALB')t.album=id3Text(d);else if(id==='TBPM')t.bpm=id3Text(d);else if(id==='TKEY')t.key=id3Text(d);else if(id==='TCON')t.genre=id3Text(d);else if(id==='TYER'||id==='TDRC')t.year=id3Text(d);else if(id==='TRCK')t.track=id3Text(d);
       else if(id==='APIC'&&!t.cover){var enc=d[0],i=1;while(i<d.length&&d[i]!==0)i++;var mime=u8str(d,1,i);i+=2;   // mime \0 picturetype
         if(enc===1||enc===2){while(i+1<d.length&&!(d[i]===0&&d[i+1]===0))i+=2;i+=2;}else{while(i<d.length&&d[i]!==0)i++;i++;}
@@ -746,15 +746,20 @@ var ExtendoDSP=(function(){
     return t;}
   // Any supported file → {title, artist, album, genre, year, track, bpm, key, comment, cover:{mime,data}, frames (raw ID3 frames when present), bits}
   function parseTags(u,name){try{var t=u8str(u,0,3)==='ID3'?(parseID3(u,0)||{}):u8str(u,0,4)==='RIFF'?parseWavTags(u):u8str(u,0,4)==='fLaC'?parseFlacTags(u):u8str(u,4,8)==='ftyp'?parseM4aTags(u):{};return t||{};}catch(e){return {};}}
+  function apicFrame(cover){var mime=Array.from(new TextEncoder().encode(cover.mime||'image/jpeg')),head=Uint8Array.from([0].concat(mime,[0,3,0])),ap=new Uint8Array(head.length+cover.data.length);ap.set(head,0);ap.set(cover.data,head.length);return ap;}
   function utf16Frame(v){var b=[1,0xff,0xfe];for(var i=0;i<v.length;i++){var c=v.charCodeAt(i);b.push(c&0xff,c>>8);}return Uint8Array.from(b);}
   // ID3v2.3 tag for the WAV 'id3 ' chunk. With `frames` (an ID3 source) every original frame is copied verbatim and only the
   // title is rewritten; otherwise the frames are built from the parsed fields. Nothing is added except the title suffix,
   // and BPM / key only when the original had none.
   function id3Bytes(m){var frames=[],seen={};
     function add(id,data){frames.push({id:id,data:data});seen[id]=true;}
-    if(m.frames&&m.frames.length){m.frames.forEach(function(f){if(f.id==='TIT2')return;var d=f.data;if(f.id[0]==='T'&&f.id!=='TXXX'&&d[0]===3)d=utf16Frame(id3Text(d));add(f.id,d);});}
+    if(m.frames&&m.frames.length){var gotApic=false;m.frames.forEach(function(f){if(f.id==='TIT2')return;var d=f.data,ff=f.flags||0;
+        if(f.ver===4){if(ff&0x0c)return;if(ff&0x01)d=d.subarray(4);}else if(f.ver===3){if(ff&0xc0)return;if(ff&0x20)d=d.subarray(1);}   // skip compressed/encrypted frames, drop data-length / grouping prefixes
+        if(f.id==='APIC'){if(gotApic||!m.cover)return;gotApic=true;add('APIC',apicFrame(m.cover));return;}
+        if(f.id[0]==='T'&&f.id!=='TXXX'&&d[0]===3)d=utf16Frame(id3Text(d));add(f.id,d);});
+      if(!gotApic&&m.cover&&m.cover.data&&m.cover.data.length)add('APIC',apicFrame(m.cover));}
     else{if(m.artist)add('TPE1',utf16Frame(m.artist));if(m.album)add('TALB',utf16Frame(m.album));if(m.genre)add('TCON',utf16Frame(m.genre));if(m.year)add('TYER',utf16Frame(m.year));if(m.track)add('TRCK',utf16Frame(m.track));if(m.comment)add('COMM',Uint8Array.from([1,0x65,0x6e,0x67,0xff,0xfe,0,0].concat(Array.from(utf16Frame(m.comment)).slice(1))));if(m.bpm)add('TBPM',utf16Frame(String(m.bpm)));if(m.key)add('TKEY',utf16Frame(m.key));
-      if(m.cover&&m.cover.data&&m.cover.data.length){var mime=Array.from(new TextEncoder().encode(m.cover.mime||'image/jpeg')),head=Uint8Array.from([0].concat(mime,[0,3,0]));var ap=new Uint8Array(head.length+m.cover.data.length);ap.set(head,0);ap.set(m.cover.data,head.length);add('APIC',ap);}}
+      if(m.cover&&m.cover.data&&m.cover.data.length)add('APIC',apicFrame(m.cover));}
     if(m.title)frames.unshift({id:'TIT2',data:utf16Frame(m.title)});
     if(!seen.TBPM&&m.bpm)add('TBPM',utf16Frame(String(m.bpm)));if(!seen.TKEY&&m.key)add('TKEY',utf16Frame(m.key));
     var size=0;frames.forEach(function(f){size+=10+f.data.length;});var out=new Uint8Array(10+size),p=10;out.set([0x49,0x44,0x33,3,0,0],0);out[6]=(size>>21)&0x7f;out[7]=(size>>14)&0x7f;out[8]=(size>>7)&0x7f;out[9]=size&0x7f;
@@ -766,7 +771,7 @@ var ExtendoDSP=(function(){
       inf('INAM',meta.title);inf('IART',meta.artist);inf('IPRD',meta.album);inf('IGNR',meta.genre);inf('ICRD',meta.year);inf('ICMT',meta.comment);
       if(info.length){var il=4;info.forEach(function(f){il+=8+f.b.length+(f.b.length&1);});var list=new Uint8Array(8+il),q=0;function put(sx){for(var i=0;i<sx.length;i++)list[q++]=sx.charCodeAt(i);}function u32l(x){list[q++]=x&255;list[q++]=(x>>8)&255;list[q++]=(x>>16)&255;list[q++]=(x>>>24)&255;}
         put('LIST');u32l(il);put('INFO');info.forEach(function(f){put(f.id);u32l(f.b.length);list.set(f.b,q);q+=f.b.length+(f.b.length&1);});extra.push(list);}
-      var tag=id3Bytes(meta),id3=new Uint8Array(8+tag.length+(tag.length&1));id3.set([0x69,0x64,0x33,0x20],0);id3[4]=tag.length&255;id3[5]=(tag.length>>8)&255;id3[6]=(tag.length>>16)&255;id3[7]=(tag.length>>>24)&255;id3.set(tag,8);extra.push(id3);}
+      var tag=id3Bytes(meta);[[0x49,0x44,0x33,0x20],[0x69,0x64,0x33,0x20]].forEach(function(cid){var id3=new Uint8Array(8+tag.length+(tag.length&1));id3.set(cid,0);id3[4]=tag.length&255;id3[5]=(tag.length>>8)&255;id3[6]=(tag.length>>16)&255;id3[7]=(tag.length>>>24)&255;id3.set(tag,8);extra.push(id3);});}
     var extraBytes=extra.reduce(function(a,e){return a+e.length;},0),bytes=44+dataBytes+(dataBytes&1)+extraBytes,ab=new ArrayBuffer(bytes),v=new DataView(ab),p=0;
     function str(s){for(var i=0;i<s.length;i++)v.setUint8(p++,s.charCodeAt(i));}function u32(x){v.setUint32(p,x,true);p+=4;}function u16(x){v.setUint16(p,x,true);p+=2;}
     str('RIFF');u32(bytes-8);str('WAVE');str('fmt ');u32(16);u16(1);u16(nc);u32(sr);u32(sr*nc*bps);u16(nc*bps);u16(bits);str('data');u32(dataBytes);
