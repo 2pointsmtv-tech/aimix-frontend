@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>2 Points Sound</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="2 Points Sound makes AI mixing and mastering, extended mixes for DJs, vocal presets, and engineer-finished mixes. Mixing made simple.">
+<meta name="theme-color" content="#050308">
+<meta property="og:site_name" content="2 Points Sound">
+<meta property="og:title" content="2 Points Sound — Mixing made simple">
+<meta property="og:description" content="AI mixing and mastering, extended mixes for DJs, vocal presets, and engineer-finished mixes.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://2pointssound.com/">
+<link rel="icon" type="image/png" href="assets/logo.png">
+<!--PIXEL-->
+<script>
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+fbq('init','524092666589747');fbq('track','PageView');
+</script>
+<!--/PIXEL-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one left-aligned column on black; the only colour event is the iridescent waveform strung between two points. */
+:root{
+  color-scheme:dark;
+  --bg:#050308;          /* near-black, violet bias */
+  --s1:#0c0814;          /* raised surface */
+  --s2:#140d22;          /* card */
+  --line:rgba(170,140,255,.14);
+  --line2:rgba(170,140,255,.28);
+  --ink:#f5f1ff;
+  --mute:#a399bd;
+  --dim:#6f6688;
+  --p:#6d28d9;           /* deep purple */
+  --p-deep:#2e1065;
+  --p-hi:#a78bfa;
+  --iri:linear-gradient(90deg,#5ee7ff,#8b5cf6 48%,#ff7ad9); /* from the logo; used once per view */
+  --display:'Instrument Sans',system-ui,-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --wrap:1180px;
+  --r:18px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font:400 17px/1.6 var(--display);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--bg)}
+a{color:inherit;text-decoration:none}
+img{max-width:100%;display:block}
+:focus-visible{outline:2px solid var(--p-hi);outline-offset:3px;border-radius:6px}
+.wrap{max-width:var(--wrap);margin-inline:auto;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.eyebrow{font:500 12px/1 var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--p-hi)}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-.035em;line-height:1.02;text-wrap:balance}
+h2{font-size:clamp(34px,5vw,60px)}
+h3{font-size:24px;letter-spacing:-.02em;line-height:1.15}
+.lede{color:var(--mute);font-size:clamp(17px,1.5vw,20px);max-width:56ch}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;padding-inline:24px;border-radius:999px;font:600 15px/1 var(--display);border:1px solid transparent;transition:background .2s,border-color .2s,transform .2s;white-space:nowrap;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn-solid{background:var(--ink);color:#0a0612}
+.btn-solid:hover{background:#fff}
+.btn-purple{background:var(--p);color:#fff}
+.btn-purple:hover{background:#7c3aed}
+.btn-ghost{border-color:var(--line2);color:var(--ink)}
+.btn-ghost:hover{border-color:var(--p-hi);background:rgba(167,139,250,.08)}
+.btn-sm{height:40px;padding-inline:18px;font-size:14px}
+.link{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:15px;color:var(--ink);border-bottom:1px solid var(--line2);padding-bottom:3px;transition:border-color .2s}
+.link:hover{border-color:var(--p-hi)}
+.arr{display:inline-block;transition:transform .2s}
+a:hover .arr{transform:translateX(3px)}
+
+/* strip + nav */
+.strip{background:var(--p-deep);font-size:14px;text-align:center}
+.strip a{display:block;padding-block:10px}
+.strip b{font-weight:600}
+.strip span{color:#d6c8ff}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;background:rgba(5,3,8,.78);backdrop-filter:saturate(1.4) blur(16px);-webkit-backdrop-filter:saturate(1.4) blur(16px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:68px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.14em;font-size:14px;white-space:nowrap}
+.brand img{width:32px;height:32px;object-fit:contain}
+.nav-links{display:flex;gap:28px;margin-left:auto;font-size:15px;color:var(--mute)}
+.nav-links a{transition:color .2s}
+.nav-links a:hover{color:var(--ink)}
+.nav-toggle{display:none;margin-left:auto;width:44px;height:44px;border-radius:12px;border:1px solid var(--line2);background:none;color:var(--ink);cursor:pointer;align-items:center;justify-content:center}
+.nav-toggle i{display:block;width:18px;height:2px;background:currentColor;box-shadow:0 6px 0 currentColor,0 -6px 0 currentColor}
+
+/* hero */
+.hero{position:relative;padding-block:clamp(56px,9vw,120px) 0;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-20% -10% auto -10%;height:120%;background:radial-gradient(60% 55% at 78% 30%,rgba(109,40,217,.42),transparent 70%),radial-gradient(40% 40% at 8% 90%,rgba(46,16,101,.7),transparent 70%);pointer-events:none}
+.hero .wrap{position:relative}
+.hero h1{font-size:clamp(52px,10.5vw,148px);letter-spacing:-.055em;line-height:.92;margin-block:22px 28px}
+.hero h1 em{font-style:normal;color:var(--p-hi)}
+.hero .cta{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px}
+.wave{position:relative;margin-top:clamp(40px,6vw,72px);height:clamp(150px,22vw,260px)}
+.wave canvas{width:100%;height:100%;display:block}
+/* legend */
+.wave-legend i{font-style:normal}
+.wave-legend{position:absolute;inset:auto 0 10px;display:flex;justify-content:space-between;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);pointer-events:none}
+
+/* marquee */
+.marquee{border-block:1px solid var(--line);overflow:hidden;padding-block:20px;background:var(--s1)}
+.marquee-track{display:flex;gap:48px;width:max-content;animation:slide 38s linear infinite;font-size:clamp(18px,2.2vw,26px);font-weight:500;letter-spacing:-.02em;color:var(--mute);white-space:nowrap}
+.marquee-track span::after{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--p);margin-left:48px;vertical-align:middle}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* sections */
+section{padding-block:clamp(72px,10vw,136px)}
+.head{display:flex;flex-direction:column;gap:18px;margin-bottom:clamp(36px,5vw,64px)}
+
+/* product cards */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{display:flex;flex-direction:column;background:var(--s2);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;transition:border-color .25s,transform .25s}
+.card:hover{border-color:var(--line2);transform:translateY(-3px)}
+.card-art{height:210px;background:radial-gradient(90% 120% at 50% 0,rgba(109,40,217,.38),transparent 70%),var(--s1);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:center;padding:24px}
+.card-body{display:flex;flex-direction:column;gap:12px;padding:26px;flex:1}
+.card-body p{color:var(--mute);font-size:16px}
+.price{font:500 13px/1.4 var(--mono);color:var(--p-hi);letter-spacing:.04em}
+.card-cta{display:flex;flex-wrap:wrap;align-items:center;gap:18px;margin-top:auto;padding-top:14px}
+.tag{align-self:flex-start;font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mute);border:1px solid var(--line2);border-radius:999px;padding:7px 11px}
+
+/* card art, drawn in CSS */
+.faders{display:flex;gap:22px;align-items:flex-end;height:140px}
+.fader{position:relative;width:34px;height:100%;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.fader::before{content:"";position:absolute;left:50%;top:10px;bottom:10px;width:2px;margin-left:-1px;background:var(--line2)}
+.fader i{position:absolute;left:4px;right:4px;height:16px;border-radius:4px;background:var(--ink);bottom:var(--v)}
+.fader b{position:absolute;left:50%;bottom:10px;width:2px;margin-left:-1px;height:calc(var(--v) - 4px);background:var(--p-hi)}
+.timeline{display:flex;width:100%;height:92px;gap:4px;align-items:stretch}
+.timeline div{border-radius:8px;display:flex;align-items:flex-end;padding:8px;font:500 10px/1 var(--mono);letter-spacing:.12em;text-transform:uppercase}
+.tl-add{flex:1;background:repeating-linear-gradient(90deg,rgba(167,139,250,.5) 0 3px,transparent 3px 11px),rgba(109,40,217,.25);border:1px solid var(--p-hi);color:var(--ink)}
+.tl-song{flex:2.4;background:repeating-linear-gradient(90deg,rgba(255,255,255,.2) 0 2px,transparent 2px 6px),rgba(255,255,255,.04);border:1px solid var(--line);color:var(--mute)}
+.chain{display:flex;flex-direction:column;gap:10px;width:100%;max-width:250px}
+.chain div{display:flex;align-items:center;justify-content:space-between;height:38px;padding-inline:14px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid var(--line);font:500 12px/1 var(--mono);letter-spacing:.08em;color:var(--mute)}
+.chain div:first-child{border-color:var(--p-hi);color:var(--ink);background:rgba(109,40,217,.25)}
+.chain i{width:36%;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--p-hi) var(--v),var(--line2) var(--v))}
+
+/* feature rows */
+.feature{display:grid;grid-template-columns:1fr 1fr;gap:clamp(32px,6vw,88px);align-items:center}
+.feature + .feature{margin-top:clamp(72px,10vw,136px)}
+.feature-copy{display:flex;flex-direction:column;gap:20px;align-items:flex-start;min-width:0}
+.feature-copy h2{font-size:clamp(32px,4.4vw,52px)}
+.feature.flip .feature-copy{order:2}
+.panel{background:var(--s2);border:1px solid var(--line);border-radius:var(--r);padding:clamp(22px,3vw,36px);min-width:0}
+.steps{list-style:none;display:flex;flex-direction:column;counter-reset:s}
+.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:4px 12px;padding-block:18px;border-top:1px solid var(--line)}
+.steps li:first-child{border-top:0;padding-top:0}
+.steps li:last-child{padding-bottom:0}
+.steps li::before{content:counter(s,decimal-leading-zero);font:500 13px/1.7 var(--mono);color:var(--p-hi);grid-row:span 2}
+.steps b{font-weight:600;font-size:18px;letter-spacing:-.01em}
+.steps span{color:var(--mute);font-size:15px;grid-column:2}
+.bars{display:flex;flex-direction:column;gap:18px}
+.bars .timeline{height:112px}
+.bars-row{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:500 12px/1 var(--mono);letter-spacing:.06em;padding:9px 12px;border-radius:999px;border:1px solid var(--line2);color:var(--mute)}
+.chip.on{background:var(--p);border-color:var(--p);color:#fff}
+.tiers{display:flex;flex-direction:column}
+.tier{display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding-block:18px;border-top:1px solid var(--line)}
+.tier:first-child{border-top:0;padding-top:0}
+.tier b{font-weight:600;font-size:19px;letter-spacing:-.01em}
+.tier span{display:block;color:var(--mute);font-size:14px}
+.tier em{font:500 17px/1 var(--mono);font-style:normal;color:var(--ink);font-variant-numeric:tabular-nums}
+.tiers .btn{margin-top:22px;align-self:flex-start}
+
+/* promise */
+.promise{background:var(--s1);border-block:1px solid var(--line)}
+.promise-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,4vw,56px)}
+.promise-grid div{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--p);padding-top:22px}
+.promise-grid b{font-size:clamp(26px,3vw,36px);font-weight:600;letter-spacing:-.03em;line-height:1.05}
+.promise-grid span{color:var(--mute);font-size:16px}
+
+/* contact */
+.contact{display:grid;grid-template-columns:1.1fr .9fr;gap:clamp(32px,6vw,88px);align-items:start}
+.contact-copy{display:flex;flex-direction:column;gap:20px;min-width:0}
+.form{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+.form input{flex:1 1 220px;min-width:0;height:48px;border-radius:999px;border:1px solid var(--line2);background:var(--s1);color:var(--ink);padding-inline:20px;font:400 16px var(--display)}
+.form input::placeholder{color:var(--dim)}
+.form-msg{font-size:14px;color:var(--mute);min-height:1.5em}
+.reach{display:flex;flex-direction:column}
+.reach a,.reach div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding-block:18px;border-top:1px solid var(--line);font-size:17px}
+.reach > :last-child{border-bottom:1px solid var(--line)}
+.reach small{font:500 11px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);flex:none}
+.reach span{overflow-wrap:anywhere;text-align:right;user-select:all}
+.reach a:hover span{color:var(--p-hi)}
+
+/* footer */
+footer{border-top:1px solid var(--line);padding-block:48px calc(48px + env(safe-area-inset-bottom,0px));color:var(--mute);font-size:14px}
+.foot{display:flex;flex-wrap:wrap;gap:24px 48px;align-items:center;justify-content:space-between}
+.foot nav{display:flex;flex-wrap:wrap;gap:12px 28px}
+.foot nav a:hover{color:var(--ink)}
+.foot .brand{color:var(--ink)}
+
+@media (max-width:900px){
+  .cards{grid-template-columns:1fr}
+  .feature,.contact{grid-template-columns:1fr}
+  .feature.flip .feature-copy{order:0}
+  .promise-grid{grid-template-columns:1fr}
+  .nav-toggle{display:flex}
+  .wave-legend i{display:none}
+  .nav .btn{display:none}
+  .nav-links{display:none;position:absolute;left:0;right:0;top:100%;flex-direction:column;gap:0;background:var(--bg);border-bottom:1px solid var(--line);padding:8px max(20px,env(safe-area-inset-right,0px)) 16px max(20px,env(safe-area-inset-left,0px));margin:0}
+  .nav-links a{padding-block:14px;border-top:1px solid var(--line);color:var(--ink);font-size:17px}
+  .nav-links a:first-child{border-top:0}
+  .nav.open .nav-links{display:flex}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .marquee-track{animation:none}
+  .card,.btn,.arr{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="strip"><a href="https://extendthemix.com" target="_blank" rel="noopener"><b>New</b> <span>·</span> Extend The Mix makes DJ-ready extended mixes in your browser, free <span class="arr">→</span></a></div>
+
+<header class="nav" id="nav">
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="2 Points Sound home"><img src="assets/logo.png" alt="" width="32" height="32">2 POINTS SOUND</a>
+    <nav class="nav-links" id="navLinks" aria-label="Main">
+      <a href="#products">Products</a>
+      <a href="#ai-mix">AI Mixing</a>
+      <a href="#extend">For DJs</a>
+      <a href="#engineers">Engineers</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <a class="btn btn-solid btn-sm" href="https://aimixingmastering.com" target="_blank" rel="noopener">Open AI Studio</a>
+    <button class="nav-toggle" id="navToggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="navLinks"><i></i></button>
+  </div>
+</header>
+
+<main id="top">
+
+<div class="hero">
+  <div class="wrap">
+    <p class="eyebrow">Music software &amp; mixing services</p>
+    <h1>Mixing made <em>simple.</em></h1>
+    <p class="lede">2 Points Sound builds tools that get your music from rough bounce to release. Mix and master with AI, extend tracks for the DJ booth, or hand the session to one of our engineers.</p>
+    <div class="cta">
+      <a class="btn btn-purple" href="#products">Explore products</a>
+      <a class="btn btn-ghost" href="#engineers">Work with an engineer</a>
+    </div>
+  </div>
+  <div class="wave" aria-hidden="true">
+    <canvas id="wave"></canvas>
+    <div class="wrap wave-legend"><span>Point 1<i> · your bounce</i></span><span>Point 2<i> · your release</i></span></div>
+  </div>
+</div>
+
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track" id="marquee">
+    <span>Stem separation</span><span>Artist vocal chains</span><span>Mastering to −14 LUFS</span><span>Extended intros &amp; outros</span><span>BPM &amp; key detection</span><span>Vocal presets</span><span>Engineer mixes in 24 hours</span>
+  </div>
+</div>
+
+<section id="products">
+  <div class="wrap">
+    <div class="head">
+      <p class="eyebrow">Products</p>
+      <h2>Three ways to a finished record.</h2>
+    </div>
+    <div class="cards">
+      <article class="card">
+        <div class="card-art"><div class="faders">
+          <div class="fader" style="--v:62%"><b></b><i></i></div><div class="fader" style="--v:44%"><b></b><i></i></div><div class="fader" style="--v:70%"><b></b><i></i></div><div class="fader" style="--v:54%"><b></b><i></i></div>
+        </div></div>
+        <div class="card-body">
+          <span class="tag">Web app</span>
+          <h3>AI Mixing &amp; Mastering</h3>
+          <p>Upload a song, get four stems back, mix them live in your browser and master to streaming loudness.</p>
+          <p class="price">From $9.99 / month</p>
+          <div class="card-cta"><a class="btn btn-solid btn-sm" href="https://aimixingmastering.com" target="_blank" rel="noopener">Start mixing</a><a class="link" href="#ai-mix">Learn more <span class="arr">→</span></a></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-art"><div class="timeline"><div class="tl-add">Intro</div><div class="tl-song">Your track</div><div class="tl-add">Outro</div></div></div>
+        <div class="card-body">
+          <span class="tag">For DJs</span>
+          <h3>Extend The Mix</h3>
+          <p>Drop in a track and get a mixable version with tempo-matched drum intros and outros, built on the beat grid.</p>
+          <p class="price">Free · Pro $9.99 / month or $49.99 lifetime</p>
+          <div class="card-cta"><a class="btn btn-solid btn-sm" href="https://extendthemix.com" target="_blank" rel="noopener">Extend a track</a><a class="link" href="#extend">Learn more <span class="arr">→</span></a></div>
+        </div>
+      </article>
+      <article class="card">
+        <div class="card-art"><div class="chain">
+          <div>MELODIC VOCALS <i style="--v:80%"></i></div><div>LOGIC PRO <i style="--v:55%"></i></div><div>FL STUDIO <i style="--v:65%"></i></div>
+        </div></div>
+        <div class="card-body">
+          <span class="tag">Presets</span>
+          <h3>Melodic Vocal Presets</h3>
+          <p>Drag-and-drop vocal chains for melodic rap and R&amp;B, ready for Logic Pro and FL Studio.</p>
+          <p class="price">$19.99</p>
+          <div class="card-cta"><a class="btn btn-solid btn-sm" href="https://2-points-sound.myshopify.com/products/logic-pro-x-vocal-presets-vol-1" target="_blank" rel="noopener">Get the presets</a></div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section id="ai-mix" style="padding-top:0">
+  <div class="wrap">
+    <div class="feature">
+      <div class="feature-copy">
+        <p class="eyebrow">AI Mixing &amp; Mastering</p>
+        <h2>A mix session that fits in a browser tab.</h2>
+        <p class="lede">No plugins to install and no session to set up. Your song is split into drums, instruments, bass and vocals, and you shape each one with volume, EQ, reverb and artist-style vocal chains.</p>
+        <a class="btn btn-purple" href="https://aimixingmastering.com" target="_blank" rel="noopener">Open AI Studio</a>
+      </div>
+      <div class="panel">
+        <ol class="steps">
+          <li><b>Upload</b><span>MP3, WAV, FLAC or M4A.</span></li>
+          <li><b>Separate</b><span>Four stems: drums, instruments, bass, vocals.</span></li>
+          <li><b>Mix</b><span>Move the faders yourself or press Auto-Mix.</span></li>
+          <li><b>Master</b><span>Sparkle, Clarity and Maximize, to −14, −9 or −6 LUFS.</span></li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="feature flip" id="extend">
+      <div class="feature-copy">
+        <p class="eyebrow">Extend The Mix</p>
+        <h2>Radio edits, made mixable.</h2>
+        <p class="lede">Extend The Mix reads the BPM, beat grid and key of any track, then adds 8, 16 or 32 bars of matching drums before and after it. Everything runs on your computer and exports as a WAV.</p>
+        <a class="btn btn-purple" href="https://extendthemix.com" target="_blank" rel="noopener">Try it free</a>
+      </div>
+      <div class="panel bars">
+        <div class="timeline"><div class="tl-add">+16 bars</div><div class="tl-song">Original track</div><div class="tl-add">+16 bars</div></div>
+        <div class="bars-row"><span class="chip">8 bars</span><span class="chip on">16 bars</span><span class="chip">32 bars</span></div>
+        <div class="bars-row"><span class="chip">8 drum styles</span><span class="chip">Transition FX</span><span class="chip">Camelot key</span><span class="chip">WAV export</span></div>
+      </div>
+    </div>
+
+    <div class="feature" id="engineers">
+      <div class="feature-copy">
+        <p class="eyebrow">Engineer services</p>
+        <h2>Want a person on the faders?</h2>
+        <p class="lede">Send us your stems and notes. AI handles the prep work, and one of our engineers finishes the mix and master by ear. Revisions are $19.99 each if you want changes.</p>
+      </div>
+      <div class="panel tiers">
+        <div class="tier"><div><b>Standard</b><span>Mix and master, no Auto-Tune</span></div><em>$29.99</em></div>
+        <div class="tier"><div><b>Advanced</b><span>Mix and master with Auto-Tune</span></div><em>$39.99</em></div>
+        <div class="tier"><div><b>Pro</b></div><em>$59.99</em></div>
+        <div class="tier"><div><b>Platinum</b></div><em>$119.99</em></div>
+        <a class="btn btn-solid" href="https://2-points-sound.myshopify.com/products/mixing-mastering" target="_blank" rel="noopener">Book a mix</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="promise">
+  <div class="wrap">
+    <div class="promise-grid">
+      <div><b>24-hour turnaround</b><span>Engineer mixes come back within a day.</span></div>
+      <div><b>Release-ready</b><span>Mixes you can put out with confidence.</span></div>
+      <div><b>Satisfaction guaranteed</b><span>If it isn't right, we keep working on it.</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="contact">
+  <div class="wrap contact">
+    <div class="contact-copy">
+      <p class="eyebrow">Stay in the loop</p>
+      <h2>New tools, mixing tips and early deals.</h2>
+      <form class="form" id="newsForm" novalidate>
+        <input type="email" id="newsEmail" name="email" placeholder="you@email.com" autocomplete="email" aria-label="Email address" required>
+        <button class="btn btn-purple" type="submit" id="newsBtn">Subscribe</button>
+      </form>
+      <p class="form-msg" id="newsMsg" role="status"></p>
+    </div>
+    <div class="reach">
+      <a href="mailto:2pointsmtv@gmail.com"><small>Email</small><span>2pointsmtv@gmail.com</span></a>
+      <a href="tel:+19708463595"><small>Phone</small><span>(970) 846-3595</span></a>
+      <a href="https://www.instagram.com/2points_sound/" target="_blank" rel="noopener"><small>Instagram</small><span>@2points_sound</span></a>
+      <a href="https://open.spotify.com/artist/14yQ0oXuMJ4Fp00AfTqjmw" target="_blank" rel="noopener"><small>Spotify</small><span>Listen <span class="arr">→</span></span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <a class="brand" href="#top"><img src="assets/logo.png" alt="" width="32" height="32">2 POINTS SOUND</a>
+    <nav aria-label="Footer">
+      <a href="https://aimixingmastering.com" target="_blank" rel="noopener">AI Mixing &amp; Mastering</a>
+      <a href="https://extendthemix.com" target="_blank" rel="noopener">Extend The Mix</a>
+      <a href="https://2-points-sound.myshopify.com/collections/all" target="_blank" rel="noopener">Shop</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <span>© <span id="yr">2026</span> 2 Points Sound</span>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var API='https://aimix-backend-production.up.railway.app';
+  document.getElementById('yr').textContent=new Date().getFullYear();
+
+  // mobile menu
+  var nav=document.getElementById('nav'),tog=document.getElementById('navToggle');
+  tog.addEventListener('click',function(){var o=nav.classList.toggle('open');tog.setAttribute('aria-expanded',o);});
+  document.getElementById('navLinks').addEventListener('click',function(e){if(e.target.tagName==='A'){nav.classList.remove('open');tog.setAttribute('aria-expanded','false');}});
+
+  // marquee: duplicate the items once so the -50% loop is seamless
+  var mq=document.getElementById('marquee');mq.innerHTML+=mq.innerHTML;
+
+  // newsletter -> same Systeme.io CRM the product pages use
+  var form=document.getElementById('newsForm'),inp=document.getElementById('newsEmail'),msg=document.getElementById('newsMsg'),btn=document.getElementById('newsBtn');
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var email=inp.value.trim().toLowerCase();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){msg.textContent='Enter a valid email address.';inp.focus();return;}
+    btn.disabled=true;btn.textContent='Subscribing…';msg.textContent='';
+    fetch(API+'/systeme/contact',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,name:'',tag:'2points-newsletter'})})
+      .then(function(r){if(!r.ok)throw new Error(r.status);
+        msg.textContent='You’re subscribed. Watch your inbox.';inp.value='';btn.textContent='Subscribed';
+        try{if(window.fbq)fbq('track','Lead',{content_name:'2points-newsletter'});}catch(_){}
+      })
+      .catch(function(){btn.disabled=false;btn.textContent='Subscribe';msg.textContent='That didn’t go through. Try again, or email us at 2pointsmtv@gmail.com.';});
+  });
+
+  // hero waveform: a signal strung between two points
+  var cv=document.getElementById('wave'),cx=cv.getContext('2d'),W=0,H=0,dpr=1,raf=0;
+  var still=window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function size(){dpr=Math.min(window.devicePixelRatio||1,2);W=cv.clientWidth;H=cv.clientHeight;cv.width=W*dpr;cv.height=H*dpr;cx.setTransform(dpr,0,0,dpr,0,0);}
+  function draw(ms){
+    var t=ms/1000,pad=Math.max(22,W*.05),x0=pad,x1=W-pad,mid=H*.46,step=W<600?7:9,n=Math.floor((x1-x0)/step);
+    cx.clearRect(0,0,W,H);
+    var g=cx.createLinearGradient(x0,0,x1,0);g.addColorStop(0,'#5ee7ff');g.addColorStop(.48,'#8b5cf6');g.addColorStop(1,'#ff7ad9');
+    cx.strokeStyle='rgba(170,140,255,.22)';cx.lineWidth=1;cx.beginPath();cx.moveTo(x0,mid);cx.lineTo(x1,mid);cx.stroke();
+    cx.strokeStyle=g;cx.lineWidth=Math.max(2,step*.42);cx.lineCap='round';
+    for(var i=1;i<n;i++){
+      var u=i/n,env=Math.pow(Math.sin(Math.PI*u),.8);
+      var a=Math.sin(u*9+t*1.1)*.42+Math.sin(u*23-t*1.7)*.3+Math.sin(u*51+t*2.6)*.18+Math.sin(u*3-t*.5)*.1;
+      var h=Math.max(2,Math.abs(a)*env*H*.44),x=x0+i*step;
+      cx.globalAlpha=.35+.65*env;cx.beginPath();cx.moveTo(x,mid-h);cx.lineTo(x,mid+h);cx.stroke();
+    }
+    cx.globalAlpha=1;
+    [[x0,'#5ee7ff'],[x1,'#ff7ad9']].forEach(function(p){
+      var gl=cx.createRadialGradient(p[0],mid,0,p[0],mid,26);gl.addColorStop(0,p[1]);gl.addColorStop(1,'rgba(0,0,0,0)');
+      cx.globalAlpha=.45;cx.fillStyle=gl;cx.beginPath();cx.arc(p[0],mid,26,0,6.3);cx.fill();
+      cx.globalAlpha=1;cx.fillStyle='#fff';cx.beginPath();cx.arc(p[0],mid,5,0,6.3);cx.fill();
+    });
+    if(!still)raf=requestAnimationFrame(draw);
+  }
+  function start(){cancelAnimationFrame(raf);size();draw(still?4200:performance.now());}
+  window.addEventListener('resize',start);start();
+})();
+</script>
+</body>
+</html>
