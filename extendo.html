@@ -309,7 +309,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 .mbox input[type=email]:focus{border-color:var(--p);}
 .mbox .btn{width:100%;justify-content:center;margin-bottom:8px;}
 .mbox .or{text-align:center;font-size:11px;color:var(--t3);margin:4px 0 10px;}
-.mbox .fine{font-size:11px;color:var(--t3);margin:4px 0 0;}
+.mbox .fine{font-size:11px;color:var(--t3);margin:4px 0 0;}.mbox .fine a{color:var(--t2);}
 .steps{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
 .step{display:flex;align-items:center;gap:12px;border:1px solid var(--line2);border-radius:10px;padding:11px 12px;text-decoration:none;color:var(--t1);background:var(--s2);}
 .step:hover{border-color:var(--p);}
@@ -339,7 +339,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <button class="ibtn" id="helpBtn" data-tip-title="How it works" data-tip="A 6-step walkthrough of the whole flow. Hover any control for a quick explanation." onclick="startTour(0)"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg></button>
     <button class="ibtn" data-tip-title="Fullscreen" data-tip="Take the deck full screen, like DJ software. Press again to leave." onclick="toggleFull()"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
   </div>
-  <div class="umenu" id="umenu"><div id="umenuEmail"></div><div id="umenuPlan"></div><button onclick="openUnlock()">Unlock downloads</button><button id="umenuPro" onclick="managePro()">Go Pro</button><button onclick="authSignOut()">Sign out</button></div>
+  <div class="umenu" id="umenu"><div id="umenuEmail"></div><div id="umenuPlan"></div><button onclick="openUnlock()">Unlock downloads</button><button id="umenuPro" onclick="managePro()">Go Pro</button><button onclick="location.href='mailto:support@2pointsmusic.com'">Support</button><button onclick="authSignOut()">Sign out</button></div>
 </div>
 
 <!-- MASTER STRIP -->
@@ -480,7 +480,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <div class="meta" id="dlNote" style="padding:0 14px 10px"></div>
   </section>
 </div>
-<div class="foot"><span>Tempo detection assumes a steady tempo, which is true of anything produced on a grid. Live recordings drift, so check the grid with the click before you build.</span><span><a href="https://aimixingmastering.com">AIMixingMastering.com</a> · 2 Points Sound</span></div>
+<div class="foot"><span>Tempo detection assumes a steady tempo, which is true of anything produced on a grid. Live recordings drift, so check the grid with the click before you build.</span><span><a href="mailto:support@2pointsmusic.com">support@2pointsmusic.com</a> · <a href="https://aimixingmastering.com">AIMixingMastering.com</a> · 2 Points Sound</span></div>
 </div>
 
 <!-- SIGN-IN (free account = our lead) -->
@@ -515,7 +515,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
     <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Build all: your whole library in one go</div>
     <div><svg class="i" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Every Pro feature we add next</div>
   </div>
-  <p class="fine" id="proFine">Secure checkout by Stripe. Lifetime is a single charge of $49.99.</p>
+  <p class="fine" id="proFine">Secure checkout by Stripe. Lifetime is a single charge of $49.99. Questions or trouble after buying: <a href="mailto:support@2pointsmusic.com">support@2pointsmusic.com</a></p>
 </div></div>
 <div class="toast" id="toast"></div>
 <div class="tour" id="tour"><div class="ring" id="tourRing"></div><div class="card" id="tourCard"><div class="tstep" id="tourStep"></div><h4 id="tourTitle"></h4><p id="tourText"></p><div class="row"><div class="dots" id="tourDots"></div><div style="display:flex;gap:6px;align-items:center"><button class="skip" onclick="endTour()">Skip</button><button class="sb" id="tourBack" onclick="tourGo(-1)">Back</button><button class="btn btn-primary" id="tourNext" onclick="tourGo(1)" style="padding:8px 14px">Next</button></div></div></div></div>
