@@ -1334,6 +1334,7 @@ async function goToMaster(){
     var s = {};
     try { s = JSON.parse(localStorage.getItem('aimix_sub') || '{}'); } catch(e) {}
     var plan = s.plan || 'none';
+    if (plan === 'everything') plan = 'pro'; // Lifetime Studio Bundle = full AIMix
     var usage = s.usage || 0;
     var limit = s.limit || 10;
     // Block if no plan or starter with 0 credits
@@ -1683,6 +1684,7 @@ window.addEventListener('DOMContentLoaded', function(){
         }
 
         var plan = subRes.data.plan;
+        if (plan === 'everything') plan = 'pro'; // Lifetime Studio Bundle = full AIMix
         var status = subRes.data.status;
 
         // Cancelled or inactive subscription

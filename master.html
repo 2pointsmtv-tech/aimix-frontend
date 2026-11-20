@@ -1298,7 +1298,7 @@ async function loadSubscription(){
     
     if(subs && subs.length > 0){
       var sub = subs[0];
-      var data = {plan: sub.plan, status: sub.status, usage: used, limit: 10};
+      var data = {plan: (sub.plan === 'everything' ? 'pro' : sub.plan), status: sub.status, usage: used, limit: 10}; // Lifetime Studio Bundle = full AIMix
       _subData = data;
       try{ localStorage.setItem('aimix_sub', JSON.stringify(data)); }catch(e){}
       console.log('[MASTER] Sub loaded:', JSON.stringify(data));
