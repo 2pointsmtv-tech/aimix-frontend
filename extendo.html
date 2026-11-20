@@ -1319,8 +1319,13 @@ function openUpgrade(features){var used=triesLeft()<=0,f=(features||[]).map(func
   $('proTitle').textContent=f.length?'This mix uses '+f.join(' and '):'Go Pro';
   $('proText').textContent=used?'You have used your '+PRO_TRIES+' free Pro downloads. Own Extend The Mix for good, or go month to month.':'Build and listen with Pro features as much as you like. Downloading a mix that uses them takes one of your '+PRO_TRIES+' free Pro downloads.';
   if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}$('proModal').classList.add('show');mfb('ViewContent',{content_name:'extendo_pro_modal',content_category:'extendo'});}
+// Stripe payment links for Pro. The account id rides along as client_reference_id so the webhook attaches the purchase to
+// this account whatever email is used to pay; the backend checkout session is the fallback when a link is missing.
+var PAY_LINKS={monthly:'https://buy.stripe.com/6oU5kC24Ka541XEaKHd3i0C',lifetime:''};
+function payLink(kind){var u=PAY_LINKS[kind];if(!u)return '';return u+(u.indexOf('?')<0?'?':'&')+'client_reference_id='+encodeURIComponent(auth.user.id)+'&prefilled_email='+encodeURIComponent(auth.user.email||'');}
 async function startCheckout(kind){if(GATE&&!auth.user){auth.pending='pro';openAuth();return;}var b=$(kind==='lifetime'?'buyLife':'buyMonth');b.disabled=true;b.textContent='Opening checkout…';
   mfb('InitiateCheckout',{value:PRO_PRICE[kind],currency:'USD',content_name:'extendo_'+kind,content_category:'extendo'});
+  var link=payLink(kind);if(link){location.href=link;return;}
   try{var r=await fetch(API+'/extendo/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:kind,user_id:auth.user.id,user_email:auth.user.email,success_url:location.origin+location.pathname+'?pro=success&kind='+kind+'&session_id={CHECKOUT_SESSION_ID}',cancel_url:location.origin+location.pathname})});
     var d=await r.json();if(d.url){location.href=d.url;return;}alert(d.error||'Checkout unavailable right now.');}catch(e){alert('Checkout unavailable right now.');}
   b.disabled=false;b.textContent=kind==='lifetime'?'Own it forever':'Go monthly';}
