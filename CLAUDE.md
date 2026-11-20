@@ -437,11 +437,13 @@ for the account gate.
    domain + `storageKey` as the other pages, magic link or Google; magic link
    `emailRedirectTo` is `origin+pathname` = `/extendo`, which must be on the
    Supabase redirect allowlist). On first sign-in the email is tagged
-   `extendo-lead` in Systeme.io. Free accounts get `FREE_BUILDS` (3) mixes,
-   counted **per song** (`song.counted`, rebuilds/shuffles of the same track
-   are free). After that `openUnlock()` asks for Spotify + Instagram follows
-   (`SOCIAL` links; honour system — both links must be clicked) and stores
-   `extendo_unlocked`. Counters/flags live in Supabase **`user_metadata`**
+   `extendo-lead` in Systeme.io. Building and listening are free once signed
+   in (`countBuild` still counts distinct songs into `extendo_builds` for
+   analytics). The **first download** (`download()` / `downloadAll()` →
+   `gateDownload()`) opens `openUnlock()`, which asks for Spotify + Instagram
+   follows (`SOCIAL` links; honour system — both links must be clicked) and
+   stores `extendo_unlocked`; Pro accounts skip it. `auth.pending==='download'`
+   resumes the download after sign-in / unlock. Counters/flags live in Supabase **`user_metadata`**
    (`extendo_builds`, `extendo_unlocked`) via `saveMeta()` — no new tables,
    follows the account across devices, and like every gate here it is
    client-side and bypassable (§7.4). Unlock tags `extendo-unlocked`; the PRO
