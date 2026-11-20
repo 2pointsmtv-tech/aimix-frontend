@@ -1521,9 +1521,11 @@ function showResultInfo(play){
 }
 function showDlNote(){$('dlNote').textContent='Ready to download: '+wavBits()+'-bit '+fmtLabel()+', '+(result.chs[0].length*wavBits()/4/1048576).toFixed(0)+' MB, original tags + cover kept'+(opt.fmt==='wav'?'. rekordbox only shows cover art for AIFF':'');}
 // Download: the original file's metadata, verbatim, with " (Extended Mix)" appended to the title. 16-bit unless the source was 24-bit. AIFF unless the user picked WAV.
-function wavMeta(){var tg=Object.assign({},song.tags||{});tg.title=(tg.title||song.title)+' (Extended Mix)';if(!tg.artist&&song.artist)tg.artist=song.artist;if(!tg.bpm)tg.bpm=Math.round(song.bpm);if(!tg.key&&song.key)tg.key=song.key.camelot;return tg;}
+// Title suffix: " (Extended Mix)", or " (Intro Edit)" when the original already is an extended mix / extended version
+function extTitle(t){return t+(/\bextended\b/i.test(t)?' (Intro Edit)':' (Extended Mix)');}
+function wavMeta(){var tg=Object.assign({},song.tags||{});tg.title=extTitle(tg.title||song.title);if(!tg.artist&&song.artist)tg.artist=song.artist;if(!tg.bpm)tg.bpm=Math.round(song.bpm);if(!tg.key&&song.key)tg.key=song.key.camelot;return tg;}
 function wavBits(){return song.tags&&song.tags.bits>=24?24:16;}
-function wavName(){return ((song.artist?song.artist+' - ':'')+song.title+' (Extended Mix)'+(opt.fmt==='wav'?'.wav':'.aiff')).replace(/[\\/:*?"<>|]+/g,'-');}
+function wavName(){return ((song.artist?song.artist+' - ':'')+extTitle(song.title)+(opt.fmt==='wav'?'.wav':'.aiff')).replace(/[\\/:*?"<>|]+/g,'-');}
 function makeWav(){if(!result.wav){var aiff=opt.fmt!=='wav',ab=(aiff?ExtendoDSP.encodeAiff:ExtendoDSP.encodeWav)(result.chs,song.sr,wavMeta(),wavBits());result.ab=ab;result.wav=new Blob([ab],{type:aiff?'audio/aiff':'audio/wav'});result.url=URL.createObjectURL(result.wav);}return result;}
 function download(){if(!result)return;if(!gateDownload())return;if(!canDownloadPro())return;makeWav();var a=document.createElement('a');a.href=result.url;a.download=wavName();document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1000);}
 </script>
