@@ -83,6 +83,17 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
   const blk=(type,last,body)=>cat(Uint8Array.from([(last?0x80:0)|type,(body.length>>16)&255,(body.length>>8)&255,body.length&255]),body);
   const flac=cat(new TextEncoder().encode('fLaC'),blk(4,false,vc),blk(6,true,pic));
   const tf=D.parseTags(flac,'x.flac');ok(tf.title==='Night Drive'&&tf.artist==='2 Points'&&tf.cover&&tf.cover.data.length===png.length,'FLAC: title/artist/cover from the metadata blocks');
+  // AIFF: big-endian PCM, 80-bit sample rate, same ID3 tag in an 'ID3 ' chunk, readable back through parseTags
+  {const L=new Float32Array([0,0.5,-0.5,1,-1,2]),R=new Float32Array([0,0.25,-0.25,0,0,0]);const ab=D.encodeAiff([L,R],44100,{title:'Night Drive (Extended Mix)',artist:'2 Points',cover:{mime:'image/png',data:png}});const u=new Uint8Array(ab),v=new DataView(ab);
+    const s=(a,b)=>String.fromCharCode(...u.subarray(a,b));
+    ok(s(0,4)==='FORM'&&v.getUint32(4)===ab.byteLength-8&&s(8,12)==='AIFF'&&s(12,16)==='COMM'&&v.getUint32(16)===18,'AIFF: FORM/AIFF header with an 18-byte COMM chunk');
+    ok(v.getUint16(20)===2&&v.getUint32(22)===6&&v.getUint16(26)===16,'AIFF: COMM = 2 channels, 6 frames, 16-bit');
+    ok(Array.from(u.subarray(28,38)).map(x=>x.toString(16).padStart(2,'0')).join('')==='400eac44000000000000','AIFF: 44100 Hz as 80-bit extended = 400E AC44 0000 0000 0000');
+    ok(s(38,42)==='SSND'&&v.getUint32(42)===8+24&&v.getUint32(46)===0&&v.getUint32(50)===0,'AIFF: SSND chunk with zero offset/block size');
+    ok(v.getInt16(54)===0&&v.getInt16(56)===0&&v.getInt16(58)===16383&&v.getInt16(60)===8191&&v.getInt16(66)===32767&&v.getInt16(70)===-32768&&v.getInt16(74)===32767,'AIFF: samples are big-endian and clipped');
+    const tp=54+24;ok(s(tp,tp+4)==='ID3 '&&s(tp+8,tp+11)==='ID3','AIFF: ID3 tag sits in an uppercase ID3 chunk after the audio');
+    const t=D.parseTags(u,'x.aiff');ok(t.title==='Night Drive (Extended Mix)'&&t.artist==='2 Points'&&t.bits===16&&t.cover&&t.cover.data.length===png.length,'AIFF: parseTags reads the tag, cover and bit depth back');
+    const ab24=D.encodeAiff([L,R],48000,null,24);const v24=new DataView(ab24);ok(ab24.byteLength===54+36&&v24.getUint16(26)===24&&v24.getUint16(28)===0x400e&&v24.getUint32(30)===0xbb800000&&v24.getUint8(54+18)===0x7f&&v24.getUint8(54+19)===0xff&&v24.getUint8(54+20)===0xff&&v24.getUint8(54+24)===0x80&&v24.getUint8(54+25)===0&&v24.getUint8(54+26)===0,'AIFF: 24-bit at 48 kHz, no tag, +1.0 = 7FFFFF');}
   // raw MP3-style ID3v2.3 header (what encodeWav's id3Bytes produces) parses standalone too
   const wavU8=new Uint8Array(ab);let idx=-1;for(let i=44;i<wavU8.length-5;i++)if(wavU8[i]===0x49&&wavU8[i+1]===0x44&&wavU8[i+2]===0x33&&wavU8[i+3]===3&&wavU8[i+4]===0){idx=i;break;}   // the tag header 'ID3' v2.3, not the 'ID3 ' chunk id
   const id3=wavU8.slice(idx);const tmp3=D.parseTags(id3,'x.mp3');ok(tmp3.title==='Night Drive (Extended Mix)'&&tmp3.cover&&tmp3.cover.data.length===png.length,'MP3: ID3v2 tag at file start');

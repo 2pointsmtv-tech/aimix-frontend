@@ -415,6 +415,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
         <div class="row"><span class="lbl">Blend out</span><div class="seg" id="blendOut" data-tip-title="Blend out" data-tip="Bring the outro drums in under the last bars of the song, fading in, instead of starting them cold."></div></div>
         <div class="row"><span class="lbl">Level</span><input type="range" class="sl" id="levelSl" data-tip-title="Drum level" data-tip="The drums are matched to your song's loudness automatically. This trims them up or down from there." min="-12" max="6" step="0.5" value="0" oninput="opt.level=+this.value;$('levelVal').textContent=(opt.level>0?'+':'')+opt.level.toFixed(1)+' dB'"><span class="val" id="levelVal">0.0 dB</span></div>
         <div class="row"><span class="lbl">Crash</span><label class="sw" data-tip-title="Crash" data-tip="A crash cymbal on the drop and on the final hit."><input type="checkbox" id="crashChk" checked onchange="opt.crash=this.checked"><span class="tr"></span><span class="l">Drop and ending</span></label></div>
+        <div class="row"><span class="lbl">Format</span><div class="seg" id="exportFmt" data-tip-title="Export format" data-tip="AIFF and WAV are both uncompressed and sound identical. AIFF is the safe choice for rekordbox: it shows cover art for AIFF but ignores the artwork stored inside WAV files. Serato, Traktor and CDJs play both."></div></div>
       </div>
       <div class="sec off" id="pBed">
         <h3><span class="n">02</span>MELODY BED<span class="note">The song's own melody under the drums</span></h3>
@@ -469,7 +470,7 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
         <button class="btn btn-ghost" data-tip-title="Add tracks" data-tip="Load one song or a whole set. Each is analysed in turn and waits in the library. Nothing is uploaded." onclick="$('fileInput').click()"><svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>Add tracks</button>
         <button class="btn btn-ghost" id="shuffleBtn" data-tip-title="Shuffle" data-tip="New grooves for the selected styles, rebuilt on the spot." onclick="shuffleGrooves(false)" disabled title="Try other grooves and rebuild"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>Shuffle</button>
         <button class="btn btn-primary" id="buildBtn" data-tip-title="Build" data-tip="Renders the extended mix with the current settings, about a second per track, and switches to Deck B so you can listen." onclick="build()" disabled>Build extended mix</button>
-        <button class="btn btn-ghost" id="dlBtn" data-tip-title="Download" data-tip="Uncompressed WAV with your original tags and cover art, title suffixed (Extended Mix). The song itself passes through untouched. If the mix uses Pro features, this takes one of your 5 free Pro downloads." onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download WAV</button>
+        <button class="btn btn-ghost" id="dlBtn" data-tip-title="Download" data-tip="Uncompressed AIFF (or WAV, see Format) with your original tags and cover art, title suffixed (Extended Mix). The song itself passes through untouched. If the mix uses Pro features, this takes one of your 5 free Pro downloads." onclick="download()" disabled><svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>Download</button>
         <button class="btn btn-pro" id="buildAllBtn" data-tip-title="Build all · Pro" data-tip="Builds every track in the library with the current settings, then Download all." onclick="buildAll()" title="Pro: build every track in the library">Build all · PRO</button><button class="btn btn-ghost" id="dlAllBtn" onclick="downloadAll()" style="display:none">Download all</button>
       </div>
     </div>
@@ -744,8 +745,14 @@ var ExtendoDSP=(function(){
       else if(type===6&&!t.cover){var q2=a+4,ml=be32(u,q2),mime=u8str(u,q2+4,q2+4+ml);q2+=4+ml;var dl=be32(u,q2);q2+=4+dl+16;var il=be32(u,q2);q2+=4;t.cover={mime:mime||mimeOf(u.subarray(q2)),data:u.slice(q2,q2+il)};}
       if(last)break;p=b;}
     return t;}
+  function parseAiffTags(u){var t={};if(u8str(u,0,4)!=='FORM'||(u8str(u,8,12)!=='AIFF'&&u8str(u,8,12)!=='AIFC'))return t;var p=12;
+    while(p+8<=u.length){var id=u8str(u,p,p+4),sz=be32(u,p+4),a=p+8;
+      if(id==='COMM')t.bits=(u[a+6]<<8)|u[a+7];
+      else if(id==='ID3 '||id==='id3 '){var x=parseID3(u,a)||{};for(var k in x)if(!(k in t))t[k]=x[k];}
+      p=a+sz+(sz&1);}
+    return t;}
   // Any supported file → {title, artist, album, genre, year, track, bpm, key, comment, cover:{mime,data}, frames (raw ID3 frames when present), bits}
-  function parseTags(u,name){try{var t=u8str(u,0,3)==='ID3'?(parseID3(u,0)||{}):u8str(u,0,4)==='RIFF'?parseWavTags(u):u8str(u,0,4)==='fLaC'?parseFlacTags(u):u8str(u,4,8)==='ftyp'?parseM4aTags(u):{};return t||{};}catch(e){return {};}}
+  function parseTags(u,name){try{var t=u8str(u,0,3)==='ID3'?(parseID3(u,0)||{}):u8str(u,0,4)==='RIFF'?parseWavTags(u):u8str(u,0,4)==='FORM'?parseAiffTags(u):u8str(u,0,4)==='fLaC'?parseFlacTags(u):u8str(u,4,8)==='ftyp'?parseM4aTags(u):{};return t||{};}catch(e){return {};}}
   function apicFrame(cover){var mime=Array.from(new TextEncoder().encode(cover.mime||'image/jpeg')),head=Uint8Array.from([0].concat(mime,[0,3,0])),ap=new Uint8Array(head.length+cover.data.length);ap.set(head,0);ap.set(cover.data,head.length);return ap;}
   function utf16Frame(v){var b=[1,0xff,0xfe];for(var i=0;i<v.length;i++){var c=v.charCodeAt(i);b.push(c&0xff,c>>8);}return Uint8Array.from(b);}
   // ID3v2.3 tag for the WAV 'id3 ' chunk. With `frames` (an ID3 source) every original frame is copied verbatim and only the
@@ -779,7 +786,20 @@ var ExtendoDSP=(function(){
     else{for(i=0;i<n;i++)for(c=0;c<nc;c++){s=chs[c][i];s=s>1?1:s<-1?-1:s;v.setInt16(p,s<0?s*32768:s*32767,true);p+=2;}}
     if(dataBytes&1)p++;var out=new Uint8Array(ab);extra.forEach(function(e){out.set(e,p);p+=e.length;});
     return ab;}
-  return {HOP:HOP,toMono:toMono,envelope:envelope,bounds:bounds,loudness:loudness,detectTempo:detectTempo,detectPhase:detectPhase,detectDownbeat:detectDownbeat,analyze:analyze,rephase:rephase,refinePhase:refinePhase,detectKey:detectKey,hpss:hpss,plan:plan,encodeWav:encodeWav,parseTags:parseTags,acAt:acAt};
+  // AIFF (16- or 24-bit big-endian PCM) carrying the same ID3 tag in an 'ID3 ' chunk after the audio (the iTunes layout).
+  // rekordbox shows cover art for AIFF but ignores artwork stored inside WAV files, so AIFF is the default export.
+  function encodeAiff(chs,sr,meta,bits){bits=bits===24?24:16;var n=chs[0].length,nc=chs.length,bps=bits/8,dataBytes=n*nc*bps,tag=meta?id3Bytes(meta):null,tagBytes=tag?8+tag.length+(tag.length&1):0;
+    var bytes=12+26+16+dataBytes+(dataBytes&1)+tagBytes,ab=new ArrayBuffer(bytes),v=new DataView(ab),p=0;
+    function str(x){for(var i=0;i<x.length;i++)v.setUint8(p++,x.charCodeAt(i));}function u32(x){v.setUint32(p,x);p+=4;}function u16(x){v.setUint16(p,x);p+=2;}
+    str('FORM');u32(bytes-8);str('AIFF');str('COMM');u32(18);u16(nc);u32(n);u16(bits);
+    var e=0;while(sr>=Math.pow(2,e+1))e++;u16(16383+e);u32(Math.floor(sr/Math.pow(2,e)*2147483648));u32(0);   // 80-bit extended sample rate; integer rates fit the high word
+    str('SSND');u32(8+dataBytes);u32(0);u32(0);
+    if(bits===24){for(var i=0;i<n;i++)for(var c=0;c<nc;c++){var s=chs[c][i];s=s>1?1:s<-1?-1:s;var x=Math.round(s<0?s*8388608:s*8388607);v.setUint8(p,(x>>16)&255);v.setUint8(p+1,(x>>8)&255);v.setUint8(p+2,x&255);p+=3;}}
+    else{for(i=0;i<n;i++)for(c=0;c<nc;c++){s=chs[c][i];s=s>1?1:s<-1?-1:s;v.setInt16(p,s<0?s*32768:s*32767);p+=2;}}
+    if(dataBytes&1)p++;
+    if(tag){str('ID3 ');u32(tag.length);new Uint8Array(ab).set(tag,p);}
+    return ab;}
+  return {HOP:HOP,toMono:toMono,envelope:envelope,bounds:bounds,loudness:loudness,detectTempo:detectTempo,detectPhase:detectPhase,detectDownbeat:detectDownbeat,analyze:analyze,rephase:rephase,refinePhase:refinePhase,detectKey:detectKey,hpss:hpss,plan:plan,encodeWav:encodeWav,encodeAiff:encodeAiff,parseTags:parseTags,acAt:acAt};
 })();
 if(typeof module!=='undefined')module.exports=ExtendoDSP;
 </script>
@@ -917,7 +937,7 @@ function rmsOf(buf){var d=buf.getChannelData(0),s=0;for(var i=0;i<d.length;i++)s
 var $=function(id){return document.getElementById(id);};
 var ICON={play:'<svg class="i" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',pause:'<svg class="i" viewBox="0 0 24 24"><path d="M7 5v14M17 5v14" stroke-width="2.6"/></svg>',prev:'<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>',next:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',dice:'<svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>',tri:'<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',dl:'<svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>',x:'<svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>',bolt:'<svg class="i" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>'};
 var song=null,result=null,busy=false,view='src',zoomBars=8,ZOOMS=[4,8,16,32];
-var opt={intro:16,outro:16,styles:['house'],groove:{},cycle:8,blendIn:0,blendOut:0,crash:true,level:0,bed:{inOn:false,outOn:true,len:8,level:-3},fx:{len:2,riser:true,rev:true,sweep:false,build:true,atDrop:true,atOutro:false,atEnd:true}};
+var opt={fmt:'aiff',intro:16,outro:16,styles:['house'],groove:{},cycle:8,blendIn:0,blendOut:0,crash:true,level:0,bed:{inOn:false,outOn:true,len:8,level:-3},fx:{len:2,riser:true,rev:true,sweep:false,build:true,atDrop:true,atOutro:false,atEnd:true}};
 var fmtT=function(t){var neg=t<0;t=Math.abs(t);var m=Math.floor(t/60),s=t-m*60;return (neg?'-':'')+(m<10?'0':'')+m+':'+(s<10?'0':'')+s.toFixed(1);};
 var fmt=function(t){t=Math.max(0,t);var m=Math.floor(t/60),s=t-m*60;return m+':'+(s<10?'0':'')+s.toFixed(2);};
 var fmtS=function(t){t=Math.max(0,t);var m=Math.floor(t/60),s=Math.round(t-m*60);if(s===60){m++;s=0;}return m+':'+(s<10?'0':'')+s;};
@@ -1029,7 +1049,7 @@ var TOUR=[
   {sel:'#pExt',title:'Choose your intro and outro',text:'16 bars each is the DJ standard. Blend keeps drums running under the song for a softer hand-over. The drum level is matched to your track automatically.'},
   {sel:'#pStyles',title:'Pick the drums',text:'Eight styles, four grooves each. Select more than one and they cycle. Shuffle rebuilds instantly with new grooves until you find the one you like. The FX tab adds risers, reverse cymbals, filter sweeps and snare builds into each transition.'},
   {sel:'#hotcues',title:'Sample a phrase for the melody bed',text:'By default the outro loops the last loud phrase of your song with its drums stripped. For control, park the playhead and press Outro here: a green box appears that you can resize, drag and audition with Loop and Melody only.'},
-  {sel:'#buildBtn',title:'Build, listen, download',text:'Build renders in about a second and switches to Deck B. Hot cues A, B and C jump to the drop, the outro and the ending. Download gives you a WAV with your original tags and cover art, titled (Extended Mix).'}];
+  {sel:'#buildBtn',title:'Build, listen, download',text:'Build renders in about a second and switches to Deck B. Hot cues A, B and C jump to the drop, the outro and the ending. Download gives you an AIFF (or WAV) with your original tags and cover art, titled (Extended Mix).'}];
 var tourI=-1;
 function startTour(i){tourI=i||0;$('tour').classList.add('show');hideTip();tourShow();}
 function endTour(){tourI=-1;$('tour').classList.remove('show');try{localStorage.setItem('extendo_tour','seen');}catch(e){}}
@@ -1218,6 +1238,10 @@ chips('cycleBars',[4,8,16],function(){return opt.cycle;},function(v){opt.cycle=v
 chips('blendIn',[0,2,4,8],function(){return opt.blendIn;},function(v){opt.blendIn=v;},function(v){return v?v+'':'Off';});
 chips('blendOut',[0,2,4,8],function(){return opt.blendOut;},function(v){opt.blendOut=v;},function(v){return v?v+'':'Off';});
 chips('bedLen',[4,8],function(){return opt.bed.len;},function(v){opt.bed.len=v;});
+try{if(localStorage.extendo_fmt==='wav')opt.fmt='wav';}catch(e){}
+function fmtLabel(){return opt.fmt==='wav'?'WAV':'AIFF';}
+function setFmt(v){opt.fmt=v==='wav'?'wav':'aiff';try{localStorage.extendo_fmt=opt.fmt;}catch(e){}lib.forEach(function(t){var r=t.result;if(r&&r.wav){URL.revokeObjectURL(r.url);r.wav=r.ab=r.url=null;}});renderFmtChips();if(result)showDlNote();}
+function renderFmtChips(){chips('exportFmt',['aiff','wav'],function(){return opt.fmt;},setFmt,function(v){return v.toUpperCase();});}renderFmtChips();
 // which bars of the song feed the melody bed: 'out' = last loud phrase before the last bar line, 'in' = first loud phrase after bar 1
 function snapBar(tr,t){return tr.firstDB+Math.round((t-tr.firstDB)/tr.bar)*tr.bar;}
 function phraseRms(tr,t,dur){var c=tr.cols,a=Math.max(0,Math.floor(t*c.sr/HOPC)),b=Math.min(c.n,Math.floor((t+dur)*c.sr/HOPC)),s=0,n=0;for(var i=a;i<b;i++){s+=c.lo[i]*c.lo[i]+c.mi[i]*c.mi[i]+c.hi[i]*c.hi[i];n++;}return n?Math.sqrt(s/n):0;}
@@ -1422,14 +1446,15 @@ function showResultInfo(play){
   var cues=[['Length',fmtS(T),0],['Drop',fmt(tl.dropT),Math.max(0,tl.dropT-2*tl.bar)],['Outro drums',fmt(tl.outro?tl.outro.start:tl.lastDBT),Math.max(0,(tl.outro?tl.outro.start:tl.lastDBT)-2*tl.bar)],['End',fmt(tl.outroEnd),Math.max(0,tl.outroEnd-4*tl.bar)]];
   $('cues').innerHTML=cues.map(function(c){return '<div class="cue" onclick="setView(\'ext\');seekTo('+c[2]+');playAt('+c[2]+')"><span class="k">'+c[0]+'</span><span class="v">'+c[1]+'</span></div>';}).join('');$('cueBar').style.display='';
   $('resultMeta').textContent=song.bpm.toFixed(2)+' BPM · +'+result.intro+' / +'+result.outro+' bars · '+opt.styles.map(function(s){return STYLES[s].name+' / '+STYLES[s].grooves[grooveOf(s)].name;}).join(' → ');
-  $('dlNote').textContent='Ready to download: '+wavBits()+'-bit WAV, '+(result.chs[0].length*wavBits()/4/1048576).toFixed(0)+' MB, original tags + cover kept';$('dlBtn').disabled=false;$('shuffleBtn').disabled=false;$('tabExt').disabled=false;
+  showDlNote();$('dlBtn').disabled=false;$('shuffleBtn').disabled=false;$('tabExt').disabled=false;
   if(play){setView('ext');var t=Math.max(0,tl.dropT-2*tl.bar);seekTo(t);playAt(t);}
 }
-// Download: the original file's metadata, verbatim, with " (Extended Mix)" appended to the title. 16-bit unless the source was 24-bit.
+function showDlNote(){$('dlNote').textContent='Ready to download: '+wavBits()+'-bit '+fmtLabel()+', '+(result.chs[0].length*wavBits()/4/1048576).toFixed(0)+' MB, original tags + cover kept'+(opt.fmt==='wav'?'. rekordbox only shows cover art for AIFF':'');}
+// Download: the original file's metadata, verbatim, with " (Extended Mix)" appended to the title. 16-bit unless the source was 24-bit. AIFF unless the user picked WAV.
 function wavMeta(){var tg=Object.assign({},song.tags||{});tg.title=(tg.title||song.title)+' (Extended Mix)';if(!tg.artist&&song.artist)tg.artist=song.artist;if(!tg.bpm)tg.bpm=Math.round(song.bpm);if(!tg.key&&song.key)tg.key=song.key.camelot;return tg;}
 function wavBits(){return song.tags&&song.tags.bits>=24?24:16;}
-function wavName(){return ((song.artist?song.artist+' - ':'')+song.title+' (Extended Mix).wav').replace(/[\\/:*?"<>|]+/g,'-');}
-function makeWav(){if(!result.wav){var ab=ExtendoDSP.encodeWav(result.chs,song.sr,wavMeta(),wavBits());result.ab=ab;result.wav=new Blob([ab],{type:'audio/wav'});result.url=URL.createObjectURL(result.wav);}return result;}
+function wavName(){return ((song.artist?song.artist+' - ':'')+song.title+' (Extended Mix)'+(opt.fmt==='wav'?'.wav':'.aiff')).replace(/[\\/:*?"<>|]+/g,'-');}
+function makeWav(){if(!result.wav){var aiff=opt.fmt!=='wav',ab=(aiff?ExtendoDSP.encodeAiff:ExtendoDSP.encodeWav)(result.chs,song.sr,wavMeta(),wavBits());result.ab=ab;result.wav=new Blob([ab],{type:aiff?'audio/aiff':'audio/wav'});result.url=URL.createObjectURL(result.wav);}return result;}
 function download(){if(!result)return;if(!canDownloadPro())return;makeWav();var a=document.createElement('a');a.href=result.url;a.download=wavName();document.body.appendChild(a);a.click();setTimeout(function(){a.remove();},1000);}
 </script>
 </body>
