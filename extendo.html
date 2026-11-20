@@ -451,7 +451,7 @@ if(MOBILE)document.documentElement.classList.add('mob');
       <button class="sb" id="bar1Auto" data-tip-title="Bar 1 · auto" data-tip="Bar 1 is where the intro drums hand over to your song. Auto uses the first downbeat of the track." onclick="setBar1(null)">Bar 1 auto</button><button class="sb" data-tip-title="Bar 1 here" data-tip="Choose a later bar line as the hand-over point, for example after a long ambient opening. Everything before it plays under the intro drums. On Deck B you can also drag the drop line." onclick="setBar1(deckPos())">Bar 1 here</button>
       <button class="sb on" id="outroAuto" data-tip-title="Outro drums · auto" data-tip="The outro drums start on the last bar line of the track. Auto finds it; a long reverb tail can push it later than the real ending." onclick="setOutroStart(null)">Outro auto</button><button class="sb" data-tip-title="Outro drums here" data-tip="Park the playhead on the bar where the song really ends and press this: the outro drums start there and the tail fades under them. On Deck B you can also drag the start of the outro region." onclick="setOutroStart(deckPos())">Outro drums here</button>
       <div class="sep"></div><span class="lab" data-tip-title="Sampler" data-tip="Loop a phrase of the song, drums stripped, under the new drums. Put the playhead where the loop should start, then pick Intro or Outro.">SAMPLE</span><button class="sb" data-tip-title="Intro here" data-tip="Drops a green sample box at the playhead for the intro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('in')">Intro here</button><button class="sb" data-tip-title="Outro here" data-tip="Drops a green sample box at the playhead for the outro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('out')">Outro here</button><span class="protag" id="sampProTag">PRO</span>
-      <label class="sw" id="clickTog" data-tip-title="Metronome click" data-tip="Plays a click on every beat of the grid, with a high click on beat 1. If the high click is not on the 1, fix the grid before you build."><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
+      <label class="sw" id="clickTog" data-tip-title="Metronome click" data-tip="Plays a click on every beat of the grid, with a high click on beat 1, on both decks. On Deck A: if the high click is not on the 1, fix the grid before you build. On Deck B: check the drums and the song sit on the same grid."><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
       <div class="right"><span class="hint" id="trHint"></span><div class="seg" id="wfMode" data-tip-title="Waveform colour" data-tip="Loudness: sections coloured quiet to loud. Frequency: bass orange, mids green, highs blue, like Rekordbox. Added parts are always green." title="Waveform colour"><button class="on" data-m="loud" onclick="setWfMode('loud')">Loudness</button><button data-m="freq" onclick="setWfMode('freq')">Frequency</button></div></div>
     </div>
     <div class="cues" id="cueBar" style="display:none"><span class="lab">CUE POINTS</span><div class="cues" style="padding:0;border:0" id="cues"></div><span class="meta" id="resultMeta"></span></div>
@@ -1072,7 +1072,7 @@ var player={ctx:null,gain:null,an:null,srcs:[],t0:0,off:0,dur:0,playing:false,ra
 };
 function uiStopped(){$('playBtn').innerHTML=ICON.play;$('playBtn').classList.remove('on');$('bigPlay').innerHTML=ICON.play;$('bigPlay').classList.remove('on');}
 function uiPlaying(){$('playBtn').innerHTML=ICON.pause;$('playBtn').classList.add('on');$('bigPlay').innerHTML=ICON.pause;$('bigPlay').classList.add('on');}
-function buffersFor(){if(view==='ext'&&result)return [result.buf];var b=[song.buf];if($('clickChk').checked)b.push(clickBuffer());return b;}
+function buffersFor(){if(view==='ext'&&result){var e=[result.buf];if($('clickChk').checked)e.push(result.click||(result.click=makeClick(result.buf,song.sr,result.tl.dropT,result.tl.beat)));return e;}var b=[song.buf];if($('clickChk').checked)b.push(clickBuffer());return b;}
 function togglePlay(){var c=cur();if(!c)return;if(player.playing){player.stop();return;}playAt(player.off>=c.dur-0.1?0:player.off);}
 function playAt(t){var c=cur();if(!c)return;player.view0=0;var sp=view==='src'&&sampLoop&&sampSel&&song.samp[sampSel];
   if(sp&&sampMel&&sampMelBuf&&sampMelBuf.key===sampKey(sampSel)){var rel=Math.max(0,t-sp.start)%sampMelBuf.buf.duration;player.view0=sp.start;player.play([sampMelBuf.buf],rel,sampMelBuf.buf.duration,{a:0,b:sampMelBuf.buf.duration});uiPlaying();return;}
@@ -1080,11 +1080,14 @@ function playAt(t){var c=cur();if(!c)return;player.view0=0;var sp=view==='src'&&
 function seekTo(t){var c=cur();if(!c)return;t=Math.max(0,Math.min(c.dur-0.05,t));var was=player.playing;player.stop();player.view0=0;player.off=t;player.dur=c.dur;if(was)playAt(t);else draw();}
 function stepBars(d){var c=cur();if(c)seekTo(player.pos()+d*c.bar);}
 function jumpCue(i){var c=cur(),q=cuesOf()[i];if(!c||!q)return;seekTo(q.t-2*c.bar);if(!player.playing)playAt(player.off);}
-function clickToggled(){if(player.playing&&view==='src'){var p=player.pos();player.stop();playAt(p);}}
-function clickBuffer(){if(song.click)return song.click;var c=player.ctxGet(),sr=song.sr,n=song.buf.length,b=c.createBuffer(1,n,sr),d=b.getChannelData(0),beat=song.beat;
-  for(var k=0,t=song.firstBeat;t<song.buf.duration;t+=beat,k++){var acc=((k-song.downbeat)%4+4)%4===0,f=acc?1600:1050,len=Math.floor(sr*(acc?0.04:0.025)),s0=Math.floor(t*sr),amp=acc?0.6:0.4;
+function clickToggled(){if(player.playing){var p=player.pos();player.stop();playAt(p);}}
+// Metronome: a click on every beat of the grid, high on beat 1. `db` is any bar line; beats run back to 0 and forward to the end.
+// Deck A uses the song's detected grid, Deck B the result's (bar lines at dropT ± n bars), so the extended mix can be checked the same way.
+function makeClick(buf,sr,db,beat){var c=player.ctxGet(),n=buf.length,b=c.createBuffer(1,n,sr),d=b.getChannelData(0);
+  for(var k=-Math.floor(db/beat+1e-9),t=db+k*beat;t<buf.duration;t+=beat,k++){var acc=((k%4)+4)%4===0,f=acc?1600:1050,len=Math.floor(sr*(acc?0.04:0.025)),s0=Math.floor(t*sr),amp=acc?0.6:0.4;
     for(var i=0;i<len&&s0+i<n;i++)d[s0+i]+=amp*Math.sin(2*Math.PI*f*i/sr)*Math.exp(-i/(sr*0.008));}
-  return song.click=b;}
+  return b;}
+function clickBuffer(){return song.click||(song.click=makeClick(song.buf,song.sr,song.firstBeat+song.downbeat*song.beat,song.beat));}
 document.addEventListener('keydown',function(e){if(tourI>=0)return;if(e.code==='Escape'){closeModal('authModal');closeModal('unlockModal');closeModal('proModal');}if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;var c=cur();if(!c)return;
   if(e.code==='Space'){e.preventDefault();togglePlay();}else if(e.code==='ArrowLeft'){stepBars(-1);}else if(e.code==='ArrowRight'){stepBars(1);}});
 // level meter: 12 LEDs (8 green, 3 yellow, 1 red) driven by the analyser
@@ -1212,7 +1215,7 @@ function setZoom(b){zoomBars=b;$('zoomLbl').textContent=b+' BARS';draw();}
 function zoomStep(d){var i=ZOOMS.indexOf(zoomBars);setZoom(ZOOMS[Math.max(0,Math.min(ZOOMS.length-1,i-d))]);}
 window.addEventListener('resize',function(){ovKey='';draw();});
 function setView(v){if(v==='ext'&&!result)return;player.stop();view=v;$('tabSrc').classList.toggle('on',v==='src');$('tabExt').classList.toggle('on',v==='ext');$('deckBadge').textContent=v==='src'?'A':'B';$('deckRole').textContent=v==='src'?'ORIGINAL':'EXTENDED';$('clickTog').style.display=v==='src'?'':'none';
-  var c=cur();player.off=0;player.dur=c?c.dur:0;renderHotcues();renderSampBox();$('trHint').textContent=v==='src'?'Drag to scrub · Space plays · high click on beat 1 = grid is right.':'Green = added by Extend The Mix. Blue → purple → amber → red = quiet → loud.';ovKey='';draw();}
+  var c=cur();player.off=0;player.dur=c?c.dur:0;renderHotcues();renderSampBox();$('trHint').textContent=v==='src'?'Drag to scrub · Space plays · high click on beat 1 = grid is right.':'Green = added by Extend The Mix. Click on = hear the grid under the extended mix too.';ovKey='';draw();}
 function renderHotcues(){var h=$('hotcues');h.innerHTML='';var qs=cuesOf();if($('cueBtn'))$('cueBtn').disabled=!qs[0];['A','B','C','D'].forEach(function(n,i){var q=qs[i],b=document.createElement('button');b.className='pad'+(q?' set':'');b.style.setProperty('--c',CUE_COL[n]);if(q){b.setAttribute('data-tip-title','Hot cue '+n+' · '+q.label);b.setAttribute('data-tip','Jumps 2 bars before '+q.label.toLowerCase()+' and plays, so you hear the transition.');}b.innerHTML=n+(q?'<small>'+q.label+' '+fmt(q.t).replace(/\.\d+$/,'')+'</small>':'');b.disabled=!q;b.title=q?q.label:'';b.onclick=function(){jumpCue(i);};h.appendChild(b);});}
 
 /* ── library ── */
