@@ -43,18 +43,21 @@ let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
   console.log('groove rms:',JSON.stringify(prev));ok(Object.keys(prev).length===32&&Object.values(prev).every(v=>v>0.02&&v<0.5),'all 32 grooves (8 styles × 4) render with sane RMS');
   // build: 16-bar house→trap cycling intro, 8-bar outro with 2-bar blend, crash+fill
   await page.evaluate(()=>{opt.intro=16;opt.outro=8;opt.styles=['house','trap'];opt.cycle=8;opt.blendIn=0;opt.blendOut=2;opt.crash=true;opt.level=0;opt.fx={len:2,riser:true,rev:true,sweep:true,build:true,atDrop:true,atOutro:true,atEnd:true};fxUI();opt.bed={inOn:true,outOn:true,len:4,level:-3};});
-  // account gate: signed out → build opens the sign-in modal; a signed-in user with no free mixes left → unlock modal; following both unlocks and builds
+  // account gate: signed out → build opens the sign-in modal; signed in → builds freely; the first download asks for both follows, then downloads
   await page.click('#buildBtn');
   const g1=await page.evaluate(()=>({modal:document.getElementById('authModal').classList.contains('show'),pending:auth.pending,result:!!result}));
   ok(g1.modal&&g1.pending==='build'&&!g1.result,'signed-out build opens the sign-in modal');
-  await page.evaluate(()=>{closeModal('authModal');auth.pending=null;auth.user={id:'test',email:'dj@example.com',user_metadata:{extendo_builds:3}};renderAuth();});
-  await page.click('#buildBtn');
-  const g2=await page.evaluate(()=>({unlock:document.getElementById('unlockModal').classList.contains('show'),btn:document.getElementById('unlockBtn').disabled,pill:document.getElementById('authArea').textContent}));
-  ok(g2.unlock&&g2.btn&&/0 free/.test(g2.pill),'3 used free mixes → unlock modal, unlock button disabled until both follows are clicked');
+  await page.evaluate(()=>{closeModal('authModal');auth.pending=null;auth.user={id:'test',email:'dj@example.com',user_metadata:{}};renderAuth();});
+  const t0=Date.now();await page.click('#buildBtn');await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
+  const g2=await page.evaluate(()=>({unlock:document.getElementById('unlockModal').classList.contains('show'),pill:document.getElementById('authArea').textContent,counted:song.counted}));
+  ok(!g2.unlock&&/follow to download/i.test(g2.pill)&&g2.counted,'signed-in build runs without any unlock prompt, pill says Free · follow to download');
+  let early=false;page.once('download',()=>{early=true;});await page.click('#dlBtn');await page.waitForTimeout(300);
+  const g3=await page.evaluate(()=>({unlock:document.getElementById('unlockModal').classList.contains('show'),btn:document.getElementById('unlockBtn').disabled,pending:auth.pending}));
+  ok(g3.unlock&&g3.btn&&g3.pending==='download'&&!early,'first download opens the follow modal, nothing downloaded, unlock button disabled until both follows are clicked');
   await page.evaluate(()=>{followClick('spotify');followClick('insta');});
   ok(await page.evaluate(()=>!document.getElementById('unlockBtn').disabled),'both follows clicked → unlock enabled');
-  const t0=Date.now();await page.evaluate(()=>confirmUnlock());await page.waitForFunction(()=>window.result&&window.result.tl,null,{timeout:120000});console.log('build took',Date.now()-t0,'ms');
-  ok(await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&song.counted&&/unlimited/i.test(document.getElementById('authArea').textContent)),'unlock closed the modal, built the pending mix, pill shows UNLIMITED');
+  const [dl0]=await Promise.all([page.waitForEvent('download',{timeout:15000}),page.evaluate(()=>confirmUnlock())]);
+  ok(/\(Extended Mix\)\.aiff$/.test(dl0.suggestedFilename())&&await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&unlocked()&&/unlimited/i.test(document.getElementById('authArea').textContent)),'unlock closed the modal, fired the pending download, pill shows UNLIMITED');
   // shuffle grooves → different groove for the selected styles and an automatic rebuild
   const sh=await page.evaluate(async()=>{const before={...opt.groove},id=result.id;shuffleGrooves(false);await new Promise(r=>setTimeout(r,50));while(busy)await new Promise(r=>setTimeout(r,50));return {before,after:{...opt.groove},rebuilt:result.id!==id,meta:document.getElementById('resultMeta').textContent};});
   ok(opt_changed(sh)&&sh.rebuilt,'shuffle picked new grooves ('+JSON.stringify(sh.after)+') and rebuilt: '+sh.meta);
