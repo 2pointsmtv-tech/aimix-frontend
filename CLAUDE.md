@@ -378,6 +378,10 @@ for the account gate.
      at the end of the intro (or the user's `firstDBOverride`, snapped to the
      grid); the outro starts on the last bar line before the audio ends;
      "blend" bars overlap drums under the song with linear fades.
+     `lastDBOverride` ("Outro drums here" / dragging the outro line on Deck B)
+     moves the outro start to an earlier bar line, never later than the real
+     last one; when the song would then outlive the outro, `songCutT` makes
+     `build()` fade it over the last bar and `total` ends 2.2 s after the outro.
 2. Drums (`<script id="drums">`): patterns are 16/32-step strings per
    instrument in `STYLES` (`x`/`o`/`-`/`.`). Each style has a synth `kit` and
    **4 `grooves`** (`{name, A, B}`; B is the variation for the 2nd 4 bars of
@@ -432,7 +436,12 @@ for the account gate.
    beat 1 (pointer handlers own the canvas, the seek-on-click is suppressed).
    `nudgeBpm` pivots around bar 1 so a BPM trim keeps the downbeat; `setBpm`
    (typed value, ½×/2×, TAP) re-detects phase + downbeat. `setBar1(t)` stores
-   `song.firstDBOverride` for tracks whose intro should sit under the drums.
+   `song.firstDBOverride` for tracks whose intro should sit under the drums;
+   `setOutroStart(t)` stores `song.lastDBOverride`. Both accept Deck B times
+   (`toSrcTime`) and rebuild when called on Deck B. On Deck B's zoomed
+   waveform the drop line and the outro start are draggable by whole bars
+   (`boundaryHit` / `bndDrag` in `scrubBind`, ghost line drawn in `drawDetail`,
+   release rebuilds).
 
 5. Account gate (`GATE=true`, the hosted test copy on claude.ai runs with
    `GATE=false`): analysing, grid editing and drum previews are free and

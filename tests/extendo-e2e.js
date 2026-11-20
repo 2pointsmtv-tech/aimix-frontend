@@ -58,6 +58,17 @@ let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
   ok(await page.evaluate(()=>!document.getElementById('unlockBtn').disabled),'both follows clicked → unlock enabled');
   const [dl0]=await Promise.all([page.waitForEvent('download',{timeout:15000}),page.evaluate(()=>confirmUnlock())]);
   ok(/\(Extended Mix\)\.aiff$/.test(dl0.suggestedFilename())&&await page.evaluate(()=>!document.getElementById('unlockModal').classList.contains('show')&&unlocked()&&/unlimited/i.test(document.getElementById('authArea').textContent)),'unlock closed the modal, fired the pending download, pill shows UNLIMITED');
+  // outro start: "Outro drums here" on Deck B moves the outro 2 bars earlier and rebuilds; dragging the outro line on the zoomed waveform does the same
+  const ob=await page.evaluate(async()=>{const tl0=result.tl,id0=result.id;setOutroStart(tl0.lastDBT-2*tl0.bar);await new Promise(r=>setTimeout(r,100));while(busy)await new Promise(r=>setTimeout(r,50));return {before:tl0.lastDBT,after:result.tl.lastDBT,bar:tl0.bar,over:song.lastDBOverride,on:document.getElementById('outroAuto').classList.contains('on'),rebuilt:result.id!==id0,cut:result.tl.songCutT,outroEnd:result.tl.outroEnd,info:document.getElementById('gridInfo').textContent};});
+  ok(Math.abs(ob.before-ob.after-2*ob.bar)<1e-6&&ob.over!=null&&!ob.on&&ob.rebuilt&&/set by you/.test(ob.info),'Outro drums here (Deck B) moved the outro start 2 bars earlier and rebuilt');
+  ok(ob.cut===null&&await page.evaluate(()=>{const p=ExtendoDSP.plan(Object.assign(gridArgs(),{lastDBOverride:song.lastDB-10*song.bar}),opt);return p.songCutT===p.outroEnd&&Math.abs(p.total-(p.outroEnd+2.2))<1e-6;}),'the song is only cut (and faded) when it would outlive the outro drums');
+  const dtBox=await page.locator('#dt').boundingBox();await page.evaluate(()=>{setZoom(8);seekTo(result.tl.lastDBT);draw();});
+  const cx=dtBox.x+dtBox.width/2,cy=dtBox.y+dtBox.height/2;await page.mouse.move(cx,cy);const cur=await page.evaluate(()=>document.getElementById('dtWrap').style.cursor);
+  await page.mouse.down();await page.mouse.move(cx-dtBox.width/8,cy,{steps:6});const ghost=await page.evaluate(()=>bndDrag&&bndDrag.which);await page.mouse.up();
+  const od=await page.evaluate(async()=>{await new Promise(r=>setTimeout(r,100));while(busy)await new Promise(r=>setTimeout(r,50));return {after:result.tl.lastDBT,bar:result.tl.bar};});
+  ok(cur==='ew-resize'&&ghost==='outro'&&Math.abs(ob.after-od.after-od.bar)<1e-6,'dragging the outro line one bar left (cursor ew-resize, ghost shown) moved it one bar earlier and rebuilt');
+  await page.evaluate(async()=>{setOutroStart(null);await new Promise(r=>setTimeout(r,100));while(busy)await new Promise(r=>setTimeout(r,50));});
+  ok(await page.evaluate((b)=>Math.abs(result.tl.lastDBT-b)<1e-6&&result.tl.songCutT===null,ob.before),'Outro auto restores the detected last bar line');
   // shuffle grooves → different groove for the selected styles and an automatic rebuild
   const sh=await page.evaluate(async()=>{const before={...opt.groove},id=result.id;shuffleGrooves(false);await new Promise(r=>setTimeout(r,50));while(busy)await new Promise(r=>setTimeout(r,50));return {before,after:{...opt.groove},rebuilt:result.id!==id,meta:document.getElementById('resultMeta').textContent};});
   ok(opt_changed(sh)&&sh.rebuilt,'shuffle picked new grooves ('+JSON.stringify(sh.after)+') and rebuilt: '+sh.meta);
