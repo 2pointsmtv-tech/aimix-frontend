@@ -448,7 +448,8 @@ if(MOBILE)document.documentElement.classList.add('mob');
       <div class="seg" data-tip-title="Move beat 1" data-tip="If the high click lands on the wrong beat, shift beat 1 one beat earlier or later."><button onclick="nudgeBeat(-1)">− beat</button><button onclick="nudgeBeat(1)">+ beat</button></div>
       <div class="seg" data-tip-title="Fine nudge" data-tip="Slide the whole grid by 10 milliseconds when the click sits just before or after the beat."><button onclick="nudgeMs(-10)">−10 ms</button><button onclick="nudgeMs(10)">+10 ms</button></div>
       <button class="sb" data-tip-title="Beat 1 here" data-tip="Park the playhead on a beat you know is beat 1 and press this. The grid snaps to it." onclick="setDownbeatHere()">Beat 1 here</button>
-      <button class="sb" id="bar1Auto" data-tip-title="Bar 1 · auto" data-tip="Bar 1 is where the intro drums hand over to your song. Auto uses the first downbeat of the track." onclick="setBar1(null)">Bar 1 auto</button><button class="sb" data-tip-title="Bar 1 here" data-tip="Choose a later bar line as the hand-over point, for example after a long ambient opening. Everything before it plays under the intro drums." onclick="setBar1(player.pos())">Bar 1 here</button>
+      <button class="sb" id="bar1Auto" data-tip-title="Bar 1 · auto" data-tip="Bar 1 is where the intro drums hand over to your song. Auto uses the first downbeat of the track." onclick="setBar1(null)">Bar 1 auto</button><button class="sb" data-tip-title="Bar 1 here" data-tip="Choose a later bar line as the hand-over point, for example after a long ambient opening. Everything before it plays under the intro drums. On Deck B you can also drag the drop line." onclick="setBar1(deckPos())">Bar 1 here</button>
+      <button class="sb on" id="outroAuto" data-tip-title="Outro drums · auto" data-tip="The outro drums start on the last bar line of the track. Auto finds it; a long reverb tail can push it later than the real ending." onclick="setOutroStart(null)">Outro auto</button><button class="sb" data-tip-title="Outro drums here" data-tip="Park the playhead on the bar where the song really ends and press this: the outro drums start there and the tail fades under them. On Deck B you can also drag the start of the outro region." onclick="setOutroStart(deckPos())">Outro drums here</button>
       <div class="sep"></div><span class="lab" data-tip-title="Sampler" data-tip="Loop a phrase of the song, drums stripped, under the new drums. Put the playhead where the loop should start, then pick Intro or Outro.">SAMPLE</span><button class="sb" data-tip-title="Intro here" data-tip="Drops a green sample box at the playhead for the intro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('in')">Intro here</button><button class="sb" data-tip-title="Outro here" data-tip="Drops a green sample box at the playhead for the outro. Pick 1 to 32 bars, hit Loop to audition, Melody only to hear it without the drums." onclick="createSample('out')">Outro here</button><span class="protag" id="sampProTag">PRO</span>
       <label class="sw" id="clickTog" data-tip-title="Metronome click" data-tip="Plays a click on every beat of the grid, with a high click on beat 1. If the high click is not on the 1, fix the grid before you build."><input type="checkbox" id="clickChk" checked onchange="clickToggled()"><span class="tr"></span><span class="l">Click</span></label>
       <div class="right"><span class="hint" id="trHint"></span><div class="seg" id="wfMode" data-tip-title="Waveform colour" data-tip="Loudness: sections coloured quiet to loud. Frequency: bass orange, mids green, highs blue, like Rekordbox. Added parts are always green." title="Waveform colour"><button class="on" data-m="loud" onclick="setWfMode('loud')">Loudness</button><button data-m="freq" onclick="setWfMode('freq')">Frequency</button></div></div>
@@ -742,7 +743,7 @@ var ExtendoDSP=(function(){
       var o2=f*H;for(i=0;i<N&&o2+i<x.length;i++){out[o2+i]+=re[i]/N*win[i];norm[o2+i]+=win[i]*win[i];}}
     for(i=0;i<x.length;i++)if(norm[i]>1e-3)out[i]/=norm[i];
     return out;}
-  // Timeline plan. a: {sStart,sEnd,bpm,firstBeat,downbeat}  o: {intro,outro,blendIn,blendOut} (bars)
+  // Timeline plan. a: {sStart,sEnd,bpm,firstBeat,downbeat,firstDBOverride?,lastDBOverride?}  o: {intro,outro,blendIn,blendOut} (bars)
   // Song time s ↦ timeline time s+off. The song's first downbeat lands exactly on the end of the intro.
   function plan(a,o){
     var beat=60/a.bpm,bar=4*beat,db0=a.firstBeat+a.downbeat*beat;
@@ -750,13 +751,15 @@ var ExtendoDSP=(function(){
     if(a.firstDBOverride!=null)firstDB=db0+Math.round((a.firstDBOverride-db0)/bar)*bar;   // user chose bar 1 by hand (snapped to the grid)
     var lastDB=db0+Math.floor((a.sEnd-db0)/bar)*bar;
     if(a.sEnd-lastDB>bar-0.15*beat)lastDB+=bar;           // audio stops a hair before the next bar line → treat that line as the last
+    if(a.lastDBOverride!=null)lastDB=Math.min(lastDB,db0+Math.round((a.lastDBOverride-db0)/bar)*bar);   // user chose where the outro drums start (snapped; never past the real last bar line)
     if(lastDB<=firstDB)lastDB=firstDB+bar;
     var introLen=o.intro*bar,off=introLen-firstDB;
     if(off+a.sStart<0)off=-a.sStart;                        // no intro: keep the song's own lead-in, start the file at its first sound
     var songOffset=a.sStart,songStartT=songOffset+off,dropT=firstDB+off,lastDBT=lastDB+off;
     var outroEnd=lastDBT+o.outro*bar,songEndT=a.sEnd+off;
-    var total=Math.max(outroEnd+(o.outro>0?2.2:0),songEndT+0.05);
-    return {beat:beat,bar:bar,firstDB:firstDB,lastDB:lastDB,off:off,songOffset:songOffset,songStartT:songStartT,songEndT:songEndT,dropT:dropT,lastDBT:lastDBT,outroEnd:outroEnd,total:total,
+    var songCutT=o.outro>0&&songEndT>outroEnd+0.05?outroEnd:null;   // outro placed early: the song's tail plays under the drums and fades out over the last bar
+    var total=songCutT!=null?outroEnd+2.2:Math.max(outroEnd+(o.outro>0?2.2:0),songEndT+0.05);
+    return {beat:beat,bar:bar,firstDB:firstDB,lastDB:lastDB,off:off,songOffset:songOffset,songStartT:songStartT,songEndT:songEndT,songCutT:songCutT,dropT:dropT,lastDBT:lastDBT,outroEnd:outroEnd,total:total,
       bars:Math.round((lastDB-firstDB)/bar),
       intro:o.intro>0?{start:0,bars:o.intro+o.blendIn,fadeOutFromBar:o.intro,fillBars:[o.intro-1],crashAt:[dropT],endHit:false}:null,
       outro:o.outro>0?{start:lastDBT-o.blendOut*bar,bars:o.outro+o.blendOut,fadeInBars:o.blendOut,fillBars:[o.outro+o.blendOut-1],crashAt:[],endHit:true}:null};
@@ -1049,8 +1052,8 @@ function cuesOf(){if(view==='ext'&&result){var tl=result.tl;return [{n:'A',t:tl.
   if(song)return [{n:'A',t:song.firstDB,label:'BEAT 1',c:CUE_COL.A},{n:'B',t:song.lastDB,label:'LAST BAR',c:CUE_COL.B}];return [];}
 function regionsOf(){return view==='ext'&&result?regionsFor(result):[];}
 function regionsFor(res){var tl=res.tl,b=tl.bar,r=[];
-  if(tl.intro)r.push({a:0,b:tl.intro.bars*b,c:'#a855f7',label:'INTRO DRUMS · '+res.intro+' BARS'+(opt.blendIn?' +'+opt.blendIn+' BLEND':'')+' · '+(res.styleLabel||'')});
-  if(tl.outro)r.push({a:tl.outro.start,b:tl.outroEnd,c:'#a855f7',label:'OUTRO DRUMS · '+res.outro+' BARS'+(opt.blendOut?' +'+opt.blendOut+' BLEND':'')});
+  if(tl.intro)r.push({a:0,b:tl.intro.bars*b,c:'#d4d4d4',label:'INTRO DRUMS · '+res.intro+' BARS'+(opt.blendIn?' +'+opt.blendIn+' BLEND':'')+' · '+(res.styleLabel||'')});
+  if(tl.outro)r.push({a:tl.outro.start,b:tl.outroEnd,c:'#d4d4d4',label:'OUTRO DRUMS · '+res.outro+' BARS'+(opt.blendOut?' +'+opt.blendOut+' BLEND':'')});
   (tl.bedRegions||[]).forEach(function(bd){r.push({a:bd.a,b:bd.b,c:'#22c55e',label:'MELODY LOOP · BARS '+bd.bar0+'–'+(bd.bar0+bd.bars-1),bed:true});});
   (tl.fxRegions||[]).forEach(function(f){r.push({a:f.a,b:f.b,c:'#e879f9',label:'FX',fx:true});});return r;}
 
@@ -1168,6 +1171,7 @@ function drawDetail(c,pos){var f=fit($('dt')),g=f.g,W=f.W,H=f.H,win=zoomBars*c.b
     g.font='700 10px Inter, sans-serif';var tw=g.measureText(sm.label).width;g.fillStyle='#22c55e';g.fillRect(x0,H-22,tw+12,16);g.fillStyle='#03150a';g.fillText(sm.label,x0+6,H-10);});
   cuesOf().forEach(function(q){var x=Math.round((q.t-t0)/spp);if(x<-60||x>W+60)return;g.fillStyle=q.c;g.fillRect(x,R,2,H-R);g.font='700 10px Inter, sans-serif';var lbl=q.n+' · '+q.label,tw=g.measureText(lbl).width;g.fillRect(x-1,R+6,tw+12,16);g.fillStyle='#000';g.fillText(lbl,x+5,R+18);});
   regionsOf().forEach(function(r){if(!r.fx)return;var x0=(r.a-t0)/spp;if(x0<-200||x0>W)return;g.font='600 9px JetBrains Mono, monospace';g.fillStyle='#e879f9';g.fillText('FX '+opt.fx.len+' BAR'+(opt.fx.len>1?'S':''),Math.max(4,x0+4),H-8);});
+  if(bndDrag&&view==='ext'){var bx=Math.round((bndDrag.t-t0)/spp),bl=(bndDrag.which==='drop'?'DROP':'OUTRO DRUMS')+' → BAR '+(Math.round((bndDrag.t-c.anchor)/c.bar)+1);g.fillStyle='rgba(255,255,255,.9)';g.fillRect(bx-1,R,2,H-R);g.font='700 10px Inter, sans-serif';var bw=g.measureText(bl).width;g.fillStyle='#fff';g.fillRect(bx+4,R+30,bw+12,16);g.fillStyle='#000';g.fillText(bl,bx+10,R+42);}
   g.fillStyle='#fff';g.fillRect(Math.round(W/2)-1,0,2,H);g.fillStyle='#e8a33d';g.beginPath();g.moveTo(W/2-6,0);g.lineTo(W/2+6,0);g.lineTo(W/2,7);g.closePath();g.fill();}
 function deckPos(){return player.pos()+player.view0;}
 var drawReq=false;function drawSoon(){if(drawReq)return;drawReq=true;requestAnimationFrame(function(){drawReq=false;draw();});}
@@ -1176,18 +1180,24 @@ function draw(){var c=cur();if(!c)return;var pos=deckPos();drawOverview(c,pos);d
   var bar=Math.floor((pos-c.anchor)/c.bar)+1,bt=Math.floor(((pos-c.anchor)%c.bar+c.bar)%c.bar/c.beat)+1;$('tBar').textContent=bar+'.'+bt;}
 /* ── scrubbing: drag the overview (playhead follows the pointer) or the zoomed waveform (track slides under the playhead).
    Audio pauses while you hold and resumes from where you let go; a plain click on the zoomed view seeks to that spot. ── */
-var scrub=null,sampDrag=null;
+var scrub=null,sampDrag=null,bndDrag=null;
+// Deck B: the drop line and the start of the outro drums can be dragged by whole bars; release rebuilds
+function boundaryHit(el,clientX){if(view!=='ext'||!result)return null;var c=cur(),r=el.getBoundingClientRect(),spp=zoomBars*c.bar/r.width,t=deckPos()+((clientX-r.left)/r.width-0.5)*zoomBars*c.bar,tl=result.tl;if(tl.outro&&Math.abs(t-tl.lastDBT)<9*spp)return {which:'outro',t:tl.lastDBT,rect:r};if(tl.intro&&Math.abs(t-tl.dropT)<9*spp)return {which:'drop',t:tl.dropT,rect:r};return null;}
 function scrubBind(el,mode){
   el.addEventListener('pointerdown',function(e){var c=cur();if(!c||e.button!==0||(mode==='dt'&&gridEdit&&view==='src')||e.target.closest('.sampbox,button,.gehint'))return;e.preventDefault();
     if(mode==='dt'&&view==='src'){var r0=el.getBoundingClientRect(),tt=deckPos()+((e.clientX-r0.left)/r0.width-0.5)*zoomBars*c.bar,hit=samplesOf().filter(function(sm){return tt>=sm.a&&tt<=sm.b;})[0];
       if(hit){sampSel=hit.which;renderSampBox();sampDrag={which:hit.which,x0:e.clientX,s0:song.samp[hit.which].start,rect:r0,win:zoomBars*c.bar,was:player.playing};if(player.playing)player.stop();el.setPointerCapture(e.pointerId);draw();return;}}
+    if(mode==='dt'){var bh=boundaryHit(el,e.clientX);if(bh){bndDrag={which:bh.which,t:bh.t,t0:bh.t,x0:e.clientX,rect:bh.rect,win:zoomBars*c.bar,was:player.playing};if(player.playing)player.stop();el.setPointerCapture(e.pointerId);draw();return;}}
     scrub={mode:mode,x0:e.clientX,was:player.playing,start:player.pos(),moved:false,rect:el.getBoundingClientRect(),dur:c.dur,win:zoomBars*c.bar};
     if(player.playing)player.stop();el.setPointerCapture(e.pointerId);
     if(mode==='ov'){player.off=clampT((e.clientX-scrub.rect.left)/scrub.rect.width*c.dur);draw();}});
-  el.addEventListener('pointermove',function(e){if(sampDrag&&mode==='dt'){var sp=song.samp[sampDrag.which],dx=e.clientX-sampDrag.x0;sp.start=Math.max(song.firstDB,Math.min(snapBar(song,song.lastDB-sp.bars*song.bar),snapBar(song,sampDrag.s0+dx*sampDrag.win/sampDrag.rect.width)));renderSampBox();drawSoon();return;}
+  el.addEventListener('pointermove',function(e){if(bndDrag&&mode==='dt'){var tl=result.tl,raw=bndDrag.t0+(e.clientX-bndDrag.x0)*bndDrag.win/bndDrag.rect.width,k=Math.round((raw-tl.dropT)/tl.bar),lo=bndDrag.which==='drop'?Math.ceil((tl.songStartT-tl.dropT)/tl.bar-1e-6):1,hi=bndDrag.which==='drop'?Math.round((tl.lastDBT-tl.dropT)/tl.bar)-1:Math.round((tl.songEndT-tl.dropT)/tl.bar);bndDrag.t=tl.dropT+Math.max(lo,Math.min(hi,k))*tl.bar;drawSoon();return;}
+    if(mode==='dt'&&!scrub&&!sampDrag)el.style.cursor=boundaryHit(el,e.clientX)?'ew-resize':'';
+    if(sampDrag&&mode==='dt'){var sp=song.samp[sampDrag.which],dx=e.clientX-sampDrag.x0;sp.start=Math.max(song.firstDB,Math.min(snapBar(song,song.lastDB-sp.bars*song.bar),snapBar(song,sampDrag.s0+dx*sampDrag.win/sampDrag.rect.width)));renderSampBox();drawSoon();return;}
     if(!scrub||scrub.mode!==mode)return;var dx=e.clientX-scrub.x0;if(Math.abs(dx)>2)scrub.moved=true;
     player.off=scrub.mode==='ov'?clampT((e.clientX-scrub.rect.left)/scrub.rect.width*scrub.dur):clampT(scrub.start-dx*scrub.win/scrub.rect.width);drawSoon();});
-  var end=function(e){if(sampDrag&&mode==='dt'){var sd=sampDrag;sampDrag=null;sampMelBuf=null;bedInfoText();if(sd.was)playAt(song.samp[sd.which].start);else draw();return;}
+  var end=function(e){if(bndDrag&&mode==='dt'){var bd=bndDrag;bndDrag=null;el.style.cursor='';if(Math.abs(bd.t-bd.t0)>1e-6){if(bd.which==='drop')setBar1(bd.t);else setOutroStart(bd.t);}else if(bd.was)playAt(player.off);else draw();return;}
+    if(sampDrag&&mode==='dt'){var sd=sampDrag;sampDrag=null;sampMelBuf=null;bedInfoText();if(sd.was)playAt(song.samp[sd.which].start);else draw();return;}
     if(!scrub||scrub.mode!==mode)return;var sc=scrub;scrub=null;
     if(sc.mode==='dt'&&!sc.moved)player.off=clampT(sc.start+((e.clientX-sc.rect.left)/sc.rect.width-0.5)*sc.win);
     if(sc.was)playAt(player.off);else draw();};
@@ -1216,7 +1226,7 @@ fi.addEventListener('change',function(){loadFiles(fi.files);fi.value='';});
 function status(msg,err){var s=$('dropStatus');s.textContent=msg||'';s.className='st'+(err?' err':'');if(msg&&!song)$('dropBig').classList.remove('hide');}
 function loadFile(f){loadFiles([f]);}
 function loadFiles(files){var arr=Array.from(files||[]).filter(function(f){return /audio|\.(mp3|wav|flac|m4a|aac|ogg|aif|aiff)$/i.test(f.type+' '+f.name);});if(!arr.length)return;
-  arr.forEach(function(f){var base=f.name.replace(/\.[^.]+$/,''),m=base.match(/^(.+?)\s+-\s+(.+)$/);lib.push({id:Date.now()+Math.random(),file:f,name:base,title:m?m[2]:base,artist:m?m[1]:'',status:'queued',result:null,firstDBOverride:null,counted:false,samp:{}});});
+  arr.forEach(function(f){var base=f.name.replace(/\.[^.]+$/,''),m=base.match(/^(.+?)\s+-\s+(.+)$/);lib.push({id:Date.now()+Math.random(),file:f,name:base,title:m?m[2]:base,artist:m?m[1]:'',status:'queued',result:null,firstDBOverride:null,lastDBOverride:null,counted:false,samp:{}});});
   renderLib();processQueue();}
 async function processQueue(){if(analyzing)return;analyzing=true;cpu(55);
   for(;;){var tr=null;for(var i=0;i<lib.length;i++)if(lib[i].status==='queued'){tr=lib[i];break;}if(!tr)break;await analyzeTrack(tr);}
@@ -1238,7 +1248,7 @@ async function analyzeTrack(tr){tr.status='analyzing';renderLib();if(!song)statu
 function selectTrack(tr){if(!tr||tr.status!=='ready')return;player.stop();song=tr;result=tr.result||null;
   $('dTitle').textContent=$('dTitle2').textContent=tr.title;$('dArtist').textContent=(tr.artist?tr.artist+' · ':'')+fmtS(tr.buf.duration)+' · '+tr.sr+' Hz';setArt(tr.coverUrl);$('dArtist2').textContent=tr.artist?'· '+tr.artist:'';$('songMeta').textContent=tr.file.name;
   ['pGrid','pExt','pFx','pStyles','pBed'].forEach(function(id){$(id).classList.remove('off');});$('buildBtn').disabled=false;$('dlBtn').disabled=!result;$('shuffleBtn').disabled=!result;$('tabExt').disabled=!result;
-  status('');$('dropBig').classList.add('hide');$('bar1Auto').classList.toggle('on',tr.firstDBOverride==null);if(gridEdit)toggleGridEdit();
+  status('');$('dropBig').classList.add('hide');$('bar1Auto').classList.toggle('on',tr.firstDBOverride==null);$('outroAuto').classList.toggle('on',tr.lastDBOverride==null);if(gridEdit)toggleGridEdit();
   sampSel=null;sampLoop=false;sampMel=false;sampMelBuf=null;tr.samp=tr.samp||{};bedInfoText();
   renderBpmUI();refreshGrid();if(result){showResultInfo(false);setView('ext');seekTo(Math.max(0,result.tl.dropT-2*result.tl.bar));}else{$('cueBar').style.display='none';setView('src');seekTo(Math.max(0,tr.firstDB-2*tr.beat));}
   renderLib();}
@@ -1279,12 +1289,15 @@ function tapTempo(){var now=performance.now();if(taps.length&&now-taps[taps.leng
 // the grid is (bpm, firstBeat, downbeat); setAnchor() re-expresses it from "this time is a beat 1"
 function anchorT(){return song.firstBeat+song.downbeat*(60/song.bpm);}
 function setAnchor(t){var beat=60/song.bpm;song.firstBeat=((t%beat)+beat)%beat;song.downbeat=((Math.round((t-song.firstBeat)/beat)%4)+4)%4;}
-function gridArgs(){return {sStart:song.sStart,sEnd:song.sEnd,bpm:song.bpm,firstBeat:song.firstBeat,downbeat:song.downbeat,firstDBOverride:song.firstDBOverride};}
+function gridArgs(){return {sStart:song.sStart,sEnd:song.sEnd,bpm:song.bpm,firstBeat:song.firstBeat,downbeat:song.downbeat,firstDBOverride:song.firstDBOverride,lastDBOverride:song.lastDBOverride};}
 function nudgeBeat(d){song.downbeat=((song.downbeat+d)%4+4)%4;refreshGrid();}
 function nudgeMs(ms){setAnchor(anchorT()+ms/1000);refreshGrid();}
 function nudgeBpm(d){var a=song.firstDB;song.bpm=Math.max(40,Math.min(300,song.bpm+d));setAnchor(a);renderBpmUI();refreshGrid();}   // pivots around bar 1, keeps your downbeat
 function setDownbeatHere(){if(view!=='src')return;var pos=player.pos(),beat=60/song.bpm;setAnchor(song.firstBeat+Math.round((pos-song.firstBeat)/beat)*beat);refreshGrid();}
-function setBar1(t){if(view!=='src'&&t!=null)return;song.firstDBOverride=t;$('bar1Auto').classList.toggle('on',t==null);refreshGrid();}
+// Hand-over points, settable from either deck (Deck B times are converted back to the song's own time). On Deck B the result is rebuilt right away.
+function toSrcTime(t){return t!=null&&view==='ext'&&result?t-result.tl.off:t;}
+function setBar1(t){song.firstDBOverride=toSrcTime(t);$('bar1Auto').classList.toggle('on',t==null);refreshGrid();if(result&&view==='ext')build();}
+function setOutroStart(t){song.lastDBOverride=toSrcTime(t);$('outroAuto').classList.toggle('on',t==null);refreshGrid();if(result&&view==='ext')build();}
 var gridEdit=false;
 function toggleGridEdit(){gridEdit=!gridEdit;if(gridEdit&&view!=='src')setView('src');['gridEditBtn','gridEditBtn2'].forEach(function(id){$(id).classList.toggle('ge',gridEdit);});$('geHint').style.display=gridEdit?'block':'none';$('dtWrap').classList.toggle('ge',gridEdit);draw();}
 (function(){var el=$('dtWrap'),drag=null;
@@ -1297,7 +1310,7 @@ function toggleGridEdit(){gridEdit=!gridEdit;if(gridEdit&&view!=='src')setView('
 function refreshGrid(){
   var p=ExtendoDSP.plan(gridArgs(),{intro:0,outro:0,blendIn:0,blendOut:0});
   song.beat=p.beat;song.bar=p.bar;song.firstDB=p.firstDB;song.lastDB=p.lastDB;song.bars=p.bars;song.click=null;song.id=Date.now();
-  $('gridInfo').innerHTML='Bar 1 at <b>'+fmt(p.firstDB)+'</b>'+(song.firstDBOverride!=null?' (set by you)':'')+' · last bar line <b>'+fmt(p.lastDB)+'</b> · <b>'+p.bars+'</b> bars · <b>'+p.bar.toFixed(3)+' s</b> per bar';
+  $('gridInfo').innerHTML='Bar 1 at <b>'+fmt(p.firstDB)+'</b>'+(song.firstDBOverride!=null?' (set by you)':'')+' · outro drums at <b>'+fmt(p.lastDB)+'</b>'+(song.lastDBOverride!=null?' (set by you)':'')+' · <b>'+p.bars+'</b> bars · <b>'+p.bar.toFixed(3)+' s</b> per bar';
   if(view==='src'){var was=player.playing,pos=player.pos();if(was)player.stop();renderHotcues();ovKey='';if(was)playAt(pos);else draw();}
 }
 
@@ -1507,10 +1520,10 @@ async function build(){
     tl.bedRegions=bedRegions;
     $('buildBar').style.width='70%';
     // output sample i ↔ song sample i-shift (one integer shift, so the grid stays sample-exact)
-    var out=[new Float32Array(total),new Float32Array(total)],shift=Math.round(tl.off*sr),o0=Math.round(tl.songOffset*sr),sEnd=Math.min(song.buf.length,Math.round(song.sEnd*sr)+sr),mono=new Float32Array(total);
+    var out=[new Float32Array(total),new Float32Array(total)],shift=Math.round(tl.off*sr),o0=Math.round(tl.songOffset*sr),sEnd=Math.min(song.buf.length,Math.round(song.sEnd*sr)+sr),mono=new Float32Array(total),cutA=tl.songCutT!=null?Math.round((tl.songCutT-tl.bar)*sr):Infinity,cutB=tl.songCutT!=null?Math.round(tl.songCutT*sr):Infinity;
     for(var ch=0;ch<2;ch++){var d=drum,sd=song.buf.getChannelData(Math.min(ch,song.buf.numberOfChannels-1)),o=out[ch];
       // the song is passed through sample-for-sample; only where added drums/bed overlap it do we soft-limit above 0.98 (the encoder clamps anything beyond full scale)
-      var bd=ch?bedR:bedL;for(i=0;i<total;i++){var si=i-shift,add=d[i]+bd[i],v=add+(si>=o0&&si<sEnd?sd[si]:0),a=Math.abs(v);if(add!==0&&a>0.98)v=(v<0?-1:1)*(0.98+0.02*Math.tanh((a-0.98)/0.02));o[i]=v;mono[i]+=v*0.5;}}
+      var bd=ch?bedR:bedL;for(i=0;i<total;i++){var si=i-shift,add=d[i]+bd[i],v=add+(si>=o0&&si<sEnd?sd[si]*(i<cutA?1:i>=cutB?0:1-(i-cutA)/(cutB-cutA)):0),a=Math.abs(v);if(add!==0&&a>0.98)v=(v<0?-1:1)*(0.98+0.02*Math.tanh((a-0.98)/0.02));o[i]=v;mono[i]+=v*0.5;}}
     var c=player.ctxGet(),rb=c.createBuffer(2,total,sr);rb.copyToChannel(out[0],0);rb.copyToChannel(out[1],1);
     var bedRms=0;if(bedRegions.length){var ra=Math.round(bedRegions[0].a*sr),rb2=Math.min(total,Math.round(bedRegions[0].b*sr)),ss=0;for(i=ra;i<rb2;i++)ss+=bedL[i]*bedL[i];bedRms=Math.sqrt(ss/Math.max(1,rb2-ra));}
     result={id:Date.now(),buf:rb,chs:out,tl:tl,shift:shift,cols:bandCols(mono,sr),bedRms:bedRms,proFeatures:proUsedHere,wav:null,url:null};$('buildBar').style.width='100%';

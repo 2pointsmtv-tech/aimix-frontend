@@ -38,6 +38,8 @@ for(const tc of [{bpm:126.3,phase:0.37},{bpm:92.5,phase:1.2},{bpm:140,phase:0.05
 // pickup: song starts 1 beat before its first downbeat
 {const p=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0},{intro:8,outro:0,blendIn:0,blendOut:0});ok(Math.abs(p.firstDB-0.5)<1e-9&&Math.abs(p.songStartT-(16-0.5))<1e-9,'1-beat pickup overlaps the intro');}
 // bar-1 override snaps to the grid and moves the drop
+{const p=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0,lastDBOverride:150.3},{intro:0,outro:16,blendIn:0,blendOut:0});ok(Math.abs(p.lastDB-150.5)<1e-9&&Math.abs(p.outroEnd-182.5)<1e-9&&p.songCutT===p.outroEnd&&Math.abs(p.total-(p.outroEnd+2.2))<1e-9,'lastDBOverride snaps 150.3 → bar line 150.5; outro starts there, song is cut at the outro end');
+  const q=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0,lastDBOverride:999},{intro:0,outro:16,blendIn:0,blendOut:0}),q0=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0},{intro:0,outro:16,blendIn:0,blendOut:0});ok(q.lastDB===q0.lastDB&&q0.songCutT===null,'lastDBOverride never moves past the real last bar line; no cut without an override');}
 {const p=D.plan({sStart:0.0,sEnd:200,bpm:120,firstBeat:0.5,downbeat:0,firstDBOverride:4.6},{intro:8,outro:0,blendIn:0,blendOut:0});ok(Math.abs(p.firstDB-4.5)<1e-9&&Math.abs(p.songStartT-(16-4.5))<1e-9,'firstDBOverride snaps 4.6 → bar line 4.5 and song starts earlier under the intro');}
 // WAV encoder
 {const L=new Float32Array([0,0.5,-0.5,1,-1,2]),R=new Float32Array([0,0.25,-0.25,0,0,0]);const ab=D.encodeWav([L,R],44100);const v=new DataView(ab);
