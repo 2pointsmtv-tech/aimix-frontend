@@ -481,7 +481,17 @@ for the account gate.
 The shared `player` object follows the same iOS rule as the other pages: set
 `playing=false` and null `onended` **before** `stop()`.
 
-8. **In-app help.** Any element with `data-tip` (+ optional `data-tip-title`)
+8. **Mobile landing.** Phones (and small tablets in portrait: `innerWidth<=760`, or
+   short side ≤ 820 px with a coarse pointer) get `#mob` instead of the deck: an
+   inline script right after `<body>` sets `html.mob` before first paint, the
+   overlay sits above the app (the deck still initialises underneath, the tour
+   is skipped). The form posts the email to `/systeme/contact` twice
+   (`extendo-mobile-lead` + `extendo-lead`); the "here's your link" email is a
+   **Systeme automation on the `extendo-mobile-lead` tag**, not sent from here.
+   `localStorage.extendo_mobile_sent` keeps the sent state, `extendo_desktop=1`
+   ("Open the full tool anyway") bypasses the landing.
+
+9. **In-app help.** Any element with `data-tip` (+ optional `data-tip-title`)
    gets a styled hover popover (`#tipBox`, 380 ms delay, never on touch). The
    6-step **tour** (`TOUR[]`, `startTour`, spotlight ring + card) runs once on
    first visit (`localStorage.extendo_tour`) and from the `?` button; Escape /

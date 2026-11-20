@@ -40,6 +40,31 @@ svg.i{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stro
 .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.01em;}
 .logo svg{width:30px;height:22px;}
 .logo small{font-weight:500;font-size:11px;color:var(--t3);margin-left:6px;letter-spacing:0;}
+/* MOBILE: the deck is desktop-only; phones get a landing page that collects the email (html.mob set by the inline script right after <body>) */
+#mob{display:none;position:fixed;inset:0;z-index:500;background:radial-gradient(120% 60% at 50% -10%,#2a1b5e 0%,var(--bg) 55%);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+html.mob #mob{display:block;}html.mob body{overflow:hidden;}
+.mob-in{max-width:460px;margin:0 auto;padding:28px 22px 40px;display:flex;flex-direction:column;gap:18px;}
+.mob-brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.14em;font-size:13px;}
+.mob-brand svg{width:30px;height:22px;}.mob-brand small{display:block;font-weight:500;letter-spacing:.02em;font-size:11px;color:var(--t2);margin-top:2px;}
+.mob-wave{display:flex;align-items:center;gap:2px;height:84px;margin:6px 0 2px;padding:0 2px;border-radius:10px;background:var(--s1);border:1px solid var(--line);overflow:hidden;}
+.mob-wave i{flex:1;border-radius:2px;background:var(--p);min-width:1px;}.mob-wave i.g{background:var(--green);}.mob-wave i.y{background:var(--cC);}.mob-wave i.k{background:var(--fx);}
+.mob-tags{display:flex;gap:6px;font-size:10px;letter-spacing:.08em;color:var(--t2);}.mob-tags span{flex:1;text-align:center;}.mob-tags span.g{color:var(--green);}
+.mob-in h1{font-size:30px;line-height:1.08;letter-spacing:-.02em;margin:6px 0 0;font-weight:800;}
+.mob-in h1 em{font-style:normal;background:linear-gradient(90deg,#c4b5fd,#22c55e);-webkit-background-clip:text;background-clip:text;color:transparent;}
+.mob-lead{font-size:15px;line-height:1.5;color:var(--t2);margin:0;}
+.mob-card{background:var(--s2);border:1px solid var(--line2);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.mob-card b{font-size:15px;}.mob-card p{margin:0;font-size:13.5px;line-height:1.5;color:var(--t2);}
+.mob-card form{display:flex;flex-direction:column;gap:8px;}
+.mob-card input{font:inherit;font-size:16px;padding:14px 14px;border-radius:10px;border:1px solid var(--line2);background:var(--s1);color:var(--t1);outline:none;}
+.mob-card input:focus{border-color:var(--p);box-shadow:0 0 0 3px var(--pg);}
+.mob-card .btn-primary{padding:14px;font-size:15px;border-radius:10px;}
+.mob-ok{font-size:14px;color:var(--green);line-height:1.5;}
+.mob-copy{background:none;border:0;color:var(--t2);font-size:12.5px;text-decoration:underline;text-underline-offset:3px;padding:2px;cursor:pointer;align-self:flex-start;}
+.mob-feats{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.mob-feats li{font-size:12.5px;line-height:1.35;color:var(--t2);padding:10px 12px;border-radius:10px;background:var(--s1);border:1px solid var(--line);}
+.mob-feats li b{display:block;color:var(--t1);font-size:13px;margin-bottom:2px;}
+.mob-social{display:flex;gap:8px;}.mob-social a{flex:1;text-align:center;padding:12px;border-radius:10px;border:1px solid var(--line2);background:var(--s1);color:var(--t1);text-decoration:none;font-weight:600;font-size:13px;}
+.mob-foot{font-size:11.5px;color:var(--t3);text-align:center;line-height:1.7;}.mob-foot a{color:var(--t2);text-decoration:none;}
 @media (max-width:760px){.logo small{display:none;}}
 .navtabs{display:flex;background:var(--s2);border:1px solid var(--line);border-radius:10px;padding:3px;margin:0 auto;}
 .navtabs button{display:flex;align-items:center;gap:8px;background:transparent;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--t2);cursor:pointer;}
@@ -324,6 +349,35 @@ table.lt td.key{color:#67e8f9;font-family:'JetBrains Mono',monospace;}
 </style>
 </head>
 <body>
+<div id="mob">
+  <div class="mob-in">
+    <div class="mob-brand"><svg viewBox="0 0 30 22" fill="none" stroke="#a78bfa" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2 11h5l3-8 4 16 4-12 3 6 3-2h4"/></svg><div>EXTEND THE MIX<small>by 2 Points Sound</small></div></div>
+    <div class="mob-wave" id="mobWave"></div>
+    <div class="mob-tags"><span class="g">+16 BARS</span><span>YOUR SONG</span><span class="g">+16 BARS</span></div>
+    <h1>Turn any song into a <em>DJ‑ready extended mix.</em></h1>
+    <p class="mob-lead">Drop a track. It finds the BPM and the grid, adds tempo-matched drums before and after with transition FX, and gives you a lossless file with your cover art and tags intact. Free.</p>
+    <div class="mob-card">
+      <b>Heads up: this only works on desktop.</b>
+      <p>The whole audio engine runs in your laptop's browser. What's your email? We'll send you the link so next time you're making DJ edits you can come back to it.</p>
+      <form id="mobForm" onsubmit="return mobSend(event)"><input type="email" id="mobEmail" placeholder="you@email.com" autocomplete="email" required><button class="btn btn-primary" id="mobBtn" type="submit">Send me the link</button></form>
+      <div class="mob-ok" id="mobOk" style="display:none">Sent. Check your inbox (promo tab too). See you on the laptop.</div>
+      <button class="mob-copy" type="button" onclick="mobCopy(this)">or copy the link: extendthemix.com</button>
+    </div>
+    <ul class="mob-feats">
+      <li><b>8 drum styles × 4 grooves</b>House, tech, trap, boom bap and more, matched to your tempo.</li>
+      <li><b>Transition FX</b>Risers, snare builds, filter sweeps and reverse cymbals on every drop.</li>
+      <li><b>Melody bed</b>Your song's own hook looped under the intro and outro drums.</li>
+      <li><b>DJ-ready export</b>Lossless AIFF or WAV, cover art, BPM and key, ready for rekordbox or Serato.</li>
+    </ul>
+    <div class="mob-social"><a href="https://open.spotify.com/artist/14yQ0oXuMJ4Fp00AfTqjmw" target="_blank" rel="noopener" onclick="mfb('Lead',{content_name:'extendo_mobile_spotify',content_category:'extendo'})">Spotify</a><a href="https://www.instagram.com/2points_tv/" target="_blank" rel="noopener" onclick="mfb('Lead',{content_name:'extendo_mobile_instagram',content_category:'extendo'})">Instagram</a></div>
+    <div class="mob-foot"><a href="mailto:support@2pointsmusic.com">support@2pointsmusic.com</a> · 2 Points Sound<br><a href="#" onclick="mobDesktop();return false">On a tablet with a keyboard? Open the full tool anyway</a></div>
+  </div>
+</div>
+<script>
+// Decide before first paint: phones (and small tablets in portrait) get the landing page, everything else the deck.
+var MOBILE=(function(){try{if(localStorage.getItem('extendo_desktop')==='1')return false;}catch(e){}var w=Math.min(screen.width,screen.height);return innerWidth<=760||(w<=820&&matchMedia('(pointer:coarse)').matches);})();
+if(MOBILE)document.documentElement.classList.add('mob');
+</script>
 <div class="frame">
 <div class="pane top">
   <div class="logo" title="extendthemix.com"><svg viewBox="0 0 30 22" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="lg" x1="0" x2="1"><stop offset="0" stop-color="#60a5fa"/><stop offset="1" stop-color="#a855f7"/></linearGradient></defs><path stroke="url(#lg)" d="M1 11h4l3-7 4 14 4-11 3 6 3-2h7"/></svg>Extend The Mix <small>by 2 Points Sound</small></div>
@@ -1061,7 +1115,17 @@ function tourShow(){var st=TOUR[tourI],el=document.querySelector(st.sel)||$('dec
     var cw=card.offsetWidth,ch=card.offsetHeight,x=Math.max(12,Math.min(innerWidth-cw-12,r.left+r.width/2-cw/2)),y=r.bottom+14;if(y+ch>innerHeight-12)y=Math.max(12,r.top-ch-14);if(r.height>innerHeight*0.7)y=Math.max(12,innerHeight-ch-24);card.style.left=x+'px';card.style.top=y+'px';},350);}
 document.addEventListener('keydown',function(e){if(tourI<0)return;if(e.code==='Escape')endTour();else if(e.code==='ArrowRight'||e.code==='Enter')tourGo(1);else if(e.code==='ArrowLeft')tourGo(-1);});
 window.addEventListener('resize',function(){if(tourI>=0)tourShow();});
-try{if(localStorage.getItem('extendo_tour')!=='seen')setTimeout(function(){startTour(0);},900);}catch(e){}
+try{if(!MOBILE&&localStorage.getItem('extendo_tour')!=='seen')setTimeout(function(){startTour(0);},900);}catch(e){}
+// ── mobile landing (see #mob): email → Systeme tags extendo-mobile-lead + extendo-lead; the "here's your link" email is a Systeme automation on that tag
+function mobSend(e){e.preventDefault();var em=$('mobEmail').value.trim();if(!em)return false;var b=$('mobBtn');b.disabled=true;b.textContent='Sending…';
+  addLead(em,'','extendo-mobile-lead');addLead(em,'','extendo-lead');mfb('Lead',{content_name:'extendo_mobile_lead',content_category:'extendo'});
+  try{localStorage.setItem('extendo_mobile_sent',em);}catch(x){}
+  setTimeout(function(){$('mobForm').style.display='none';$('mobOk').style.display='';},500);return false;}
+function mobCopy(b){var url='https://extendthemix.com';var done=function(){b.textContent='Copied: extendthemix.com';};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(url).then(done,done);else done();}
+function mobDesktop(){try{localStorage.setItem('extendo_desktop','1');}catch(e){}location.reload();}
+if(MOBILE){(function(){var w=$('mobWave'),n=72,h='';for(var i=0;i<n;i++){var g=i<16||i>=n-16,t=i/n,amp=g?0.35+0.3*Math.abs(Math.sin(i*1.7)):0.45+0.5*Math.abs(Math.sin(i*2.3)+0.4*Math.sin(i*0.7))/1.4,cls=g?'g':(i%11===0?'k':(i%7===0?'y':''));h+='<i class="'+cls+'" style="height:'+Math.round(Math.min(1,amp)*100)+'%"></i>';}w.innerHTML=h;
+  try{if(localStorage.getItem('extendo_mobile_sent')){$('mobForm').style.display='none';$('mobOk').style.display='';}}catch(e){}})();}
+
 function toggleFull(){if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
 function goTab(name,btn){Array.from($('navtabs').children).forEach(function(b){b.classList.toggle('on',b===btn);});var el=name==='deck'?$('deckTop'):$('lower');if(name==='extend')sideTab('ext');if(name==='fx')sideTab('fx');el.scrollIntoView({behavior:'smooth',block:'start'});}
 function sideTab(n){['ext','fx','grid'].forEach(function(k){$('side'+k.charAt(0).toUpperCase()+k.slice(1)).style.display=k===n?'':'none';$('st'+k.charAt(0).toUpperCase()+k.slice(1)).classList.toggle('on',k===n);});}
