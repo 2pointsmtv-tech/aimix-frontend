@@ -412,7 +412,10 @@ for the account gate.
 3. `build()` mixes the song in with a single integer sample `shift`
    (sample-exact), loudness-matches drums to the song's 85th-percentile RMS
    (−1.5 dB), soft-clips only above 0.95, and `download()` encodes 16-bit WAV.
-4. Deck UI: one `player` + `view` (`'src'` = **Deck A** original with
+4. Deck UI, **styled after rekordbox** (grey tokens in `:root`, flat 2–3 px corners, black
+   waveform areas, blue `--sel` only for selection, round CUE + play buttons on the
+   left, library columns # / Preview / Artwork / Track Title / Artist / Album /
+   Genre / BPM / Key / Time / Status): one `player` + `view` (`'src'` = **Deck A** original with
    metronome click, `'ext'` = **Deck B** extended result). `lib[]` holds every
    loaded track (`loadFiles` → `processQueue` analyses them one at a time;
    `selectTrack` makes one the `song`; each track keeps its own `result`,

@@ -35,7 +35,7 @@ let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
   console.log('grid:',JSON.stringify(g));
   ok(Math.abs(g.bpm-128.4)<0.03,'page detected 128.4 BPM ('+g.bpm.toFixed(3)+')');
   ok(Math.abs(g.firstDB-0.9)<0.006,'first downbeat at 0.9 s ('+g.firstDB.toFixed(4)+')');
-  const tg=await page.evaluate(()=>({title:song.title,artist:song.artist,art:!!document.querySelector('#art img'),row:!!document.querySelector('#libBody .ti img'),deck:document.getElementById('dTitle').textContent}));
+  const tg=await page.evaluate(()=>({title:song.title,artist:song.artist,art:!!document.querySelector('#art img'),row:!!document.querySelector('#libBody .aw img'),deck:document.getElementById('dTitle').textContent}));
   ok(tg.title==='Test Song'&&tg.artist==='2 Points'&&tg.art&&tg.row&&tg.deck==='Test Song','tags read from the file: title, artist and cover shown on the deck and in the library');
   ok(Math.abs(g.sStart-(0.9-60/128.4))<0.02,'audible start = 1-beat pickup');
   // every style previews without throwing
