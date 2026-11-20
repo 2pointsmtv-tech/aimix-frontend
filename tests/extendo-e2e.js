@@ -69,6 +69,11 @@ let fails=0;const ok=(c,m)=>{console.log((c?'PASS ':'FAIL ')+m);if(!c)fails++;};
   ok(cur==='ew-resize'&&ghost==='outro'&&Math.abs(ob.after-od.after-od.bar)<1e-6,'dragging the outro line one bar left (cursor ew-resize, ghost shown) moved it one bar earlier and rebuilt');
   await page.evaluate(async()=>{setOutroStart(null);await new Promise(r=>setTimeout(r,100));while(busy)await new Promise(r=>setTimeout(r,50));});
   ok(await page.evaluate((b)=>Math.abs(result.tl.lastDBT-b)<1e-6&&result.tl.songCutT===null,ob.before),'Outro auto restores the detected last bar line');
+  // click on Deck B: a click buffer on the result's grid, high click on bar lines (dropT ± n bars), nothing between beats
+  const ck=await page.evaluate(()=>{setView('ext');document.getElementById('clickChk').checked=true;const b=buffersFor();if(b.length!==2)return {n:b.length};const d=b[1].getChannelData(0),sr=b[1].sampleRate,tl=result.tl;
+    const pk=(t)=>{let m=0;const a=Math.max(0,Math.floor(t*sr)),z=Math.min(d.length,a+Math.floor(sr*0.03));for(let i=a;i<z;i++)m=Math.max(m,Math.abs(d[i]));return m;};
+    return {n:2,drop:pk(tl.dropT),introStart:pk(tl.dropT-16*tl.bar),beat2:pk(tl.dropT+tl.beat),between:pk(tl.dropT+0.5*tl.beat),outro:pk(tl.lastDBT)};});
+  ok(ck.n===2&&ck.drop>0.5&&ck.introStart>0.5&&ck.beat2>0.3&&ck.beat2<0.5&&ck.between<0.01&&ck.outro>0.5,'Deck B click: high click on the drop, the intro start and the outro start, low click on beat 2, silence between beats ('+JSON.stringify(ck)+')');
   // shuffle grooves → different groove for the selected styles and an automatic rebuild
   const sh=await page.evaluate(async()=>{const before={...opt.groove},id=result.id;shuffleGrooves(false);await new Promise(r=>setTimeout(r,50));while(busy)await new Promise(r=>setTimeout(r,50));return {before,after:{...opt.groove},rebuilt:result.id!==id,meta:document.getElementById('resultMeta').textContent};});
   ok(opt_changed(sh)&&sh.rebuilt,'shuffle picked new grooves ('+JSON.stringify(sh.after)+') and rebuilt: '+sh.meta);

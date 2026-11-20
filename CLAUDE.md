@@ -419,8 +419,9 @@ for the account gate.
 4. Deck UI, **styled after rekordbox** (grey tokens in `:root`, flat 2–3 px corners, black
    waveform areas, blue `--sel` only for selection, round CUE + play buttons on the
    left, library columns # / Preview / Artwork / Track Title / Artist / Album /
-   Genre / BPM / Key / Time / Status): one `player` + `view` (`'src'` = **Deck A** original with
-   metronome click, `'ext'` = **Deck B** extended result). `lib[]` holds every
+   Genre / BPM / Key / Time / Status): one `player` + `view` (`'src'` = **Deck A** original, `'ext'` = **Deck B** extended result; the
+   metronome click (`makeClick`, cached as `song.click` / `result.click`) runs
+   on both, on the song's grid or on the result's bar lines at `dropT`). `lib[]` holds every
    loaded track (`loadFiles` → `processQueue` analyses them one at a time;
    `selectTrack` makes one the `song`; each track keeps its own `result`,
    `firstDBOverride` and `counted`). `detectKey` (Krumhansl chroma → Camelot)
